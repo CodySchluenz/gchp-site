@@ -133,3 +133,53 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
 
   return appId;
 }
+
+export type ApplicationListRow = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  city_name: string;
+  submitted_at: string;
+  status: string;
+  may_not_be_eligible: number;
+  pu_number: number | null;
+};
+
+export async function listApplications(
+  db: D1Database,
+  seasonYear: number,
+  status: 'all' | 'new' | 'approved' | 'denied',
+  search: string,
+): Promise<ApplicationListRow[]> {
+  const like = `%${search.trim().toLowerCase()}%`;
+  const cols = `a.id, a.first_name, a.last_name, c.name AS city_name, a.submitted_at,
+                a.status, a.may_not_be_eligible, a.pu_number`;
+  // The name filter is a no-op when the search box is empty (like === '%%').
+  const nameFilter = `(? = '%%' OR lower(a.first_name) LIKE ? OR lower(a.last_name) LIKE ?)`;
+  const order = `ORDER BY a.submitted_at DESC, a.id DESC`;
+
+  const stmt =
+    status === 'all'
+      ? db
+          .prepare(
+            `SELECT ${cols} FROM applications a JOIN cities c ON c.id = a.city_id
+             WHERE a.deleted_at IS NULL AND a.season_year = ? AND ${nameFilter} ${order}`,
+          )
+          .bind(seasonYear, like, like, like)
+      : db
+          .prepare(
+            `SELECT ${cols} FROM applications a JOIN cities c ON c.id = a.city_id
+             WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = ? AND ${nameFilter} ${order}`,
+          )
+          .bind(seasonYear, status, like, like, like);
+
+  const { results } = await stmt.all<ApplicationListRow>();
+  return results;
+}
+
+export async function listSeasons(db: D1Database): Promise<number[]> {
+  const { results } = await db
+    .prepare('SELECT DISTINCT season_year FROM applications WHERE deleted_at IS NULL ORDER BY season_year DESC')
+    .all<{ season_year: number }>();
+  return results.map((r) => r.season_year);
+}
