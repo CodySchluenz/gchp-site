@@ -286,3 +286,43 @@ export async function updateApplicationCore(db: D1Database, id: number, f: Appli
     )
     .run();
 }
+
+export type ExportRow = {
+  pu_number: number | null;
+  status: string;
+  submitted_at: string;
+  first_name: string;
+  last_name: string;
+  address: string;
+  city_name: string;
+  phone: string;
+  email: string;
+  household_type: string;
+  may_not_be_eligible: number;
+  bags_count: number | null;
+  member_summary: string;
+};
+
+export async function listApplicationsForExport(
+  db: D1Database,
+  seasonYear: number,
+  status: 'all' | 'new' | 'approved' | 'denied',
+): Promise<ExportRow[]> {
+  const statusFilter = status === 'all' ? '' : 'AND a.status = ?2';
+  const sql = `
+    SELECT a.pu_number, a.status, a.submitted_at, a.first_name, a.last_name, a.address,
+           c.name AS city_name, a.phone, a.email, a.household_type, a.may_not_be_eligible, a.bags_count,
+           COALESCE(GROUP_CONCAT(m.name || ' (' || m.age || ')', '; '), '') AS member_summary
+    FROM applications a
+    JOIN cities c ON c.id = a.city_id
+    LEFT JOIN household_members m ON m.application_id = a.id
+    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter}
+    GROUP BY a.id
+    ORDER BY a.submitted_at DESC, a.id DESC`;
+  const stmt =
+    status === 'all'
+      ? db.prepare(sql).bind(seasonYear)
+      : db.prepare(sql).bind(seasonYear, status);
+  const { results } = await stmt.all<ExportRow>();
+  return results;
+}
