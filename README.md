@@ -26,6 +26,25 @@ Submitted test applications land in the `applications` table:
 
     npx wrangler d1 execute gchp --local --command "SELECT id, first_name, status FROM applications"
 
+### Working on the admin console
+
+The admin is at `/admin`. To sign in locally you need an allow-listed email and a way to
+receive the magic link. Two options:
+
+1. **Add your email to the allow-list** and read the link from the dev server log (email
+   sending fails without a real Resend key, but the link is built and the token row is created):
+
+       npx wrangler d1 execute gchp --local --command "INSERT OR IGNORE INTO admin_emails (email) VALUES ('you@example.com')"
+
+   Then request a link at http://localhost:4321/admin and check the token in the database.
+
+2. **Create a session row directly** (fastest for iterating on admin pages). Generate a random
+   id, store its SHA-256 hash in `sessions`, and send the raw id as the `admin_session` cookie.
+   See `.superpowers/sdd` verification notes, or use the browser after a real magic-link round trip.
+
+The applications workflow lives under `/admin/applications`. Test rows must be deleted
+children-first (`household_members`, `employers`, then `applications`) because of foreign keys.
+
 ## Production setup (one time)
 
 1. **Create the database:** `npx wrangler d1 create gchp` — paste the printed
