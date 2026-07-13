@@ -83,7 +83,7 @@ const exportHref = `/admin/applications/export.csv?season=${season}&status=${sta
       <button type="submit" class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">Go</button>
     </form>
     <a href={exportHref} class="rounded bg-berry-700 px-4 py-2 font-bold text-white hover:bg-berry-800">Download list for Excel</a>
-    <button type="button" onclick="window.print()" class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">Print this list</button>
+    <button type="button" data-print class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">Print this list</button>
     <a href={`/admin/applications/slips?season=${season}`} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">Print all approved slips</a>
   </div>
 
@@ -116,6 +116,8 @@ const exportHref = `/admin/applications/export.csv?season=${season}&status=${sta
       ))}
     </tbody>
   </table>
+
+  <script src="/scripts/print-button.js" defer></script>
 </Admin>
 
 <style>

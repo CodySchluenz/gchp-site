@@ -336,13 +336,16 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
     )
     .bind(seasonYear)
     .all<Record<string, unknown>>();
-  const out: ApplicationDetail[] = [];
-  for (const app of apps.results) {
-    const id = app.id as number;
-    const city = await db.prepare('SELECT name FROM cities WHERE id = ?').bind(app.city_id as number).first<{ name: string }>();
-    const members = await db.prepare('SELECT * FROM household_members WHERE application_id = ? ORDER BY position').bind(id).all<Record<string, unknown>>();
-    const employers = await db.prepare('SELECT * FROM employers WHERE application_id = ? ORDER BY id').bind(id).all<Record<string, unknown>>();
-    out.push({ app, city_name: city?.name ?? '', members: members.results, employers: employers.results });
-  }
+  const out = await Promise.all(
+    apps.results.map(async (app) => {
+      const id = app.id as number;
+      const [city, members, employers] = await Promise.all([
+        db.prepare('SELECT name FROM cities WHERE id = ?').bind(app.city_id as number).first<{ name: string }>(),
+        db.prepare('SELECT * FROM household_members WHERE application_id = ? ORDER BY position').bind(id).all<Record<string, unknown>>(),
+        db.prepare('SELECT * FROM employers WHERE application_id = ? ORDER BY id').bind(id).all<Record<string, unknown>>(),
+      ]);
+      return { app, city_name: city?.name ?? '', members: members.results, employers: employers.results };
+    }),
+  );
   return out;
 }

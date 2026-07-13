@@ -11,10 +11,14 @@ const detail = Number.isInteger(id) ? await getApplicationDetail(Astro.locals.ru
   <body style="margin:16px;font-family:Georgia,serif;">
     {detail ? (
       <>
-        <p class="no-print"><a href={`/admin/applications/${id}`}>&larr; Back</a> · <button type="button" onclick="window.print()">Print this slip</button></p>
+        <div class="no-print">
+          <h1 style="font-size:20px;margin:0 0 8px;">Pickup slip</h1>
+          <p><a href={`/admin/applications/${id}`}>&larr; Back</a> · <button type="button" data-print>Print this slip</button></p>
+        </div>
         <SlipCard detail={detail} />
       </>
     ) : <p>That application could not be found.</p>}
     <style>@media print { .no-print { display: none; } }</style>
+    <script src="/scripts/print-button.js" defer></script>
   </body>
 </html>
