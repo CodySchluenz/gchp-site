@@ -243,11 +243,11 @@ const errorEntries = Object.entries(errors);
               <input type="checkbox" name="diabetic" checked={(values.diabetic ?? '') === 'on'} class="mt-1 h-6 w-6" />
               <span>Someone in my household is diabetic</span>
             </label>
-            <fieldset>
-              <legend id="permanently_disabled" class="font-semibold">Is anyone in your household permanently disabled?</legend>
+            <fieldset id="permanently_disabled" tabindex="-1">
+              <legend class="font-semibold">Is anyone in your household permanently disabled?</legend>
               <div class="mt-1 flex gap-6">
-                <label class="flex items-center gap-2"><input type="radio" name="permanently_disabled" value="yes" checked={(values.permanently_disabled ?? '') === 'yes'} class="h-6 w-6" /> Yes</label>
-                <label class="flex items-center gap-2"><input type="radio" name="permanently_disabled" value="no" checked={(values.permanently_disabled ?? '') === 'no'} class="h-6 w-6" /> No</label>
+                <label class="flex items-center gap-2"><input type="radio" name="permanently_disabled" value="yes" checked={(values.permanently_disabled ?? '') === 'yes'} aria-invalid={errors.permanently_disabled ? 'true' : undefined} aria-describedby={errors.permanently_disabled ? 'permanently_disabled-error' : undefined} class="h-6 w-6" /> Yes</label>
+                <label class="flex items-center gap-2"><input type="radio" name="permanently_disabled" value="no" checked={(values.permanently_disabled ?? '') === 'no'} aria-invalid={errors.permanently_disabled ? 'true' : undefined} aria-describedby={errors.permanently_disabled ? 'permanently_disabled-error' : undefined} class="h-6 w-6" /> No</label>
               </div>
               <FieldError id="permanently_disabled" errors={errors} />
             </fieldset>
@@ -274,11 +274,11 @@ const errorEntries = Object.entries(errors);
                 class="mt-1 w-24 rounded border-2 border-stone-400 bg-white p-3" />
               <FieldError id="years_received_help" errors={errors} />
             </div>
-            <fieldset>
-              <legend id="adopted_last_year" class="font-semibold">Were you sponsored ("adopted") last year?</legend>
+            <fieldset id="adopted_last_year" tabindex="-1">
+              <legend class="font-semibold">Were you sponsored ("adopted") last year?</legend>
               <div class="mt-1 flex gap-6">
-                <label class="flex items-center gap-2"><input type="radio" name="adopted_last_year" value="yes" checked={(values.adopted_last_year ?? '') === 'yes'} class="h-6 w-6" /> Yes</label>
-                <label class="flex items-center gap-2"><input type="radio" name="adopted_last_year" value="no" checked={(values.adopted_last_year ?? '') === 'no'} class="h-6 w-6" /> No</label>
+                <label class="flex items-center gap-2"><input type="radio" name="adopted_last_year" value="yes" checked={(values.adopted_last_year ?? '') === 'yes'} aria-invalid={errors.adopted_last_year ? 'true' : undefined} aria-describedby={errors.adopted_last_year ? 'adopted_last_year-error' : undefined} class="h-6 w-6" /> Yes</label>
+                <label class="flex items-center gap-2"><input type="radio" name="adopted_last_year" value="no" checked={(values.adopted_last_year ?? '') === 'no'} aria-invalid={errors.adopted_last_year ? 'true' : undefined} aria-describedby={errors.adopted_last_year ? 'adopted_last_year-error' : undefined} class="h-6 w-6" /> No</label>
               </div>
               <FieldError id="adopted_last_year" errors={errors} />
             </fieldset>
@@ -287,8 +287,8 @@ const errorEntries = Object.entries(errors);
 
         <section aria-labelledby="s-bedding">
           <h2 id="s-bedding" class="text-2xl font-bold text-holly-800">Bedding</h2>
-          <fieldset class="mt-4">
-            <legend id="bed_choice" class="font-semibold">Would you like sheets or a blanket?</legend>
+          <fieldset class="mt-4" id="bed_choice" tabindex="-1">
+            <legend class="font-semibold">Would you like sheets or a blanket?</legend>
             <div class="mt-2 grid gap-3 sm:grid-cols-3">
               {[
                 { value: 'sheets', label: 'Sheets' },
@@ -296,7 +296,7 @@ const errorEntries = Object.entries(errors);
                 { value: 'none', label: 'No thank you' },
               ].map((c) => (
                 <label class="flex cursor-pointer items-center justify-center gap-3 rounded-lg border-2 border-stone-400 bg-white p-4 font-bold has-[:checked]:border-holly-700 has-[:checked]:bg-holly-100">
-                  <input type="radio" name="bed_choice" value={c.value} checked={(values.bed_choice ?? '') === c.value} class="h-6 w-6" />
+                  <input type="radio" name="bed_choice" value={c.value} checked={(values.bed_choice ?? '') === c.value} aria-invalid={errors.bed_choice ? 'true' : undefined} aria-describedby={errors.bed_choice ? 'bed_choice-error' : undefined} class="h-6 w-6" />
                   {c.label}
                 </label>
               ))}

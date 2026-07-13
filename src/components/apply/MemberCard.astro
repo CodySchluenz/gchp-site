@@ -31,11 +31,11 @@ const sizes = [
         aria-invalid={inv(`member_relationship_${i}`)} aria-describedby={desc(`member_relationship_${i}`)} class={input} />
       <FieldError id={`member_relationship_${i}`} errors={errors} />
     </div>
-    <fieldset>
-      <legend id={`member_sex_${i}`} class="font-semibold">Sex</legend>
+    <fieldset id={`member_sex_${i}`} tabindex="-1">
+      <legend class="font-semibold">Sex</legend>
       <div class="mt-1 flex gap-6">
-        <label class="flex items-center gap-2"><input type="radio" name={`member_sex_${i}`} value="M" checked={v(`member_sex_${i}`) === 'M'} class="h-6 w-6" /> Male</label>
-        <label class="flex items-center gap-2"><input type="radio" name={`member_sex_${i}`} value="F" checked={v(`member_sex_${i}`) === 'F'} class="h-6 w-6" /> Female</label>
+        <label class="flex items-center gap-2"><input type="radio" name={`member_sex_${i}`} value="M" checked={v(`member_sex_${i}`) === 'M'} aria-invalid={inv(`member_sex_${i}`)} aria-describedby={desc(`member_sex_${i}`)} class="h-6 w-6" /> Male</label>
+        <label class="flex items-center gap-2"><input type="radio" name={`member_sex_${i}`} value="F" checked={v(`member_sex_${i}`) === 'F'} aria-invalid={inv(`member_sex_${i}`)} aria-describedby={desc(`member_sex_${i}`)} class="h-6 w-6" /> Female</label>
       </div>
       <FieldError id={`member_sex_${i}`} errors={errors} />
     </fieldset>
