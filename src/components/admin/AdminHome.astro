@@ -5,6 +5,7 @@ const { email } = Astro.props;
 const settings = await getSettings(Astro.locals.runtime.env.DB);
 const open = settings.applications_open === 1;
 ---
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -42,7 +43,7 @@ const open = settings.applications_open === 1;
         </a>
       </div>
 
-      <p class="mt-8 text-base text-stone-600">More sections (news, pickup schedule, donors) are coming soon.</p>
+      <p class="mt-8 text-lg text-stone-600">More sections (news, pickup schedule, donors) are coming soon.</p>
     </main>
   </body>
 </html>
