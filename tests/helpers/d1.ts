@@ -9,7 +9,7 @@ export async function getTestDb(): Promise<{ db: D1Database; dispose: () => Prom
   const proxy = await getPlatformProxy<Env>({ persist: false });
   const db = proxy.env.DB;
   const sql = readFileSync('migrations/0001_init.sql', 'utf8');
-  for (const stmt of sql.split(';').map((s) => s.trim()).filter(Boolean)) {
+  for (const stmt of sql.split(';').map((s: string) => s.trim()).filter(Boolean)) {
     await db.prepare(stmt).run();
   }
   await db.prepare("INSERT INTO cities (id, name, zip) VALUES (13, 'Lancaster', '53813')").run();
