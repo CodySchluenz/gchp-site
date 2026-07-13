@@ -1,0 +1,5 @@
+---
+interface Props { id: string; errors: Record<string, string> }
+const { id, errors } = Astro.props;
+---
+{errors[id] && <p id={`${id}-error`} class="mt-1 font-semibold text-berry-800">{errors[id]}</p>}

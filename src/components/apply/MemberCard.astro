@@ -1,0 +1,62 @@
+---
+import FieldError from './FieldError.astro';
+interface Props { index: number | string; values: Record<string, string>; errors: Record<string, string> }
+const { index: i, values, errors } = Astro.props;
+const v = (n: string) => values[n] ?? '';
+const inv = (n: string) => (errors[n] ? 'true' : undefined);
+const desc = (n: string) => (errors[n] ? `${n}-error` : undefined);
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3';
+const sizes = [
+  { field: `member_pants_${i}`, label: 'Pants size' },
+  { field: `member_shirt_${i}`, label: 'Shirt/top size' },
+  { field: `member_underwear_${i}`, label: 'Underwear size' },
+  { field: `member_socks_${i}`, label: 'Socks size' },
+  { field: `member_diapers_${i}`, label: 'Diapers size' },
+];
+---
+<fieldset class="mt-4 rounded border-2 border-stone-300 bg-white p-4">
+  <legend class="px-2 font-bold">Person {i}{i === 1 || i === '1' ? ' — you' : ''}</legend>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <label for={`member_name_${i}`} class="block font-semibold">First and last name</label>
+      <input type="text" id={`member_name_${i}`} name={`member_name_${i}`} value={v(`member_name_${i}`)}
+        aria-invalid={inv(`member_name_${i}`)} aria-describedby={desc(`member_name_${i}`)} class={input} />
+      <FieldError id={`member_name_${i}`} errors={errors} />
+    </div>
+    <div>
+      <label for={`member_relationship_${i}`} class="block font-semibold">
+        How are they related to you? <span class="font-normal">(write "self" for yourself)</span>
+      </label>
+      <input type="text" id={`member_relationship_${i}`} name={`member_relationship_${i}`} value={v(`member_relationship_${i}`)}
+        aria-invalid={inv(`member_relationship_${i}`)} aria-describedby={desc(`member_relationship_${i}`)} class={input} />
+      <FieldError id={`member_relationship_${i}`} errors={errors} />
+    </div>
+    <fieldset>
+      <legend id={`member_sex_${i}`} class="font-semibold">Sex</legend>
+      <div class="mt-1 flex gap-6">
+        <label class="flex items-center gap-2"><input type="radio" name={`member_sex_${i}`} value="M" checked={v(`member_sex_${i}`) === 'M'} class="h-6 w-6" /> Male</label>
+        <label class="flex items-center gap-2"><input type="radio" name={`member_sex_${i}`} value="F" checked={v(`member_sex_${i}`) === 'F'} class="h-6 w-6" /> Female</label>
+      </div>
+      <FieldError id={`member_sex_${i}`} errors={errors} />
+    </fieldset>
+    <div>
+      <label for={`member_age_${i}`} class="block font-semibold">Age</label>
+      <input type="text" inputmode="numeric" id={`member_age_${i}`} name={`member_age_${i}`} value={v(`member_age_${i}`)}
+        aria-invalid={inv(`member_age_${i}`)} aria-describedby={desc(`member_age_${i}`)} class="mt-1 w-24 rounded border-2 border-stone-400 bg-white p-3" />
+      <FieldError id={`member_age_${i}`} errors={errors} />
+    </div>
+  </div>
+  <p class="mt-4 font-semibold">Clothing sizes <span class="font-normal">(leave blank anything they don't need)</span></p>
+  <div class="mt-1 grid gap-4 sm:grid-cols-3">
+    {sizes.map((s) => (
+      <div>
+        <label for={s.field} class="block">{s.label}</label>
+        <input type="text" id={s.field} name={s.field} value={v(s.field)} class={input} />
+      </div>
+    ))}
+  </div>
+  <div class="mt-4">
+    <label for={`member_gifts_${i}`} class="block font-semibold">Gifts or toys they'd like</label>
+    <textarea id={`member_gifts_${i}`} name={`member_gifts_${i}`} rows="3" class={input}>{v(`member_gifts_${i}`)}</textarea>
+  </div>
+</fieldset>

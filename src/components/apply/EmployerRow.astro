@@ -1,0 +1,38 @@
+---
+import FieldError from './FieldError.astro';
+interface Props { index: number | string; values: Record<string, string>; errors: Record<string, string> }
+const { index: i, values, errors } = Astro.props;
+const v = (n: string) => values[n] ?? '';
+const inv = (n: string) => (errors[n] ? 'true' : undefined);
+const desc = (n: string) => (errors[n] ? `${n}-error` : undefined);
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3';
+---
+<fieldset class="mt-4 rounded border-2 border-stone-300 bg-white p-4">
+  <legend class="px-2 font-bold">Job {i}</legend>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <label for={`employer_name_${i}`} class="block font-semibold">Employer's name</label>
+      <input type="text" id={`employer_name_${i}`} name={`employer_name_${i}`} value={v(`employer_name_${i}`)}
+        aria-invalid={inv(`employer_name_${i}`)} aria-describedby={desc(`employer_name_${i}`)} class={input} />
+      <FieldError id={`employer_name_${i}`} errors={errors} />
+    </div>
+    <div>
+      <label for={`worker_name_${i}`} class="block font-semibold">Who works this job?</label>
+      <input type="text" id={`worker_name_${i}`} name={`worker_name_${i}`} value={v(`worker_name_${i}`)}
+        aria-invalid={inv(`worker_name_${i}`)} aria-describedby={desc(`worker_name_${i}`)} class={input} />
+      <FieldError id={`worker_name_${i}`} errors={errors} />
+    </div>
+    <div>
+      <label for={`hourly_wage_${i}`} class="block font-semibold">Hourly wage (dollars)</label>
+      <input type="text" inputmode="decimal" id={`hourly_wage_${i}`} name={`hourly_wage_${i}`} value={v(`hourly_wage_${i}`)}
+        aria-invalid={inv(`hourly_wage_${i}`)} aria-describedby={desc(`hourly_wage_${i}`)} class={input} />
+      <FieldError id={`hourly_wage_${i}`} errors={errors} />
+    </div>
+    <div>
+      <label for={`hours_per_week_${i}`} class="block font-semibold">Hours worked per week</label>
+      <input type="text" inputmode="decimal" id={`hours_per_week_${i}`} name={`hours_per_week_${i}`} value={v(`hours_per_week_${i}`)}
+        aria-invalid={inv(`hours_per_week_${i}`)} aria-describedby={desc(`hours_per_week_${i}`)} class={input} />
+      <FieldError id={`hours_per_week_${i}`} errors={errors} />
+    </div>
+  </div>
+</fieldset>
