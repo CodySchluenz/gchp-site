@@ -8,6 +8,13 @@ import FieldError from '../components/apply/FieldError.astro';
 import { getSettings, listCities } from '../lib/db';
 import { newCsrfCookieValue, csrfTokenFor } from '../lib/csrf';
 import { MAX_MEMBERS, MAX_EMPLOYERS } from '../lib/validation/application';
+import { validateApplication } from '../lib/validation/application';
+import { mayNotBeEligible, suggestHouseholdType } from '../lib/eligibility';
+import { insertApplication } from '../lib/db';
+import { renderApplicationReceivedEmail } from '../lib/email/render';
+import { sendEmail } from '../lib/email/send';
+import { verifyCsrf } from '../lib/csrf';
+import { allowRequest, D1RateStore } from '../lib/rate-limit';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -21,7 +28,73 @@ let errors: Record<string, string> = {};
 let retryNote = '';
 let rateNote = '';
 
-// Task 10 fills in POST handling here.
+if (Astro.request.method === 'POST' && open) {
+  const form = await Astro.request.formData();
+  values = Object.fromEntries(
+    [...form.entries()].filter((e): e is [string, string] => typeof e[1] === 'string'),
+  );
+  const action = values.action ?? '';
+
+  if (action === 'add_member' || action === 'add_employer') {
+    // Just grow the form — no validation, nothing lost, nothing saved.
+    const key = action === 'add_member' ? 'member_count' : 'employer_count';
+    const max = action === 'add_member' ? MAX_MEMBERS : MAX_EMPLOYERS;
+    values[key] = String(Math.min((Number(values[key]) || 1) + 1, max));
+  } else if ((values.website ?? '').trim() !== '') {
+    // Honeypot: the ONLY fake-success path (binding note: humans never get one).
+    return Astro.redirect('/apply/thank-you', 303);
+  } else {
+    const okCsrf = await verifyCsrf(
+      env.CSRF_SECRET,
+      Astro.cookies.get('csrf')?.value ?? '',
+      values.csrf_token ?? '',
+    );
+    const result = validateApplication(values);
+
+    if (!okCsrf) {
+      // Never discard an application over a stale token (binding note).
+      retryNote =
+        'Sorry — this page had been open a while, so we gave it a quick safety refresh. Everything you typed is still here. Please press "Send my application" once more.';
+    } else if (result.ok && result.spam) {
+      return Astro.redirect('/apply/thank-you', 303);
+    } else if (result.ok) {
+      // Only valid submissions consume the rate budget.
+      const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown';
+      const okRate = await allowRequest(
+        new D1RateStore(env.DB),
+        `apply:${ip}`,
+        5,
+        60 * 60_000,
+        Date.now(),
+      );
+      if (!okRate) {
+        // Never silently drop a valid application (binding note): keep their
+        // typing on screen and tell them plainly what to do.
+        rateNote =
+          "We've received quite a few applications from this connection just now, so we've paused it briefly. Nothing you typed is lost — please wait a little while and press \"Send my application\" again, or call us at 608-723-2136 ext 1194.";
+      } else {
+        const submittedAt = new Date().toISOString();
+        const appRecord = {
+          ...result.clean,
+          seasonYear: new Date().getFullYear(),
+          submittedAt,
+          mayNotBeEligible: mayNotBeEligible(result.clean),
+          householdType: suggestHouseholdType(result.clean),
+        };
+        await insertApplication(env.DB, appRecord);
+        // Email failure never blocks a saved application (spec §3).
+        await sendEmail(
+          env,
+          result.clean.email,
+          renderApplicationReceivedEmail(result.clean.firstName),
+        );
+        return Astro.redirect('/apply/thank-you', 303);
+      }
+    } else {
+      errors = result.errors;
+    }
+  }
+}
 
 const memberCount = Math.min(Math.max(Number(values.member_count) || 1, 1), MAX_MEMBERS);
 const employerCount = Math.min(Math.max(Number(values.employer_count) || 1, 1), MAX_EMPLOYERS);
