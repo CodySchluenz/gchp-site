@@ -65,7 +65,7 @@ export function validateAbout(input: ApplicationInput, errors: Errors): AboutCle
     if (emailConfirm === '') {
       errors.email_confirm = "Please type your email address again so we can be sure it’s right.";
     } else if (emailConfirm !== email) {
-      errors.email_confirm = "These two email addresses don't match — please check them.";
+      errors.email_confirm = "These two email addresses don’t match — please check them.";
     }
   }
 
@@ -178,7 +178,7 @@ export function validateEmployment(
     const hoursRaw = get(input, `hours_per_week_${i}`);
     if (name === '' && worker === '' && wageRaw === '' && hoursRaw === '') continue; // blank row: skip
 
-    if (name === '') errors[`employer_name_${i}`] = "Please tell us the employer's name.";
+    if (name === '') errors[`employer_name_${i}`] = "Please tell us the employer’s name.";
     if (worker === '') errors[`worker_name_${i}`] = 'Please tell us who works this job.';
     const wage = parseMoney(wageRaw);
     if (wage === null)
@@ -204,7 +204,7 @@ export function validateEmployment(
 
   if (noEmployment && (employers.length > 0 || rowErrors)) {
     errors.no_employment =
-      "You've checked \"no one is employed\" but also listed a job — please clear one or the other.";
+      "You’ve checked \"no one is employed\" but also listed a job — please clear one or the other.";
     return null;
   }
   if (!noEmployment && employers.length === 0 && !rowErrors) {
@@ -253,7 +253,7 @@ export function validateBenefits(input: ApplicationInput, errors: Errors): Benef
       amount = null;
     } else if (amountRaw === '') {
       errors[`${key}_amount`] =
-        "Please enter an amount, or check the box that says you don't receive this.";
+        "Please enter an amount, or check the box that says you don’t receive this.";
       failed = true;
     } else {
       const parsed = parseMoney(amountRaw);
@@ -325,9 +325,9 @@ export function validateMembers(input: ApplicationInput, errors: Errors): Member
       Object.values(sizes).every((s) => s === '') && gifts === '';
     if (allBlank && i > 1) continue; // blank extra card: skip
 
-    if (name === '') errors[`member_name_${i}`] = "Please give this person's first and last name.";
+    if (name === '') errors[`member_name_${i}`] = "Please give this person’s first and last name.";
     if (relationship === '')
-      errors[`member_relationship_${i}`] = "Please tell us how they're related to you (write \"self\" for yourself).";
+      errors[`member_relationship_${i}`] = "Please tell us how they’re related to you (write \"self\" for yourself).";
     if (sex !== 'M' && sex !== 'F') errors[`member_sex_${i}`] = 'Please pick one.';
     const age = parseIntInRange(ageRaw, 0, 110);
     if (age === null) errors[`member_age_${i}`] = 'Please enter their age as a number.';
