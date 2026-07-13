@@ -326,3 +326,23 @@ export async function listApplicationsForExport(
   const { results } = await stmt.all<ExportRow>();
   return results;
 }
+
+export async function listApprovedForSlips(db: D1Database, seasonYear: number): Promise<ApplicationDetail[]> {
+  const apps = await db
+    .prepare(
+      `SELECT * FROM applications
+       WHERE deleted_at IS NULL AND season_year = ? AND status = 'approved'
+       ORDER BY pu_number IS NULL, pu_number, id`,
+    )
+    .bind(seasonYear)
+    .all<Record<string, unknown>>();
+  const out: ApplicationDetail[] = [];
+  for (const app of apps.results) {
+    const id = app.id as number;
+    const city = await db.prepare('SELECT name FROM cities WHERE id = ?').bind(app.city_id as number).first<{ name: string }>();
+    const members = await db.prepare('SELECT * FROM household_members WHERE application_id = ? ORDER BY position').bind(id).all<Record<string, unknown>>();
+    const employers = await db.prepare('SELECT * FROM employers WHERE application_id = ? ORDER BY id').bind(id).all<Record<string, unknown>>();
+    out.push({ app, city_name: city?.name ?? '', members: members.results, employers: employers.results });
+  }
+  return out;
+}

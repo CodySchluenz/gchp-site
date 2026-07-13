@@ -1,0 +1,20 @@
+---
+import SlipCard from '../../../../components/admin/SlipCard.astro';
+import { getApplicationDetail } from '../../../../lib/db';
+export const prerender = false;
+const id = Number(Astro.params.id);
+const detail = Number.isInteger(id) ? await getApplicationDetail(Astro.locals.runtime.env.DB, id) : null;
+---
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Pickup slip</title></head>
+  <body style="margin:16px;font-family:Georgia,serif;">
+    {detail ? (
+      <>
+        <p class="no-print"><a href={`/admin/applications/${id}`}>&larr; Back</a> · <button type="button" onclick="window.print()">Print this slip</button></p>
+        <SlipCard detail={detail} />
+      </>
+    ) : <p>That application could not be found.</p>}
+    <style>@media print { .no-print { display: none; } }</style>
+  </body>
+</html>

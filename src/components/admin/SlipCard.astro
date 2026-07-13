@@ -1,0 +1,40 @@
+---
+import type { ApplicationDetail } from '../../lib/db';
+interface Props { detail: ApplicationDetail }
+const { detail } = Astro.props;
+const a = detail.app;
+const sizes = (m: Record<string, unknown>) =>
+  [['Pants', m.pants], ['Shirt', m.shirt_top], ['Underwear', m.underwear], ['Socks', m.socks], ['Diapers', m.diapers]]
+    .filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ') || '—';
+---
+<article class="slip">
+  <div class="row">
+    <span><strong>PU #:</strong> {a.pu_number ?? '____'}</span>
+    <span><strong>Bags:</strong> {a.bags_count ?? '____'}</span>
+    <span><strong>People:</strong> {detail.members.length}</span>
+  </div>
+  <p class="name"><strong>{a.first_name} {a.last_name}</strong> — {a.phone}</p>
+  <p>{a.address}, {detail.city_name}</p>
+  <p>
+    {a.diabetic === 1 && <span class="flag">DIABETIC</span>}
+    {a.bed_choice !== 'none' && <span>Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''}</span>}
+    {a.share_with_sponsor === 1 && <span> · sponsor OK</span>}
+  </p>
+  <table>
+    <thead><tr><th>Name</th><th>Sex</th><th>Age</th><th>Sizes</th><th>Gifts</th></tr></thead>
+    <tbody>
+      {detail.members.map((m) => (
+        <tr><td>{m.name}</td><td>{m.sex}</td><td>{m.age}</td><td>{sizes(m)}</td><td>{m.gifts || '—'}</td></tr>
+      ))}
+    </tbody>
+  </table>
+</article>
+<style>
+  .slip { border: 2px solid #000; padding: 12px; margin: 0 0 16px; font-size: 14px; break-inside: avoid; }
+  .row { display: flex; gap: 24px; font-size: 16px; }
+  .name { font-size: 18px; margin: 8px 0 2px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
+  .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }
+  @media print { .slip { page-break-after: always; } }
+</style>

@@ -1,0 +1,18 @@
+---
+import SlipCard from '../../../components/admin/SlipCard.astro';
+import { listApprovedForSlips } from '../../../lib/db';
+export const prerender = false;
+const season = Number(new URL(Astro.request.url).searchParams.get('season')) || new Date().getFullYear();
+const slips = await listApprovedForSlips(Astro.locals.runtime.env.DB, season);
+---
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Pickup slips {season}</title></head>
+  <body style="margin:16px;font-family:Georgia,serif;">
+    <p class="no-print"><a href="/admin/applications">&larr; Back to applications</a> · <button type="button" onclick="window.print()">Print all {slips.length} slips</button></p>
+    <h1 style="font-size:20px;">Approved pickup slips — {season} ({slips.length})</h1>
+    {slips.length === 0 && <p>No approved applications yet.</p>}
+    {slips.map((d) => <SlipCard detail={d} />)}
+    <style>@media print { .no-print, h1 { display: none; } }</style>
+  </body>
+</html>

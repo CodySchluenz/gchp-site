@@ -84,6 +84,7 @@ const exportHref = `/admin/applications/export.csv?season=${season}&status=${sta
     </form>
     <a href={exportHref} class="rounded bg-berry-700 px-4 py-2 font-bold text-white hover:bg-berry-800">Download list for Excel</a>
     <button type="button" onclick="window.print()" class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">Print this list</button>
+    <a href={`/admin/applications/slips?season=${season}`} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">Print all approved slips</a>
   </div>
 
   <table class="mt-6 w-full border-collapse bg-white text-left">
