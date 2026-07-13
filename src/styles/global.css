@@ -1,7 +1,11 @@
 @import "tailwindcss";
 
 @theme {
-  /* Light, bright, holiday accents. Text colors below all meet WCAG AA (4.5:1) on white/cream. */
+  /* Palette pairs verified for WCAG AA:
+     - holly-700/800/900 and berry-700/800 as text on white/cream: >= 4.5:1
+     - white and holly-100 as text on holly-700/800/900 surfaces: >= 4.5:1
+     - gold-500 is decorative only (borders/accents) - never text
+     - holly-100 is only for text on dark holly surfaces - never on light backgrounds */
   --color-cream: #fffdf7;
   --color-holly-100: #dcf2e4;
   --color-holly-700: #1a6b3a;
@@ -9,10 +13,14 @@
   --color-holly-900: #0d3b20;
   --color-berry-700: #b91c1c;
   --color-berry-800: #991b1b;
-  --color-gold-500: #d1a054; /* decorative accents only — never body text */
+  --color-gold-500: #d1a054;
 }
 
+/* Two-tone focus ring: the white inner ring is visible on dark surfaces and
+   the holly-900 outer ring is visible on light surfaces, so the indicator
+   meets the 3:1 contrast minimum on any background (WCAG 2.2). */
 :focus-visible {
-  outline: 3px solid var(--color-berry-700);
+  outline: 3px solid var(--color-holly-900);
   outline-offset: 2px;
+  box-shadow: 0 0 0 2px #ffffff;
 }
