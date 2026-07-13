@@ -1,0 +1,45 @@
+---
+interface Props {
+  title: string;
+  heading: string;
+  back?: { href: string; label: string };
+}
+const { title, heading, back } = Astro.props;
+const sections = [
+  { href: '/admin', label: 'Home' },
+  { href: '/admin/applications', label: 'Applications this year' },
+];
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} — GCHP Admin</title>
+  </head>
+  <body class="min-h-screen bg-cream text-stone-900 text-lg leading-relaxed">
+    <a href="#main" class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:text-holly-900">Skip to main content</a>
+    <header class="border-b-4 border-gold-500 bg-holly-800 text-white">
+      <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
+        <p class="text-2xl font-bold">Holiday Project — Admin</p>
+        <form method="post" action="/admin/signout">
+          <button type="submit" class="rounded bg-white px-4 py-2 font-semibold text-holly-900 hover:bg-holly-100">Sign out</button>
+        </form>
+      </div>
+      <nav aria-label="Admin sections" class="bg-holly-700">
+        <ul class="mx-auto flex max-w-5xl flex-wrap px-2">
+          {sections.map((s) => (
+            <li><a href={s.href} class="block px-4 py-3 font-semibold text-white hover:bg-holly-900">{s.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+    </header>
+    <main id="main" class="mx-auto max-w-5xl px-4 py-8">
+      {back && (
+        <a href={back.href} class="mb-4 inline-block text-lg font-semibold text-berry-700 underline">&larr; {back.label}</a>
+      )}
+      <h1 class="text-3xl font-bold text-holly-800">{heading}</h1>
+      <slot />
+    </main>
+  </body>
+</html>
