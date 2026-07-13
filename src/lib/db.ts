@@ -251,3 +251,38 @@ export async function softDeleteApplication(db: D1Database, id: number, nowIso: 
 export async function restoreApplication(db: D1Database, id: number): Promise<void> {
   await db.prepare('UPDATE applications SET deleted_at = NULL WHERE id = ?').bind(id).run();
 }
+
+export type ApplicationCoreEdit = {
+  firstName: string;
+  lastName: string;
+  address: string;
+  cityId: number;
+  phone: string;
+  email: string;
+  diabetic: boolean;
+  shareWithSponsor: boolean;
+  permanentlyDisabled: boolean;
+  bedChoice: 'sheets' | 'blanket' | 'none';
+  bedSize: 'twin' | 'full' | 'queen' | 'king' | null;
+  yearsReceivedHelp: number;
+  adoptedLastYear: boolean;
+  householdType: 'family' | 'elderly' | 'disabled';
+};
+
+export async function updateApplicationCore(db: D1Database, id: number, f: ApplicationCoreEdit): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE applications SET
+         first_name = ?, last_name = ?, address = ?, city_id = ?, phone = ?, email = ?,
+         diabetic = ?, share_with_sponsor = ?, permanently_disabled = ?,
+         bed_choice = ?, bed_size = ?, years_received_help = ?, adopted_last_year = ?, household_type = ?
+       WHERE id = ?`,
+    )
+    .bind(
+      f.firstName, f.lastName, f.address, f.cityId, f.phone, f.email,
+      f.diabetic ? 1 : 0, f.shareWithSponsor ? 1 : 0, f.permanentlyDisabled ? 1 : 0,
+      f.bedChoice, f.bedSize, f.yearsReceivedHelp, f.adoptedLastYear ? 1 : 0, f.householdType,
+      id,
+    )
+    .run();
+}
