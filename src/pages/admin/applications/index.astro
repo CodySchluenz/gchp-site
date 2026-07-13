@@ -39,7 +39,7 @@ const fmtDate = (iso: string) => iso.slice(0, 10);
 const exportHref = `/admin/applications/export.csv?season=${season}&status=${status}&q=${encodeURIComponent(search)}`;
 ---
 <Admin title="Applications" heading={`Applications — ${season}`} back={{ href: '/admin', label: 'Back to admin home' }}>
-  <p class="mt-1 text-base text-stone-600">Help: click a name to review one application. Use the tabs to see who still needs review.</p>
+  <p class="mt-1 text-lg text-stone-600">Help: click a name to review one application. Use the tabs to see who still needs review.</p>
 
   {undoId && (
     <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
@@ -74,6 +74,7 @@ const exportHref = `/admin/applications/export.csv?season=${season}&status=${sta
   <div class="mt-4 flex flex-wrap items-end gap-4 print:hidden">
     <form method="get" class="flex items-end gap-2">
       <input type="hidden" name="status" value={status} />
+      <input type="hidden" name="q" value={search} />
       <label class="font-semibold">Previous years
         <select name="season" class="ml-2 rounded border-2 border-stone-400 p-2">
           {yearsToShow.map((y) => <option value={String(y)} selected={y === season}>{y}</option>)}
@@ -104,7 +105,7 @@ const exportHref = `/admin/applications/export.csv?season=${season}&status=${sta
         <tr>
           <td class="border-b border-stone-200 p-3">
             <a href={`/admin/applications/${r.id}`} class="font-semibold text-berry-700 underline">{r.last_name}, {r.first_name}</a>
-            {r.may_not_be_eligible === 1 && <span class="ml-2 rounded bg-gold-500 px-2 py-1 text-sm font-bold text-stone-900">Check eligibility</span>}
+            {r.may_not_be_eligible === 1 && <span class="ml-2 rounded bg-gold-500 px-2 py-1 text-base font-bold text-stone-900">Check eligibility</span>}
           </td>
           <td class="border-b border-stone-200 p-3">{r.city_name}</td>
           <td class="border-b border-stone-200 p-3 whitespace-nowrap">{fmtDate(r.submitted_at)}</td>
