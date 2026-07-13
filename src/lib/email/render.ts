@@ -74,3 +74,70 @@ and phone number.`;
   );
   return { subject, html, text: bodyText };
 }
+
+export function renderSignInEmail(link: string): RenderedEmail {
+  const subject = 'Your Grant County Holiday Project sign-in link';
+  const text = `Here is your sign-in link for the Grant County Holiday Project admin:
+
+${link}
+
+Click it to sign in. For your security, this link expires in 15 minutes and
+can be used once. If you did not ask to sign in, you can ignore this email.`;
+  const html = emailShell(
+    'Your sign-in link',
+    `<p>Here is your sign-in link for the Grant County Holiday Project admin:</p>
+     <p><a href="${escapeHtml(link)}">${escapeHtml(link)}</a></p>
+     <p>Click it to sign in. For your security, this link expires in
+        <strong>15 minutes</strong> and can be used once. If you did not ask to
+        sign in, you can ignore this email.</p>`,
+  );
+  return { subject, html, text };
+}
+
+export function renderApprovedEmail(firstName: string): RenderedEmail {
+  const subject = 'Your Holiday Project application was approved';
+  const text = `Hello ${firstName},
+
+Good news - your Grant County Holiday Project application has been approved.
+
+Watch your mail and email for your pickup slip, which will have your pickup
+date in December. Please bring your pickup slip with you.
+
+Questions? Call our message line at 608-723-2136 ext 1194 and leave your name
+and phone number.`;
+  const html = emailShell(
+    'Your application was approved',
+    `<p>Hello ${escapeHtml(firstName)},</p>
+     <p>Good news - your Grant County Holiday Project application has been
+        <strong>approved</strong>.</p>
+     <p>Watch your mail and email for your <strong>pickup slip</strong>, which
+        will have your pickup date in December. Please bring your pickup slip
+        with you.</p>
+     <p>Questions? Call our message line at <strong>608-723-2136 ext 1194</strong>
+        and leave your name and phone number.</p>`,
+  );
+  return { subject, html, text };
+}
+
+export function renderDeniedEmail(firstName: string): RenderedEmail {
+  const subject = 'An update on your Holiday Project application';
+  const text = `Hello ${firstName},
+
+Thank you for applying to the Grant County Holiday Project. After review, we
+are not able to approve your application this season.
+
+We know this is hard to hear. If you have questions, or think there may have
+been a mistake, please call our message line at 608-723-2136 ext 1194 and
+leave your name and phone number - we are glad to talk with you.`;
+  const html = emailShell(
+    'An update on your application',
+    `<p>Hello ${escapeHtml(firstName)},</p>
+     <p>Thank you for applying to the Grant County Holiday Project. After
+        review, we are not able to approve your application this season.</p>
+     <p>We know this is hard to hear. If you have questions, or think there may
+        have been a mistake, please call our message line at
+        <strong>608-723-2136 ext 1194</strong> and leave your name and phone
+        number - we are glad to talk with you.</p>`,
+  );
+  return { subject, html, text };
+}
