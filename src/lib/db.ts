@@ -183,3 +183,36 @@ export async function listSeasons(db: D1Database): Promise<number[]> {
     .all<{ season_year: number }>();
   return results.map((r) => r.season_year);
 }
+
+export type ApplicationDetail = {
+  app: Record<string, unknown>;
+  city_name: string;
+  members: Record<string, unknown>[];
+  employers: Record<string, unknown>[];
+};
+
+export async function getApplicationDetail(db: D1Database, id: number): Promise<ApplicationDetail | null> {
+  const app = await db
+    .prepare('SELECT * FROM applications WHERE id = ? AND deleted_at IS NULL')
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!app) return null;
+  const city = await db
+    .prepare('SELECT name FROM cities WHERE id = ?')
+    .bind(app.city_id as number)
+    .first<{ name: string }>();
+  const members = await db
+    .prepare('SELECT * FROM household_members WHERE application_id = ? ORDER BY position')
+    .bind(id)
+    .all<Record<string, unknown>>();
+  const employers = await db
+    .prepare('SELECT * FROM employers WHERE application_id = ? ORDER BY id')
+    .bind(id)
+    .all<Record<string, unknown>>();
+  return {
+    app,
+    city_name: city?.name ?? '',
+    members: members.results,
+    employers: employers.results,
+  };
+}
