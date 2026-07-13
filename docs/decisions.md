@@ -99,6 +99,35 @@ pickup-slip numbers** (and ideally bag counts) instead.
   logotype exception). Plan 3 note: consider a calm, small version of the legacy admin Santa
   banner for the admin header (admin stays plain per spec).
 
+## Plan 3b binding notes (carried from Plan 3a whole-branch review, 2026-07-13)
+
+Do these in Plan 3b (admin content/pickup/donors/messages/PDF upload):
+- **Magic-link verify interstitial + atomic token consume — do this BEFORE the first real login
+  test with the operator.** Her county mailbox (@co.grant.wi.gov) likely runs link scanners
+  (Defender Safe Links) that GET URLs at delivery, which would consume her single-use sign-in
+  token before she clicks. Change `/admin/verify` so GET renders a one-button "Sign me in" form
+  and POST consumes the token; fold in an atomic `UPDATE login_tokens SET used_at=? WHERE
+  token_hash=? AND used_at IS NULL` (also closes the read-then-write token/session race).
+- **Excel export columns:** spec §5 lists more columns than Plan 3a's export ships (years received,
+  adopted last year, bed choice/size, benefit amounts, employment summary, member count). Either
+  extend the export (cheap — already one GROUP_CONCAT query) or the owner confirms the trimmed set
+  is fine. Also: the list page's "Download for Excel" link carries `q=` but the endpoint ignores
+  it — either honor the name filter or drop `q` from the href.
+- **PRG on approve/deny:** the detail-page approve/deny POST re-renders without a redirect, so a
+  refresh re-sends the applicant email. Redirect (303) to the detail page with a `?done=` banner.
+- **Undo/restore confirmation banner:** after restore, redirect with `?restored=1` and a plain
+  "It's back in your list." message.
+- **CSRF-failure + light-validation feedback:** admin edit/detail POSTs silently discard on a stale
+  CSRF token; the edit form has no required checks (blank first name saves ''); `set_bags` coerces
+  garbage to 0. Add gentle "that didn't save — please try again" / "please type a number" banners.
+- **PU# assignment race:** `assignPuNumber` is read-then-write; make it a single statement in 3b.
+- **Apostrophe sweep:** `src/lib/validation/application.ts` still has typographic apostrophes (’);
+  sweep to straight per the standing typography decision above.
+- **README admin dev-note option 1** (read the magic link from the dev log) isn't followable —
+  the link is never logged and only the token hash is stored. Rewrite around the session-row method.
+- **Accepted risk (record, no fix):** the admin name-search puts applicant surnames in the URL
+  (`?q=Smith`) — operator-typed, gated route, low sensitivity, but it lands in her browser history.
+
 ## Still open (owner actions, not design questions)
 - Rotate the live admin password and the MySQL password (both were exposed in the original repo
   contents, and the admin password also appeared in chat).
