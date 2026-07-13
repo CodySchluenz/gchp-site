@@ -216,3 +216,38 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
     employers: employers.results,
   };
 }
+
+export async function assignPuNumber(db: D1Database, id: number, seasonYear: number): Promise<number> {
+  const current = await db
+    .prepare('SELECT pu_number FROM applications WHERE id = ?')
+    .bind(id)
+    .first<{ pu_number: number | null }>();
+  if (current?.pu_number != null) return current.pu_number;
+  const max = await db
+    .prepare('SELECT COALESCE(MAX(pu_number), 0) AS m FROM applications WHERE season_year = ?')
+    .bind(seasonYear)
+    .first<{ m: number }>();
+  const next = (max?.m ?? 0) + 1;
+  await db.prepare('UPDATE applications SET pu_number = ? WHERE id = ?').bind(next, id).run();
+  return next;
+}
+
+export async function setApplicationStatus(
+  db: D1Database,
+  id: number,
+  status: 'approved' | 'denied',
+): Promise<void> {
+  await db.prepare('UPDATE applications SET status = ? WHERE id = ?').bind(status, id).run();
+}
+
+export async function setBagsCount(db: D1Database, id: number, bags: number | null): Promise<void> {
+  await db.prepare('UPDATE applications SET bags_count = ? WHERE id = ?').bind(bags, id).run();
+}
+
+export async function softDeleteApplication(db: D1Database, id: number, nowIso: string): Promise<void> {
+  await db.prepare('UPDATE applications SET deleted_at = ? WHERE id = ?').bind(nowIso, id).run();
+}
+
+export async function restoreApplication(db: D1Database, id: number): Promise<void> {
+  await db.prepare('UPDATE applications SET deleted_at = NULL WHERE id = ?').bind(id).run();
+}
