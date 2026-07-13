@@ -15,6 +15,7 @@ let values: ContactValues = { name: '', email: '', message: '' };
 let errors: Record<string, string> = {};
 let sent = false;
 let emailNote = '';
+let retryNote = '';
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -30,10 +31,15 @@ if (Astro.request.method === 'POST') {
     website: String(form.get('website') ?? ''),
   });
 
-  if (!okCsrf || (result.ok && result.spam)) {
-    // Show success without saving: never tell a bot it was caught, and never
-    // let a stale token turn into a scary error for a human.
+  if (result.ok && result.spam) {
+    // Honeypot tripped: show success without saving — never tell a bot it was caught.
     sent = true;
+  } else if (!okCsrf) {
+    // A stale or missing token (cleared cookies, a second open tab) is a human
+    // problem, not an attack: keep everything they typed and ask for one more click.
+    retryNote =
+      'Sorry — this page had been open a while, so we gave it a quick safety refresh. Everything you typed is still here. Please press "Send message" once more.';
+    values = result.values;
   } else if (result.ok) {
     // Only real, valid submissions consume the rate budget, so a person
     // retrying after typos is never locked out by their own mistakes.
@@ -46,10 +52,18 @@ if (Astro.request.method === 'POST') {
       Date.now(),
     );
     if (!okRate) {
+      // Over the limit: show the same calm success page rather than an error —
+      // at this volume it is almost certainly automated, and a scary message
+      // would only worry a real person.
       sent = true;
     } else {
       await insertContactMessage(env.DB, result.values);
-      const outcome = await sendEmail(env, env.CONTACT_TO, renderContactEmail(result.values));
+      const outcome = await sendEmail(
+        env,
+        env.CONTACT_TO,
+        renderContactEmail(result.values),
+        result.values.email,
+      );
       if (!outcome.sent) {
         emailNote = 'Your message is saved and our volunteers will still see it.';
       }
@@ -61,7 +75,10 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-const cookieValue = newCsrfCookieValue();
+// Reuse an existing well-formed csrf cookie so a second open tab's token
+// stays valid; only mint a new one when the visitor has none.
+const existingCsrf = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(existingCsrf) ? existingCsrf : newCsrfCookieValue();
 Astro.cookies.set('csrf', cookieValue, {
   httpOnly: true,
   sameSite: 'lax',
@@ -89,6 +106,12 @@ const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
           line at <strong>608-723-2136 ext 1194</strong> — speak slowly and leave your name and
           phone number.
         </p>
+
+        {retryNote !== '' && (
+          <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
+            <p class="font-semibold">{retryNote}</p>
+          </div>
+        )}
 
         {Object.keys(errors).length > 0 && (
           <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert">

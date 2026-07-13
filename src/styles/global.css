@@ -3,6 +3,7 @@
 @theme {
   /* Palette pairs verified for WCAG AA:
      - holly-700/800/900 and berry-700/800 as text on white/cream: >= 4.5:1
+     - white as text on berry-700/800 (e.g. buttons): >= 4.5:1
      - white and holly-100 as text on holly-700/800/900 surfaces: >= 4.5:1
      - gold-500 is decorative only (borders/accents) - never text
      - holly-100 is only for text on dark holly surfaces - never on light backgrounds */
