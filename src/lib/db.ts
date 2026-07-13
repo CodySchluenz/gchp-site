@@ -120,7 +120,16 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
         .bind(appId, e.employerName, e.workerName, e.hourlyWage, e.hoursPerWeek),
     ),
   ];
-  if (statements.length > 0) await db.batch(statements);
+  if (statements.length > 0) {
+    try {
+      await db.batch(statements);
+    } catch (e) {
+      // Never leave an orphaned application (a "family" with no people):
+      // children haven't been written, so this delete is FK-safe.
+      await db.prepare('DELETE FROM applications WHERE id = ?').bind(appId).run();
+      throw e;
+    }
+  }
 
   return appId;
 }

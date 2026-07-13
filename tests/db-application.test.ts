@@ -77,4 +77,20 @@ describe('application db helpers', () => {
     const row = await db.prepare('SELECT bed_choice, bed_size FROM applications WHERE id = ?').bind(id).first<any>();
     expect(row).toEqual({ bed_choice: 'none', bed_size: null });
   });
+
+  it('deletes the orphaned application row when the child batch fails', async () => {
+    const failingDb = new Proxy(db, {
+      get(target, prop, receiver) {
+        if (prop === 'batch') {
+          return () => Promise.reject(new Error('simulated batch failure'));
+        }
+        const v = Reflect.get(target, prop, receiver);
+        return typeof v === 'function' ? v.bind(target) : v;
+      },
+    }) as D1Database;
+    const before = await db.prepare('SELECT COUNT(*) AS n FROM applications').first<{ n: number }>();
+    await expect(insertApplication(failingDb, app)).rejects.toThrow('simulated batch failure');
+    const after = await db.prepare('SELECT COUNT(*) AS n FROM applications').first<{ n: number }>();
+    expect(after?.n).toBe(before?.n);
+  });
 });

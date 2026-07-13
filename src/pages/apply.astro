@@ -169,7 +169,7 @@ const errorEntries = Object.entries(errors);
       )}
       {errorEntries.length > 0 && (
         <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert">
-          <p class="font-bold">Almost there — please check these {errorEntries.length} things:</p>
+          <p class="font-bold">Almost there — please check {errorEntries.length === 1 ? 'this one thing' : `these ${errorEntries.length} things`}:</p>
           <ul class="mt-1 list-disc pl-6">
             {errorEntries.map(([field, msg]) => (
               <li><a href={`#${field}`} class="text-berry-700 underline">{msg}</a></li>
