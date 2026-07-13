@@ -1,0 +1,161 @@
+---
+import '../../../styles/global.css';
+import Admin from '../../../layouts/Admin.astro';
+import {
+  getApplicationDetail, assignPuNumber, setApplicationStatus, setBagsCount, softDeleteApplication,
+} from '../../../lib/db';
+import { renderApprovedEmail, renderDeniedEmail } from '../../../lib/email/render';
+import { sendEmail } from '../../../lib/email/send';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+const id = Number(Astro.params.id);
+let banner = '';
+let emailNote = '';
+
+if (Astro.request.method === 'POST' && Number.isInteger(id)) {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  const act = String(form.get('act') ?? '');
+  if (okCsrf) {
+    const detail = await getApplicationDetail(env.DB, id);
+    if (detail) {
+      const season = detail.app.season_year as number;
+      const firstName = detail.app.first_name as string;
+      const email = detail.app.email as string;
+      if (act === 'approve_email' || act === 'approve_silent') {
+        await assignPuNumber(env.DB, id, season);
+        await setApplicationStatus(env.DB, id, 'approved');
+        banner = 'Approved.';
+        if (act === 'approve_email') {
+          const r = await sendEmail(env, email, renderApprovedEmail(firstName));
+          emailNote = r.sent ? 'Approval email sent.' : 'Approved, but the email could not be sent right now — their application is still saved.';
+        }
+      } else if (act === 'deny_email' || act === 'deny_silent') {
+        await setApplicationStatus(env.DB, id, 'denied');
+        banner = 'Marked as denied.';
+        if (act === 'deny_email') {
+          const r = await sendEmail(env, email, renderDeniedEmail(firstName));
+          emailNote = r.sent ? 'Email sent.' : 'Saved, but the email could not be sent right now.';
+        }
+      } else if (act === 'set_bags') {
+        const raw = String(form.get('bags_count') ?? '').trim();
+        await setBagsCount(env.DB, id, raw === '' ? null : Math.max(0, Math.floor(Number(raw)) || 0));
+        banner = 'Bag count saved.';
+      } else if (act === 'delete') {
+        await softDeleteApplication(env.DB, id, new Date().toISOString());
+        return Astro.redirect(`/admin/applications?undo=${id}`, 303);
+      }
+    }
+  }
+}
+
+const detail = Number.isInteger(id) ? await getApplicationDetail(env.DB, id) : null;
+
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+
+const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
+const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
+const a = detail?.app ?? {};
+const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' ? 'Denied' : 'To review';
+---
+<Admin title="Application" heading={detail ? `${a.first_name} ${a.last_name}` : 'Application not found'} back={{ href: '/admin/applications', label: 'Back to applications' }}>
+  {!detail ? (
+    <p class="mt-4">That application could not be found. It may have been deleted.</p>
+  ) : (
+    <>
+      {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner} {emailNote}</p></div>}
+      {a.may_not_be_eligible === 1 && (
+        <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4">
+          <p class="font-bold">Please check eligibility.</p>
+          <p>Our rule of thumb: households with children, or an adult over 65 or permanently disabled. Use your judgment.</p>
+        </div>
+      )}
+
+      <p class="mt-4 text-xl"><strong>Status:</strong> {statusWord}{a.pu_number != null && <> · <strong>Pickup #</strong> {a.pu_number}</>}</p>
+
+      <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Household</h2>
+        <p class="mt-2">{a.address}, {detail.city_name}</p>
+        <p>Phone: {a.phone} · Email: {a.email}</p>
+        <p>Household type: {a.household_type} · Diabetic in household: {yesno(a.diabetic)} · OK to share needs with a sponsor: {yesno(a.share_with_sponsor)}</p>
+        <p>Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''} · Years received help: {a.years_received_help} · Adopted last year: {yesno(a.adopted_last_year)}</p>
+      </section>
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">People ({detail.members.length})</h2>
+        <table class="mt-2 w-full border-collapse text-left">
+          <thead><tr><th class="border-b p-2">Name</th><th class="border-b p-2">Relationship</th><th class="border-b p-2">Sex</th><th class="border-b p-2">Age</th><th class="border-b p-2">Sizes</th><th class="border-b p-2">Gifts wanted</th></tr></thead>
+          <tbody>
+            {detail.members.map((m) => (
+              <tr>
+                <td class="border-b p-2">{m.name}</td>
+                <td class="border-b p-2">{m.relationship}</td>
+                <td class="border-b p-2">{m.sex}</td>
+                <td class="border-b p-2">{m.age}</td>
+                <td class="border-b p-2">{[['Pants', m.pants], ['Shirt', m.shirt_top], ['Underwear', m.underwear], ['Socks', m.socks], ['Diapers', m.diapers]].filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ') || '—'}</td>
+                <td class="border-b p-2">{m.gifts || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Income</h2>
+        {detail.employers.length === 0 ? <p class="mt-2">No one in the household is employed.</p> : (
+          <ul class="mt-2 list-disc pl-6">
+            {detail.employers.map((e) => <li>{e.worker_name} at {e.employer_name}: {money(e.hourly_wage)}/hr, {e.hours_per_week} hrs/week</li>)}
+          </ul>
+        )}
+        <p class="mt-2">Food Share: {money(a.food_share_amount)} · Social Security: {money(a.social_security_amount)} · SSI: {money(a.ssi_amount)} · Child support: {money(a.child_support_amount)} · Unemployment (weekly): {money(a.unemployment_weekly_amount)} · Other: {money(a.other_income_amount)}</p>
+      </section>
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Good deed</h2>
+        <p class="mt-2 whitespace-pre-wrap">{a.good_deed}</p>
+      </section>
+
+      <section class="mt-6 flex flex-wrap gap-3">
+        <a href={`/admin/applications/${id}/slip`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800">Print pickup slip</a>
+        <a href={`/admin/applications/${id}/edit`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800">Edit this application</a>
+      </section>
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Decision</h2>
+        <p class="text-base text-stone-600">Approving assigns the next pickup number for {a.season_year}.</p>
+        <form method="post" class="mt-3 flex flex-wrap gap-3">
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+          <button type="submit" name="act" value="approve_email" class="rounded bg-holly-700 px-4 py-3 font-bold text-white hover:bg-holly-900">Approve and email them</button>
+          <button type="submit" name="act" value="approve_silent" class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800">Approve without email</button>
+          <button type="submit" name="act" value="deny_email" class="rounded border-2 border-berry-700 px-4 py-3 font-bold text-berry-800">Deny and email them</button>
+          <button type="submit" name="act" value="deny_silent" class="rounded border-2 border-stone-400 px-4 py-3 font-semibold">Deny without email</button>
+        </form>
+      </section>
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Bags</h2>
+        <form method="post" class="mt-2 flex flex-wrap items-end gap-3">
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+          <label class="font-semibold">Number of bags
+            <input type="text" inputmode="numeric" name="bags_count" value={a.bags_count ?? ''} class="ml-2 w-24 rounded border-2 border-stone-400 p-2" />
+          </label>
+          <button type="submit" name="act" value="set_bags" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save bags</button>
+        </form>
+      </section>
+
+      <section class="mt-6 rounded-lg border-2 border-berry-700 bg-white p-5">
+        <h2 class="text-2xl font-bold text-berry-800">Delete</h2>
+        <p>This removes the application from your lists. You'll get an <strong>Undo</strong> link right after, so it's safe.</p>
+        <form method="post" class="mt-2" onsubmit="return confirm('Delete this application? You will get an Undo link on the next screen.')">
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+          <button type="submit" name="act" value="delete" class="rounded bg-berry-700 px-4 py-3 font-bold text-white hover:bg-berry-800">Delete this application</button>
+        </form>
+      </section>
+    </>
+  )}
+</Admin>
