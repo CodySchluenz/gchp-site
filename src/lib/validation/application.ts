@@ -63,7 +63,7 @@ export function validateAbout(input: ApplicationInput, errors: Errors): AboutCle
   }
   if (email !== '' && errors.email === undefined) {
     if (emailConfirm === '') {
-      errors.email_confirm = "Please type your email address again so we can be sure it's right.";
+      errors.email_confirm = "Please type your email address again so we can be sure it’s right.";
     } else if (emailConfirm !== email) {
       errors.email_confirm = "These two email addresses don't match — please check them.";
     }
@@ -139,7 +139,7 @@ export function validateGoodDeed(input: ApplicationInput, errors: Errors): strin
     return null;
   }
   if (deed.length > 5000) {
-    errors.good_deed = "That's a little long — please shorten it to the highlights.";
+    errors.good_deed = "That’s a little long — please shorten it to the highlights.";
     return null;
   }
   return deed;
