@@ -91,10 +91,13 @@ pickup-slip numbers** (and ideally bag counts) instead.
   duplicate imports) in any commit touching it; `household_members`/`employers` lack
   `deleted_at` — the admin delete workflow gates children via the parent; consider surfacing
   send-failure health to the admin.
-- **Open product question for the owner:** the apply rate limit is 5 valid submissions per hour
-  per IP. Shared library computers (an explicit persona) NAT many families behind one IP —
-  consider 10/hour before October. The over-limit page keeps everything typed and shows the
-  phone line, so nothing is lost either way.
+- **Apply rate limit (RESOLVED by owner 2026-07-13):** bumped from 5 to **10 valid submissions
+  per hour per IP** — shared library computers put many applying families behind one address.
+- **Holiday header graphic (owner request 2026-07-13):** keep the original site's Santa banner
+  ("it keeps the small town vibes"). The legacy `header.png` (981KB) is recompressed to ~121KB
+  and serves as the site masthead/logo with its baked-in wording carried by alt text (WCAG
+  logotype exception). Plan 3 note: consider a calm, small version of the legacy admin Santa
+  banner for the admin header (admin stays plain per spec).
 
 ## Still open (owner actions, not design questions)
 - Rotate the live admin password and the MySQL password (both were exposed in the original repo

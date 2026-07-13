@@ -63,7 +63,9 @@ if (Astro.request.method === 'POST' && open) {
       const okRate = await allowRequest(
         new D1RateStore(env.DB),
         `apply:${ip}`,
-        5,
+        // 10/hour per IP (owner decision 2026-07-13): shared library computers
+        // put many applying families behind one address.
+        10,
         60 * 60_000,
         Date.now(),
       );
