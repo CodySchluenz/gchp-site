@@ -382,7 +382,15 @@ const errorEntries = Object.entries(errors);
           class="w-full rounded-lg bg-holly-700 px-6 py-4 text-xl font-bold text-white hover:bg-holly-900 sm:w-auto">
           Send my application
         </button>
+
+        <template id="member-template">
+          <MemberCard index="__N__" values={{}} errors={{}} />
+        </template>
+        <template id="employer-template">
+          <EmployerRow index="__N__" values={{}} errors={{}} />
+        </template>
       </form>
+      <script src="/scripts/apply.js" defer></script>
     </>
   )}
 </Site>
