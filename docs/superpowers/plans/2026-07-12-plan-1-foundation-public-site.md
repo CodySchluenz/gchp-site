@@ -19,7 +19,7 @@
 - Never log applicant/visitor PII. All D1 access via prepared statements with `.bind()`.
 - Secrets only in `.dev.vars` (gitignored) locally and Cloudflare Pages env vars in production — never in the repo.
 - TDD for every logic module (Tasks 4–7): failing test first, then minimal implementation.
-- Node ≥ 20. All commands run from the repo root (`holiday-project/`). The Astro project lives at the repo root beside `legacy/` and `docs/`.
+- Node ≥ 22 (wrangler 4.x requires it; amended from ≥ 20 during Task 1 review). All commands run from the repo root (`holiday-project/`). The Astro project lives at the repo root beside `legacy/` and `docs/`.
 - Commit after every task (message style: `feat: …`, `chore: …`, `test: …`). End every commit message with `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
 
 ---
