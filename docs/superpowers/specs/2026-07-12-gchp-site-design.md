@@ -101,7 +101,7 @@ amount may be filled), `deleted_at`.
   `pickup_intro`, `pickup_footer`, `pdf_uploaded_at` (display only).
 
 ### Reference and system tables
-- `cities`: the 24 Grant County towns + zips, seeded from legacy.
+- `cities`: the 23 Grant County towns + zips, seeded from legacy (legacy IDs run 1–24 with a gap at 21).
 - `contact_messages`: `received_at`, `name`, `email`, `message`, `read_at`.
 - `admin_emails`: allow-list. Initial rows: `skleinow@co.grant.wi.gov`, `codydps@gmail.com`.
   No admin UI for this list (developer-managed).
@@ -132,7 +132,7 @@ the page opens with, before any fields:
 
 **Form sections and fields** (\* = required):
 
-1. **About you** — first name\*, last name\*, address\*, city\* (dropdown, 24 towns), phone\*,
+1. **About you** — first name\*, last name\*, address\*, city\* (dropdown, 23 towns), phone\*,
    email\* + confirm email\* (must match — actually validated), "someone in my household is
    diabetic" (checkbox), "is anyone in your household permanently disabled?"\* (yes/no),
    sponsor permission (checkbox, worded plainly: "A generous neighbor may sponsor your family.

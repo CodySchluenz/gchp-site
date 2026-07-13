@@ -1,0 +1,30 @@
+---
+import '../styles/global.css';
+import Site from '../layouts/Site.astro';
+export const prerender = true;
+---
+<Site title="Apply">
+  <h1 class="text-3xl font-bold text-holly-800">Apply for Holiday Help</h1>
+  <p class="mt-4">
+    Applications open on <strong>October 1</strong> each year. The online application will be
+    available right here when applications open.
+  </p>
+  <div class="mt-6 rounded border-l-4 border-berry-700 bg-white p-4">
+    <h2 class="text-xl font-bold text-holly-800">You can always apply these two ways:</h2>
+    <ul class="mt-2 list-disc space-y-2 pl-6">
+      <li>
+        <strong>By phone:</strong> call our message line at <strong>608-723-2136 ext 1194</strong>.
+        Speak slowly and leave your name, address, and whether you are a family or elderly
+        household. We'll mail you a paper application.
+      </li>
+      <li>
+        <strong>On paper:</strong>
+        <a href="/application.pdf" class="font-semibold text-berry-700 underline">print the paper application</a>
+        and mail it to 235 W. Elm St., Lancaster WI 53813.
+      </li>
+    </ul>
+  </div>
+  <p class="mt-6">
+    Your information is always private. We use it only to prepare your family's gifts.
+  </p>
+</Site>

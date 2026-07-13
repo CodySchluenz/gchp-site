@@ -1,0 +1,43 @@
+---
+import '../styles/global.css';
+import Site from '../layouts/Site.astro';
+export const prerender = true;
+---
+<Site title="Donate">
+  <h1 class="text-3xl font-bold text-holly-800">How to Give</h1>
+  <p class="mt-4">
+    Your donations are what make the Grant County Holiday Project possible. Every gift goes to
+    Grant County families and elderly neighbors during the holidays. Thank you.
+  </p>
+
+  <h2 class="mt-8 text-2xl font-bold text-holly-800">Mail a check</h2>
+  <p class="mt-2">Make checks payable to <strong>Grant County Holiday Project</strong> and mail to:</p>
+  <p class="mt-2 rounded border-l-4 border-gold-500 bg-white p-4 font-semibold">
+    Grant County Holiday Project<br />235 W. Elm St.<br />Lancaster WI 53813
+  </p>
+
+  <h2 class="mt-8 text-2xl font-bold text-holly-800">Drop off gifts or clothing</h2>
+  <p class="mt-2">We accept donated gift and clothing items starting <strong>October 1</strong> at two Allegiant Oil locations:</p>
+  <ul class="mt-2 list-disc space-y-2 pl-6">
+    <li>190 N 2nd St, Platteville WI — Monday–Friday, 6:00 AM–6:00 PM</li>
+    <li>1486 Industrial Park Rd, Lancaster WI — Monday–Friday, 7:00 AM–5:00 PM</li>
+  </ul>
+
+  <h2 class="mt-8 text-2xl font-bold text-holly-800">Give online</h2>
+  <p class="mt-2">You can donate by card through PayPal. Your donation goes to the Grant County Holiday Project's PayPal account.</p>
+  <form action="https://www.paypal.com/cgi-bin/webscr" method="post" class="mt-4">
+    <input type="hidden" name="cmd" value="_s-xclick" />
+    <input type="hidden" name="hosted_button_id" value="AX2RXSFRCFKZQ" />
+    <button
+      type="submit"
+      class="rounded-lg bg-berry-700 px-6 py-3 text-lg font-bold text-white hover:bg-berry-800"
+    >
+      Donate online with PayPal
+    </button>
+  </form>
+
+  <p class="mt-8">
+    Questions? Call our message line at <strong>608-723-2136 ext 1194</strong> and leave your name
+    and phone number.
+  </p>
+</Site>

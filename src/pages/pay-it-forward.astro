@@ -1,0 +1,40 @@
+---
+import '../styles/global.css';
+import Site from '../layouts/Site.astro';
+export const prerender = true;
+---
+<Site title="Pay It Forward">
+  <h1 class="text-3xl font-bold text-holly-800">Pay It Forward</h1>
+  <p class="mt-4">
+    The Holiday Project runs on kindness — and everyone has some to give. To receive gifts from
+    the Holiday Project, we ask you to share a little kindness in your own community first. It
+    doesn't cost money. It just takes heart.
+  </p>
+
+  <h2 class="mt-8 text-2xl font-bold text-holly-800">How it works</h2>
+  <p class="mt-2">
+    When you apply, you'll tell us about a good deed you've done for someone in your community.
+    When you do your kind act, feel free to tell the person it's part of the Holiday Project's
+    Pay It Forward program — caring and giving, all year round.
+  </p>
+  <p class="mt-2">
+    One thing to know: helping your own family members, or work you're paid for, doesn't count
+    for this — the idea is to reach someone new.
+  </p>
+
+  <h2 class="mt-8 text-2xl font-bold text-holly-800">Ideas for good deeds</h2>
+  <ul class="mt-2 list-disc space-y-1 pl-6">
+    <li>Call or visit a lonely neighbor</li>
+    <li>Help someone carry their groceries</li>
+    <li>Shovel a neighbor's snow</li>
+    <li>Give someone a ride to the store</li>
+    <li>Visit a nursing home</li>
+    <li>Make dinner for someone who is sick</li>
+    <li>Babysit for free</li>
+    <li>Text someone to say you're thinking of them</li>
+  </ul>
+
+  <p class="mt-8">
+    Ready? <a href="/apply" class="font-semibold text-berry-700 underline">Start your application</a>.
+  </p>
+</Site>

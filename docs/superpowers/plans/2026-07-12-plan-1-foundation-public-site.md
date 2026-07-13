@@ -19,7 +19,10 @@
 - Never log applicant/visitor PII. All D1 access via prepared statements with `.bind()`.
 - Secrets only in `.dev.vars` (gitignored) locally and Cloudflare Pages env vars in production — never in the repo.
 - TDD for every logic module (Tasks 4–7): failing test first, then minimal implementation.
-- Node ≥ 20. All commands run from the repo root (`holiday-project/`). The Astro project lives at the repo root beside `legacy/` and `docs/`.
+- Node ≥ 22 (wrangler 4.x requires it; amended from ≥ 20 during Task 1 review). All commands run from the repo root (`holiday-project/`). The Astro project lives at the repo root beside `legacy/` and `docs/`.
+- Amendment (Task 1 review): `@cloudflare/workers-types` is `^5` (not `^4` as the Task 1 code block shows) — required for flag-free `npm ci` alongside wrangler 4.x.
+- Amendments (final whole-branch review): the contact form does NOT pretend-success on CSRF failure — it re-renders with values preserved and a friendly "press Send once more" note (fake success is reserved for the honeypot and rate limit); the csrf cookie is reused when well-formed rather than rotated per GET (keeps a second open tab's token valid); `sendEmail` takes an optional `replyTo` (contact notifications set it to the visitor's address); middleware 404s the adapter's unused `/_image` endpoint.
+- **Binding notes for Plan 2 (from review):** never pretend-success on CSRF failure for `/apply` — a silently lost application is unacceptable; the global `:focus-visible` box-shadow replaces component box-shadows (mind custom-shadowed form controls); assert D1 FK enforcement in the first D1-backed endpoint tests; add a rate-limiter boundary test + D1RateStore integration test when `/apply` reuses the limiter; surface Resend error-body detail when building the application-received email path.
 - Commit after every task (message style: `feat: …`, `chore: …`, `test: …`). End every commit message with `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
 
 ---
@@ -220,7 +223,7 @@ git commit -m "chore: scaffold Astro + Cloudflare + Tailwind + Vitest project"
 
 **Interfaces:**
 - Consumes: wrangler config from Task 1.
-- Produces: every table in spec §2 (exact names/columns below) plus `rate_limits`. Seeded: 24 `cities` (legacy IDs preserved, including the gap at 21), the single `settings` row (id=1, `applications_open`=0), 2 `admin_emails`, 3 `content_blocks`, 8 `pickup_days`.
+- Produces: every table in spec §2 (exact names/columns below) plus `rate_limits`. Seeded: 23 `cities` (legacy IDs preserved — IDs run 1–24 with a gap at 21), the single `settings` row (id=1, `applications_open`=0), 2 `admin_emails`, 3 `content_blocks`, 8 `pickup_days`.
 
 - [ ] **Step 1: Write the schema migration**
 
@@ -435,7 +438,7 @@ Run: `npm run db:migrate:local`
 Expected: both migrations apply, `2 migrations applied`.
 
 Run: `npx wrangler d1 execute gchp --local --command "SELECT COUNT(*) AS n FROM cities"`
-Expected: `n = 24`.
+Expected: `n = 23` (legacy city IDs run 1–24 with a deliberate gap at 21).
 
 Run: `npx wrangler d1 execute gchp --local --command "SELECT applications_open FROM settings WHERE id = 1"`
 Expected: `applications_open = 0`.
@@ -450,6 +453,14 @@ git commit -m "feat: D1 schema and seed data (cities, settings, admin emails, co
 ---
 
 ### Task 3: Theme and site layout
+
+> **Review amendments (do not re-run this task from the code below without them):**
+> the focus indicator is a two-tone ring (`outline: 3px solid holly-900; outline-offset: 2px;
+> box-shadow: 0 0 0 2px #fff`) so it meets 3:1 on both dark and light surfaces; the footer
+> container uses `text-lg` (18px), not `text-base`; the masthead site title is an
+> `<a href="/">` home link (non-heading — every page supplies its own single `<h1>`); the
+> palette comment in `global.css` names the verified safe color pairings instead of a blanket
+> claim. See `src/styles/global.css` and `src/layouts/Site.astro` for the authoritative code.
 
 **Files:**
 - Create: `src/layouts/Site.astro`, `public/images/toys-for-tots.gif`, `public/robots.txt`

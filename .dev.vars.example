@@ -1,0 +1,2 @@
+RESEND_API_KEY=re_your_key_here
+CSRF_SECRET=any-long-random-string-for-local-dev
