@@ -20,6 +20,9 @@
 - Secrets only in `.dev.vars` (gitignored) locally and Cloudflare Pages env vars in production — never in the repo.
 - TDD for every logic module (Tasks 4–7): failing test first, then minimal implementation.
 - Node ≥ 22 (wrangler 4.x requires it; amended from ≥ 20 during Task 1 review). All commands run from the repo root (`holiday-project/`). The Astro project lives at the repo root beside `legacy/` and `docs/`.
+- Amendment (Task 1 review): `@cloudflare/workers-types` is `^5` (not `^4` as the Task 1 code block shows) — required for flag-free `npm ci` alongside wrangler 4.x.
+- Amendments (final whole-branch review): the contact form does NOT pretend-success on CSRF failure — it re-renders with values preserved and a friendly "press Send once more" note (fake success is reserved for the honeypot and rate limit); the csrf cookie is reused when well-formed rather than rotated per GET (keeps a second open tab's token valid); `sendEmail` takes an optional `replyTo` (contact notifications set it to the visitor's address); middleware 404s the adapter's unused `/_image` endpoint.
+- **Binding notes for Plan 2 (from review):** never pretend-success on CSRF failure for `/apply` — a silently lost application is unacceptable; the global `:focus-visible` box-shadow replaces component box-shadows (mind custom-shadowed form controls); assert D1 FK enforcement in the first D1-backed endpoint tests; add a rate-limiter boundary test + D1RateStore integration test when `/apply` reuses the limiter; surface Resend error-body detail when building the application-received email path.
 - Commit after every task (message style: `feat: …`, `chore: …`, `test: …`). End every commit message with `Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>`.
 
 ---
