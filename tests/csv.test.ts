@@ -22,4 +22,17 @@ describe('toCsv', () => {
   it('renders numbers without quoting', () => {
     expect(toCsv(['n'], [[42]]).replace(/^﻿/, '')).toBe('n\r\n42\r\n');
   });
+
+  it('prefixes formula-triggering string cells with an apostrophe', () => {
+    const body = toCsv(['x'], [['+16087235555'], ['=HYPERLINK("x")'], ['-5 apples'], ['@handle']]).replace(/^﻿/, '');
+    expect(body).toBe("x\r\n'+16087235555\r\n\"'=HYPERLINK(\"\"x\"\")\"\r\n'-5 apples\r\n'@handle\r\n");
+  });
+
+  it('does NOT apostrophe-prefix numeric cells (negative numbers stay numeric)', () => {
+    expect(toCsv(['n'], [[-5]]).replace(/^﻿/, '')).toBe('n\r\n-5\r\n');
+  });
+
+  it('leaves ordinary text unchanged', () => {
+    expect(toCsv(['t'], [['Sue Smith']]).replace(/^﻿/, '')).toBe('t\r\nSue Smith\r\n');
+  });
 });
