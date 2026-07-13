@@ -1,0 +1,73 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+const {
+  title,
+  description = 'The Grant County Holiday Project provides food, gifts, and clothing to Grant County families and elderly during the holiday season.',
+} = Astro.props;
+
+const nav = [
+  { href: '/', label: 'Home' },
+  { href: '/donate', label: 'Donate' },
+  { href: '/apply', label: 'Apply' },
+  { href: '/pickup', label: 'Pickup Schedule' },
+  { href: '/contact', label: 'Contact' },
+];
+const current = Astro.url.pathname.replace(/\/$/, '') || '/';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} — Grant County Holiday Project</title>
+    <meta name="description" content={description} />
+  </head>
+  <body class="min-h-screen bg-cream text-stone-900 text-lg leading-relaxed">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:text-holly-900"
+      >Skip to main content</a
+    >
+    <header>
+      <div class="border-b-8 border-berry-700 bg-holly-800 px-4 py-6 text-white">
+        <div class="mx-auto max-w-4xl">
+          <p class="text-3xl font-bold">Grant County Holiday Project</p>
+          <p class="mt-1 text-holly-100">Helping Hands Through United Hands</p>
+        </div>
+      </div>
+      <nav aria-label="Main menu" class="bg-holly-700">
+        <ul class="mx-auto flex max-w-4xl flex-wrap px-2">
+          {
+            nav.map((item) => (
+              <li>
+                <a
+                  href={item.href}
+                  aria-current={current === item.href ? 'page' : undefined}
+                  class="block px-4 py-3 font-semibold text-white hover:bg-holly-900 aria-[current=page]:bg-holly-900 aria-[current=page]:underline"
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </header>
+    <main id="main" class="mx-auto max-w-4xl px-4 py-8">
+      <slot />
+    </main>
+    <footer class="mt-12 border-t-4 border-gold-500 bg-white">
+      <div class="mx-auto max-w-4xl space-y-1 px-4 py-6 text-base text-stone-700">
+        <p class="font-semibold text-stone-900">Grant County Holiday Project</p>
+        <p>235 W. Elm St., Lancaster WI 53813 · Message line: 608-723-2136 ext 1194</p>
+        <p>
+          <a class="underline" href="https://grantcounty.org/">Grant County Website</a> ·
+          <a class="underline" href="/admin">Admin</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+@theme {
+  /* Light, bright, holiday accents. Text colors below all meet WCAG AA (4.5:1) on white/cream. */
+  --color-cream: #fffdf7;
+  --color-holly-100: #dcf2e4;
+  --color-holly-700: #1a6b3a;
+  --color-holly-800: #14532d;
+  --color-holly-900: #0d3b20;
+  --color-berry-700: #b91c1c;
+  --color-berry-800: #991b1b;
+  --color-gold-500: #d1a054; /* decorative accents only — never body text */
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-berry-700);
+  outline-offset: 2px;
+}
