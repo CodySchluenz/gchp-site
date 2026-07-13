@@ -23,7 +23,18 @@ export async function sendEmail(env: EmailEnv, to: string, email: RenderedEmail,
         text: email.text,
       }),
     });
-    if (!res.ok) return { sent: false, error: `Resend responded ${res.status}` };
+    if (!res.ok) {
+      let detail = '';
+      try {
+        detail = (await res.text()).slice(0, 300);
+      } catch {
+        // unreadable body: fall through with no detail
+      }
+      return {
+        sent: false,
+        error: `Resend responded ${res.status}${detail ? `: ${detail}` : ''}`,
+      };
+    }
     return { sent: true };
   } catch (e) {
     return { sent: false, error: e instanceof Error ? e.message : 'send failed' };
