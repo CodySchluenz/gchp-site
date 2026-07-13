@@ -1,8 +1,59 @@
 ---
-export const prerender = true;
+import '../styles/global.css';
+import Site from '../layouts/Site.astro';
+import { listContentBlocks } from '../lib/db';
+export const prerender = false;
+
+const blocks = await listContentBlocks(Astro.locals.runtime.env.DB);
 ---
-<!doctype html>
-<html lang="en">
-  <head><meta charset="utf-8" /><title>Grant County Holiday Project</title></head>
-  <body><h1>Grant County Holiday Project — coming soon</h1></body>
-</html>
+<Site title="Home">
+  <h1 class="text-3xl font-bold text-holly-800">Welcome to the Grant County Holiday Project</h1>
+  <p class="mt-4">
+    Our mission is to seek out and provide food, clothing, gifts, and toys to children and
+    elderly neighbors in Grant County who might otherwise go without during the holidays.
+  </p>
+  <p class="mt-3">
+    More than thirty years ago, the Holiday Project began by giving out donated used items and
+    food. Today — with the help of our generous donors and the Tri-State Toys for Tots program
+    of Dubuque, Iowa — we provide new clothing and toys to over 400 Grant County families every
+    season. We are run entirely by volunteers and funded entirely by donations.
+  </p>
+
+  <div class="mt-8 grid gap-4 sm:grid-cols-2">
+    <a href="/apply" class="block rounded-lg border-2 border-holly-700 bg-white p-5 hover:bg-holly-100">
+      <span class="text-xl font-bold text-holly-800">Need holiday help?</span>
+      <span class="mt-1 block">Apply online, by phone, or on paper. Applications open October 1.</span>
+    </a>
+    <a href="/donate" class="block rounded-lg border-2 border-berry-700 bg-white p-5 hover:bg-holly-100">
+      <span class="text-xl font-bold text-berry-800">Want to give?</span>
+      <span class="mt-1 block">Mail a check, drop off gifts, or donate online.</span>
+    </a>
+  </div>
+
+  <section aria-labelledby="news" class="mt-10">
+    <h2 id="news" class="text-2xl font-bold text-holly-800">This Year's News</h2>
+    {
+      blocks.map((b) => (
+        <article class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4">
+          <h3 class="text-xl font-bold">{b.title}</h3>
+          {b.subtitle !== '' && <p class="font-semibold text-stone-600">{b.subtitle}</p>}
+          <p class="mt-2 whitespace-pre-wrap">{b.body}</p>
+        </article>
+      ))
+    }
+  </section>
+
+  <section aria-labelledby="links" class="mt-10">
+    <h2 id="links" class="text-2xl font-bold text-holly-800">Helpful Links</h2>
+    <ul class="mt-2 list-disc space-y-1 pl-6">
+      <li><a href="/pickup" class="font-semibold text-berry-700 underline">This year's pickup schedule</a></li>
+      <li><a href="/application.pdf" class="font-semibold text-berry-700 underline">Print the paper application</a></li>
+      <li><a href="/pay-it-forward" class="font-semibold text-berry-700 underline">About Pay It Forward</a></li>
+    </ul>
+  </section>
+
+  <p class="mt-10 flex items-center gap-4 rounded bg-white p-4">
+    <img src="/images/toys-for-tots.gif" alt="Toys for Tots logo" width="100" />
+    <span>Toys donated by Toys for Tots, Dubuque IA. Thank you!</span>
+  </p>
+</Site>
