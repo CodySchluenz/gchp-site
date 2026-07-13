@@ -220,7 +220,7 @@ git commit -m "chore: scaffold Astro + Cloudflare + Tailwind + Vitest project"
 
 **Interfaces:**
 - Consumes: wrangler config from Task 1.
-- Produces: every table in spec §2 (exact names/columns below) plus `rate_limits`. Seeded: 24 `cities` (legacy IDs preserved, including the gap at 21), the single `settings` row (id=1, `applications_open`=0), 2 `admin_emails`, 3 `content_blocks`, 8 `pickup_days`.
+- Produces: every table in spec §2 (exact names/columns below) plus `rate_limits`. Seeded: 23 `cities` (legacy IDs preserved — IDs run 1–24 with a gap at 21), the single `settings` row (id=1, `applications_open`=0), 2 `admin_emails`, 3 `content_blocks`, 8 `pickup_days`.
 
 - [ ] **Step 1: Write the schema migration**
 
@@ -435,7 +435,7 @@ Run: `npm run db:migrate:local`
 Expected: both migrations apply, `2 migrations applied`.
 
 Run: `npx wrangler d1 execute gchp --local --command "SELECT COUNT(*) AS n FROM cities"`
-Expected: `n = 24`.
+Expected: `n = 23` (legacy city IDs run 1–24 with a deliberate gap at 21).
 
 Run: `npx wrangler d1 execute gchp --local --command "SELECT applications_open FROM settings WHERE id = 1"`
 Expected: `applications_open = 0`.
