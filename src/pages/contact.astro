@@ -23,14 +23,6 @@ if (Astro.request.method === 'POST') {
     Astro.cookies.get('csrf')?.value ?? '',
     String(form.get('csrf_token') ?? ''),
   );
-  const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown';
-  const okRate = await allowRequest(
-    new D1RateStore(env.DB),
-    `contact:${ip}`,
-    5,
-    10 * 60_000,
-    Date.now(),
-  );
   const result = validateContact({
     name: String(form.get('name') ?? ''),
     email: String(form.get('email') ?? ''),
@@ -38,17 +30,31 @@ if (Astro.request.method === 'POST') {
     website: String(form.get('website') ?? ''),
   });
 
-  if (!okCsrf || !okRate || (result.ok && result.spam)) {
+  if (!okCsrf || (result.ok && result.spam)) {
     // Show success without saving: never tell a bot it was caught, and never
-    // let a stale token or rate limit turn into a scary error for a human.
+    // let a stale token turn into a scary error for a human.
     sent = true;
   } else if (result.ok) {
-    await insertContactMessage(env.DB, result.values);
-    const outcome = await sendEmail(env, env.CONTACT_TO, renderContactEmail(result.values));
-    if (!outcome.sent) {
-      emailNote = 'Your message is saved and our volunteers will still see it.';
+    // Only real, valid submissions consume the rate budget, so a person
+    // retrying after typos is never locked out by their own mistakes.
+    const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown';
+    const okRate = await allowRequest(
+      new D1RateStore(env.DB),
+      `contact:${ip}`,
+      5,
+      10 * 60_000,
+      Date.now(),
+    );
+    if (!okRate) {
+      sent = true;
+    } else {
+      await insertContactMessage(env.DB, result.values);
+      const outcome = await sendEmail(env, env.CONTACT_TO, renderContactEmail(result.values));
+      if (!outcome.sent) {
+        emailNote = 'Your message is saved and our volunteers will still see it.';
+      }
+      sent = true;
     }
-    sent = true;
   } else {
     errors = result.errors;
     values = result.values;
