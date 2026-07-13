@@ -16,6 +16,16 @@ old PHP site worked.
 
 Tests: `npm run test`. Build: `npm run build`.
 
+### Working on the application form
+
+Applications are gated by a switch in the database (closed by default). To open them locally:
+
+    npx wrangler d1 execute gchp --local --command "UPDATE settings SET applications_open = 1 WHERE id = 1"
+
+Submitted test applications land in the `applications` table:
+
+    npx wrangler d1 execute gchp --local --command "SELECT id, first_name, status FROM applications"
+
 ## Production setup (one time)
 
 1. **Create the database:** `npx wrangler d1 create gchp` — paste the printed

@@ -42,3 +42,35 @@ export function renderContactEmail(values: {
   const text = `New contact form message\n\nFrom: ${nameLine} <${values.email}>\n\n${values.message}\n\nReply directly to this email to answer them.`;
   return { subject, html, text };
 }
+
+export function renderApplicationReceivedEmail(firstName: string): RenderedEmail {
+  const subject = 'We received your Holiday Project application';
+  const bodyText = `Hello ${firstName},
+
+We received your application — thank you. Here's what happens next:
+
+1. Our volunteers will review your application.
+2. You'll get an email from us when it has been reviewed.
+3. If approved, you'll receive a pickup slip with your pickup date in December.
+
+You don't need to do anything else right now. Your information is private and
+is used only to prepare your family's gifts.
+
+Questions? Call our message line at 608-723-2136 ext 1194 and leave your name
+and phone number.`;
+  const html = emailShell(
+    'We received your application',
+    `<p>Hello ${escapeHtml(firstName)},</p>
+     <p>We received your application — thank you. Here's what happens next:</p>
+     <ol>
+       <li>Our volunteers will review your application.</li>
+       <li>You'll get an email from us when it has been reviewed.</li>
+       <li>If approved, you'll receive a pickup slip with your pickup date in December.</li>
+     </ol>
+     <p>You don't need to do anything else right now. Your information is private
+        and is used only to prepare your family's gifts.</p>
+     <p>Questions? Call our message line at <strong>608-723-2136 ext 1194</strong>
+        and leave your name and phone number.</p>`,
+  );
+  return { subject, html, text: bodyText };
+}

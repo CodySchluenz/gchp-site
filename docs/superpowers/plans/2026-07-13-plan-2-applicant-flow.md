@@ -2181,6 +2181,10 @@ if (Astro.request.method === 'POST' && open) {
 
 Setup: `npm run dev > /tmp/astro-dev.log 2>&1 &`, `sleep 8`, ensure open: `npx wrangler d1 execute gchp --local --command "UPDATE settings SET applications_open = 1 WHERE id = 1"`, clear limits: `npx wrangler d1 execute gchp --local --command "DELETE FROM rate_limits"`.
 
+> **Amendment (execution finding):** when cleaning up application test rows afterwards, delete
+> children FIRST — `household_members`, `employers`, then `applications` — the FK constraints
+> reject a parent-first delete order.
+
 Helper used below (fresh jar + token from ONE response):
 
 ```bash

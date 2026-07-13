@@ -75,6 +75,27 @@ pickup-slip numbers** (and ideally bag counts) instead.
 
 ---
 
+## Engineering policy decisions (recorded during Plan 2 final review, 2026-07-13)
+
+- **Apostrophes in code-authored copy:** standardize on straight apostrophes (') everywhere —
+  greppable, keyboard-typable, and consistent with what the operator will type into content
+  fields. The validation messages currently carry typographic apostrophes (’); sweep them to
+  straight in Plan 3. No more per-string fix cycles.
+- **Orphaned-application protection:** `insertApplication` compensates a failed child batch by
+  deleting the parent row (commit 408a4f3) — an application can no longer exist with zero
+  members. Recorded so Plan 3's admin screens may assume every application has members.
+- **Plan 3 binding notes (carried from Plan 2 reviews):** upgrade the test harness to apply all
+  of `migrations/*.sql` when the first new migration lands (the `split(';')` splitter must be
+  hardened then too); add a test for sendEmail's 300-char truncation when admin screens display
+  the error text; simplify the apply POST block (drop the unreachable spam branch, merge
+  duplicate imports) in any commit touching it; `household_members`/`employers` lack
+  `deleted_at` — the admin delete workflow gates children via the parent; consider surfacing
+  send-failure health to the admin.
+- **Open product question for the owner:** the apply rate limit is 5 valid submissions per hour
+  per IP. Shared library computers (an explicit persona) NAT many families behind one IP —
+  consider 10/hour before October. The over-limit page keeps everything typed and shows the
+  phone line, so nothing is lost either way.
+
 ## Still open (owner actions, not design questions)
 - Rotate the live admin password and the MySQL password (both were exposed in the original repo
   contents, and the admin password also appeared in chat).
