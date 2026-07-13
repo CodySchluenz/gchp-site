@@ -5,3 +5,11 @@ document.querySelectorAll('[data-print]').forEach(function (btn) {
     window.print();
   });
 });
+
+// CSP-safe confirm: forms opt in with data-confirm; block submit if the
+// operator cancels. (Inline onsubmit is blocked by script-src 'self'.)
+document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+  form.addEventListener('submit', function (e) {
+    if (!window.confirm(form.getAttribute('data-confirm'))) e.preventDefault();
+  });
+});

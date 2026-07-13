@@ -127,7 +127,7 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
 
       <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
         <h2 class="text-2xl font-bold text-holly-800">Decision</h2>
-        <p class="text-base text-stone-600">Approving assigns the next pickup number for {a.season_year}.</p>
+        <p class="text-lg text-stone-600">Approving assigns the next pickup number for {a.season_year}.</p>
         <form method="post" class="mt-3 flex flex-wrap gap-3">
           <input type="hidden" name="csrf_token" value={csrfToken} />
           <button type="submit" name="act" value="approve_email" class="rounded bg-holly-700 px-4 py-3 font-bold text-white hover:bg-holly-900">Approve and email them</button>
@@ -151,11 +151,12 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
       <section class="mt-6 rounded-lg border-2 border-berry-700 bg-white p-5">
         <h2 class="text-2xl font-bold text-berry-800">Delete</h2>
         <p>This removes the application from your lists. You'll get an <strong>Undo</strong> link right after, so it's safe.</p>
-        <form method="post" class="mt-2" onsubmit="return confirm('Delete this application? You will get an Undo link on the next screen.')">
+        <form method="post" class="mt-2" data-confirm="Delete this application? You will get an Undo link on the next screen.">
           <input type="hidden" name="csrf_token" value={csrfToken} />
           <button type="submit" name="act" value="delete" class="rounded bg-berry-700 px-4 py-3 font-bold text-white hover:bg-berry-800">Delete this application</button>
         </form>
       </section>
     </>
   )}
+  <script src="/scripts/print-button.js" defer></script>
 </Admin>

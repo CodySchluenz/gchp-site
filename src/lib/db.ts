@@ -336,16 +336,29 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
     )
     .bind(seasonYear)
     .all<Record<string, unknown>>();
-  const out = await Promise.all(
-    apps.results.map(async (app) => {
-      const id = app.id as number;
-      const [city, members, employers] = await Promise.all([
-        db.prepare('SELECT name FROM cities WHERE id = ?').bind(app.city_id as number).first<{ name: string }>(),
-        db.prepare('SELECT * FROM household_members WHERE application_id = ? ORDER BY position').bind(id).all<Record<string, unknown>>(),
-        db.prepare('SELECT * FROM employers WHERE application_id = ? ORDER BY id').bind(id).all<Record<string, unknown>>(),
-      ]);
-      return { app, city_name: city?.name ?? '', members: members.results, employers: employers.results };
-    }),
-  );
-  return out;
+  if (apps.results.length === 0) return [];
+
+  const ids = apps.results.map((a) => a.id as number);
+  const idPh = ids.map(() => '?').join(',');
+  const cityIds = [...new Set(apps.results.map((a) => a.city_id as number))];
+  const cityPh = cityIds.map(() => '?').join(',');
+
+  const [cities, members] = await Promise.all([
+    db.prepare(`SELECT id, name FROM cities WHERE id IN (${cityPh})`).bind(...cityIds).all<{ id: number; name: string }>(),
+    db.prepare(`SELECT * FROM household_members WHERE application_id IN (${idPh}) ORDER BY application_id, position`).bind(...ids).all<Record<string, unknown>>(),
+  ]);
+
+  const cityById = new Map(cities.results.map((c) => [c.id, c.name]));
+  const membersByApp = new Map<number, Record<string, unknown>[]>();
+  for (const m of members.results) {
+    const aid = m.application_id as number;
+    (membersByApp.get(aid) ?? membersByApp.set(aid, []).get(aid)!).push(m);
+  }
+
+  return apps.results.map((app) => ({
+    app,
+    city_name: cityById.get(app.city_id as number) ?? '',
+    members: membersByApp.get(app.id as number) ?? [],
+    employers: [], // SlipCard does not render employers
+  }));
 }

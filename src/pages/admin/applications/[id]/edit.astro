@@ -42,7 +42,7 @@ const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3';
   {!detail ? <p class="mt-4">That application could not be found.</p> : (
     <form method="post" class="mt-6 max-w-2xl space-y-4">
       <input type="hidden" name="csrf_token" value={csrfToken} />
-      <p class="text-base text-stone-600">Help: fix typos in the family's details here. To change who is in the household, use the next update (coming soon).</p>
+      <p class="text-lg text-stone-600">Help: fix typos in the family's details here. To change who is in the household, use the next update (coming soon).</p>
       <div class="grid gap-4 sm:grid-cols-2">
         <label class="block font-semibold">First name<input class={input} type="text" name="first_name" value={a.first_name} /></label>
         <label class="block font-semibold">Last name<input class={input} type="text" name="last_name" value={a.last_name} /></label>
