@@ -451,6 +451,14 @@ git commit -m "feat: D1 schema and seed data (cities, settings, admin emails, co
 
 ### Task 3: Theme and site layout
 
+> **Review amendments (do not re-run this task from the code below without them):**
+> the focus indicator is a two-tone ring (`outline: 3px solid holly-900; outline-offset: 2px;
+> box-shadow: 0 0 0 2px #fff`) so it meets 3:1 on both dark and light surfaces; the footer
+> container uses `text-lg` (18px), not `text-base`; the masthead site title is an
+> `<a href="/">` home link (non-heading — every page supplies its own single `<h1>`); the
+> palette comment in `global.css` names the verified safe color pairings instead of a blanket
+> claim. See `src/styles/global.css` and `src/layouts/Site.astro` for the authoritative code.
+
 **Files:**
 - Create: `src/layouts/Site.astro`, `public/images/toys-for-tots.gif`, `public/robots.txt`
 - Modify: `src/styles/global.css`
