@@ -32,10 +32,20 @@ const current = Astro.url.pathname.replace(/\/$/, '') || '/';
       >Skip to main content</a
     >
     <header>
-      <div class="border-b-8 border-berry-700 bg-holly-800 px-4 py-6 text-white">
+      {/* The beloved Santa banner from the original site (owner request 2026-07-13):
+          it's the project's logo, so its baked-in words are carried by real alt text.
+          Recompressed from the 981KB legacy original to ~121KB. */}
+      <div class="bg-cream px-2 pt-3 sm:px-4">
         <div class="mx-auto max-w-4xl">
-          <a href="/" class="inline-block text-3xl font-bold text-white">Grant County Holiday Project</a>
-          <p class="mt-1 text-holly-100">Helping Hands Through United Hands</p>
+          <a href="/" class="inline-block w-full">
+            <img
+              src="/images/header-banner.png"
+              alt="Grant County Holiday Project — Helping Hands Through United Hands"
+              width="1044"
+              height="283"
+              class="h-auto w-full"
+            />
+          </a>
         </div>
       </div>
       <nav aria-label="Main menu" class="bg-holly-700">
