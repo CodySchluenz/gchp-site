@@ -1,0 +1,157 @@
+---
+import '../styles/global.css';
+import Site from '../layouts/Site.astro';
+import { validateContact, type ContactValues } from '../lib/validation/contact';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../lib/csrf';
+import { allowRequest, D1RateStore } from '../lib/rate-limit';
+import { renderContactEmail } from '../lib/email/render';
+import { sendEmail } from '../lib/email/send';
+import { insertContactMessage } from '../lib/db';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+
+let values: ContactValues = { name: '', email: '', message: '' };
+let errors: Record<string, string> = {};
+let sent = false;
+let emailNote = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(
+    env.CSRF_SECRET,
+    Astro.cookies.get('csrf')?.value ?? '',
+    String(form.get('csrf_token') ?? ''),
+  );
+  const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const okRate = await allowRequest(
+    new D1RateStore(env.DB),
+    `contact:${ip}`,
+    5,
+    10 * 60_000,
+    Date.now(),
+  );
+  const result = validateContact({
+    name: String(form.get('name') ?? ''),
+    email: String(form.get('email') ?? ''),
+    message: String(form.get('message') ?? ''),
+    website: String(form.get('website') ?? ''),
+  });
+
+  if (!okCsrf || !okRate || (result.ok && result.spam)) {
+    // Show success without saving: never tell a bot it was caught, and never
+    // let a stale token or rate limit turn into a scary error for a human.
+    sent = true;
+  } else if (result.ok) {
+    await insertContactMessage(env.DB, result.values);
+    const outcome = await sendEmail(env, env.CONTACT_TO, renderContactEmail(result.values));
+    if (!outcome.sent) {
+      emailNote = 'Your message is saved and our volunteers will still see it.';
+    }
+    sent = true;
+  } else {
+    errors = result.errors;
+    values = result.values;
+  }
+}
+
+const cookieValue = newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, {
+  httpOnly: true,
+  sameSite: 'lax',
+  path: '/',
+  secure: true,
+});
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+---
+<Site title="Contact Us">
+  <h1 class="text-3xl font-bold text-holly-800">Contact Us</h1>
+
+  {
+    sent ? (
+      <div class="mt-6 rounded border-l-4 border-holly-700 bg-white p-5">
+        <p class="text-xl font-bold text-holly-800">Thank you — we got your message.</p>
+        <p class="mt-2">A volunteer will reply to your email as soon as they can. {emailNote}</p>
+        <p class="mt-2">
+          If it's urgent, call our message line at <strong>608-723-2136 ext 1194</strong>.
+        </p>
+      </div>
+    ) : (
+      <>
+        <p class="mt-4">
+          Send us a message and a volunteer will reply by email. You can also call our message
+          line at <strong>608-723-2136 ext 1194</strong> — speak slowly and leave your name and
+          phone number.
+        </p>
+
+        {Object.keys(errors).length > 0 && (
+          <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert">
+            <p class="font-bold">Please check these before sending:</p>
+            <ul class="mt-1 list-disc pl-6">
+              {Object.entries(errors).map(([field, msg]) => (
+                <li>
+                  <a href={`#${field}`} class="text-berry-700 underline">
+                    {msg}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <form method="post" class="mt-6 max-w-xl space-y-5" novalidate>
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+          <p class="hidden" aria-hidden="true">
+            <label>Leave this box empty: <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+          </p>
+
+          <div>
+            <label for="name" class="block font-semibold">Your name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={values.name}
+              autocomplete="name"
+              class="mt-1 w-full rounded border-2 border-stone-400 bg-white p-3"
+            />
+          </div>
+
+          <div>
+            <label for="email" class="block font-semibold">Your email address <span class="text-berry-700">(required)</span></label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={values.email}
+              autocomplete="email"
+              aria-invalid={errors.email ? 'true' : undefined}
+              aria-describedby={errors.email ? 'email-error' : undefined}
+              class="mt-1 w-full rounded border-2 border-stone-400 bg-white p-3"
+            />
+            {errors.email && <p id="email-error" class="mt-1 font-semibold text-berry-800">{errors.email}</p>}
+          </div>
+
+          <div>
+            <label for="message" class="block font-semibold">Your message <span class="text-berry-700">(required)</span></label>
+            <textarea
+              id="message"
+              name="message"
+              rows="6"
+              aria-invalid={errors.message ? 'true' : undefined}
+              aria-describedby={errors.message ? 'message-error' : undefined}
+              class="mt-1 w-full rounded border-2 border-stone-400 bg-white p-3">{values.message}</textarea>
+            {errors.message && <p id="message-error" class="mt-1 font-semibold text-berry-800">{errors.message}</p>}
+          </div>
+
+          <button
+            type="submit"
+            class="rounded-lg bg-holly-700 px-6 py-3 text-lg font-bold text-white hover:bg-holly-900"
+          >
+            Send message
+          </button>
+        </form>
+      </>
+    )
+  }
+</Site>

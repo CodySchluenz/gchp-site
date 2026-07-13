@@ -37,3 +37,13 @@ export async function listPickupDays(db: D1Database): Promise<PickupDay[]> {
     .all<PickupDay>();
   return results;
 }
+
+export async function insertContactMessage(
+  db: D1Database,
+  v: { name: string; email: string; message: string },
+): Promise<void> {
+  await db
+    .prepare('INSERT INTO contact_messages (received_at, name, email, message) VALUES (?, ?, ?, ?)')
+    .bind(new Date().toISOString(), v.name, v.email, v.message)
+    .run();
+}
