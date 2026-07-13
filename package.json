@@ -1,0 +1,24 @@
+{
+  "name": "gchp-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "test": "vitest run",
+    "db:migrate:local": "wrangler d1 migrations apply gchp --local",
+    "db:migrate:remote": "wrangler d1 migrations apply gchp --remote"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.5.0",
+    "astro": "^5.7.0",
+    "@tailwindcss/vite": "^4.1.0",
+    "tailwindcss": "^4.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260101.0",
+    "typescript": "^5.6.0",
+    "vitest": "^3.0.0",
+    "wrangler": "^4.0.0"
+  }
+}
