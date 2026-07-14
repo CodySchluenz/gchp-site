@@ -27,6 +27,7 @@ describe('name search LIKE escaping', () => {
 
   it('treats _ as a literal, not a single-char wildcard', async () => {
     await insertApplication(db, { ...base, lastName: 'a_b', firstName: 'Z' });
+    await insertApplication(db, { ...base, lastName: 'axb', firstName: 'Y' });
     const hits = await listApplications(db, 2026, 'all', 'a_b');
     expect(hits.length).toBe(1);
     expect(hits[0].last_name).toBe('a_b');
