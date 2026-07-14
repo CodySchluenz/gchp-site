@@ -1,0 +1,59 @@
+---
+import '../../../styles/global.css';
+import Admin from '../../../layouts/Admin.astro';
+import { getSettings, setPdfUploadedAt } from '../../../lib/db';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+let banner = '';
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  const file = form.get('file');
+  if (!okCsrf) {
+    error = 'Please try again.';
+  } else if (!(file instanceof File) || file.size === 0) {
+    error = 'Please choose a PDF file to upload.';
+  } else if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+    error = 'That file is not a PDF. Please upload a PDF.';
+  } else if (file.size > 5_000_000) {
+    error = 'That file is too big (over 5 MB). Please upload a smaller PDF.';
+  } else {
+    await env.FILES.put('application.pdf', await file.arrayBuffer(), {
+      httpMetadata: { contentType: 'application/pdf' },
+    });
+    await setPdfUploadedAt(env.DB, new Date().toISOString());
+    banner = 'Uploaded. The new paper application is now published.';
+  }
+}
+
+const settings = await getSettings(env.DB);
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const uploaded = settings.pdf_uploaded_at ? settings.pdf_uploaded_at.slice(0, 10) : null;
+---
+<Admin title="Paper application" heading="Paper application (PDF)" back={{ href: '/admin', label: 'Back to admin home' }}>
+  <p class="mt-1 text-lg text-stone-600">Help: this is the printable application families download. Upload a new PDF here to replace it.</p>
+
+  {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+  {error && <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert"><p class="font-bold text-berry-800">{error}</p></div>}
+
+  <p class="mt-6 text-lg">
+    {uploaded
+      ? <>Currently published: uploaded <strong>{uploaded}</strong>. <a href="/application.pdf" target="_blank" class="font-semibold text-berry-700 underline">View it</a>.</>
+      : <>No paper application has been uploaded yet.</>}
+  </p>
+
+  <form method="post" enctype="multipart/form-data" class="mt-6 rounded-lg border-2 border-holly-700 bg-white p-5">
+    <input type="hidden" name="csrf_token" value={csrfToken} />
+    <label class="block text-lg font-semibold">Choose a PDF file
+      <input type="file" name="file" accept="application/pdf,.pdf" class="mt-2 block w-full text-lg" />
+    </label>
+    <button type="submit" class="mt-4 rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Upload and publish</button>
+  </form>
+</Admin>
