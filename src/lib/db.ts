@@ -376,3 +376,21 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
     employers: [], // SlipCard does not render employers
   }));
 }
+
+export async function setApplicationsOpen(db: D1Database, open: boolean): Promise<void> {
+  await db.prepare('UPDATE settings SET applications_open = ? WHERE id = 1').bind(open ? 1 : 0).run();
+}
+
+export async function updatePickupText(
+  db: D1Database,
+  v: { title: string; intro: string; footer: string },
+): Promise<void> {
+  await db
+    .prepare('UPDATE settings SET pickup_title = ?, pickup_intro = ?, pickup_footer = ? WHERE id = 1')
+    .bind(v.title, v.intro, v.footer)
+    .run();
+}
+
+export async function setPdfUploadedAt(db: D1Database, iso: string): Promise<void> {
+  await db.prepare('UPDATE settings SET pdf_uploaded_at = ? WHERE id = 1').bind(iso).run();
+}
