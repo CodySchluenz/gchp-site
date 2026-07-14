@@ -338,21 +338,35 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
     .all<Record<string, unknown>>();
   if (apps.results.length === 0) return [];
 
-  const ids = apps.results.map((a) => a.id as number);
-  const idPh = ids.map(() => '?').join(',');
-  const cityIds = [...new Set(apps.results.map((a) => a.city_id as number))];
-  const cityPh = cityIds.map(() => '?').join(',');
-
+  // Fetch cities and members by JOINing to the approved-season set so the number
+  // of BOUND PARAMETERS stays 1 regardless of how many apps are approved — D1
+  // caps bound parameters at 100 per query, so an IN(...id list) would fail at scale.
   const [cities, members] = await Promise.all([
-    db.prepare(`SELECT id, name FROM cities WHERE id IN (${cityPh})`).bind(...cityIds).all<{ id: number; name: string }>(),
-    db.prepare(`SELECT * FROM household_members WHERE application_id IN (${idPh}) ORDER BY application_id, position`).bind(...ids).all<Record<string, unknown>>(),
+    db
+      .prepare(
+        `SELECT DISTINCT c.id, c.name FROM cities c
+         JOIN applications a ON a.city_id = c.id
+         WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'`,
+      )
+      .bind(seasonYear)
+      .all<{ id: number; name: string }>(),
+    db
+      .prepare(
+        `SELECT hm.* FROM household_members hm
+         JOIN applications a ON a.id = hm.application_id
+         WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
+         ORDER BY hm.application_id, hm.position`,
+      )
+      .bind(seasonYear)
+      .all<Record<string, unknown>>(),
   ]);
 
   const cityById = new Map(cities.results.map((c) => [c.id, c.name]));
   const membersByApp = new Map<number, Record<string, unknown>[]>();
   for (const m of members.results) {
     const aid = m.application_id as number;
-    (membersByApp.get(aid) ?? membersByApp.set(aid, []).get(aid)!).push(m);
+    if (!membersByApp.has(aid)) membersByApp.set(aid, []);
+    membersByApp.get(aid)!.push(m);
   }
 
   return apps.results.map((app) => ({
