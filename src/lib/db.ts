@@ -145,17 +145,22 @@ export type ApplicationListRow = {
   pu_number: number | null;
 };
 
+// Escape LIKE metacharacters so operator-typed % or _ match literally.
+export function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 export async function listApplications(
   db: D1Database,
   seasonYear: number,
   status: 'all' | 'new' | 'approved' | 'denied',
   search: string,
 ): Promise<ApplicationListRow[]> {
-  const like = `%${search.trim().toLowerCase()}%`;
+  const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const cols = `a.id, a.first_name, a.last_name, c.name AS city_name, a.submitted_at,
                 a.status, a.may_not_be_eligible, a.pu_number`;
   // The name filter is a no-op when the search box is empty (like === '%%').
-  const nameFilter = `(? = '%%' OR lower(a.first_name) LIKE ? OR lower(a.last_name) LIKE ?)`;
+  const nameFilter = `(? = '%%' OR lower(a.first_name) LIKE ? ESCAPE '\\' OR lower(a.last_name) LIKE ? ESCAPE '\\')`;
   const order = `ORDER BY a.submitted_at DESC, a.id DESC`;
 
   const stmt =
