@@ -1,8 +1,8 @@
 ---
 import '../../../../styles/global.css';
 import Admin from '../../../../layouts/Admin.astro';
-import { getApplicationDetail, listCities, updateApplicationCore } from '../../../../lib/db';
-import { parseIntInRange } from '../../../../lib/validation/application';
+import { getApplicationDetail, listCities, updateApplicationFull, type ApplicationFullEdit } from '../../../../lib/db';
+import { parseIntInRange, parseMoney } from '../../../../lib/validation/application';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../../lib/csrf';
 export const prerender = false;
 
@@ -12,21 +12,42 @@ const id = Number(Astro.params.id);
 if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   const form = await Astro.request.formData();
   const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
-  if (okCsrf) {
-    const g = (k: string) => String(form.get(k) ?? '').trim();
-    const on = (k: string) => form.get(k) === 'on';
-    const bedChoice = (['sheets', 'blanket', 'none'].includes(g('bed_choice')) ? g('bed_choice') : 'none') as 'sheets' | 'blanket' | 'none';
-    const bedSize = ['twin', 'full', 'queen', 'king'].includes(g('bed_size')) ? (g('bed_size') as 'twin' | 'full' | 'queen' | 'king') : null;
-    const ht = (['family', 'elderly', 'disabled'].includes(g('household_type')) ? g('household_type') : 'family') as 'family' | 'elderly' | 'disabled';
-    await updateApplicationCore(env.DB, id, {
-      firstName: g('first_name'), lastName: g('last_name'), address: g('address'),
-      cityId: parseIntInRange(g('city_id'), 1, 9999) ?? 13, phone: g('phone'), email: g('email'),
-      diabetic: on('diabetic'), shareWithSponsor: on('share_with_sponsor'), permanentlyDisabled: on('permanently_disabled'),
-      bedChoice, bedSize: bedChoice === 'none' ? null : bedSize,
-      yearsReceivedHelp: parseIntInRange(g('years_received_help'), 0, 99) ?? 0, adoptedLastYear: on('adopted_last_year'), householdType: ht,
-    });
-    return Astro.redirect(`/admin/applications/${id}`, 303);
+  if (!okCsrf) return Astro.redirect(`/admin/applications/${id}/edit?error=csrf`, 303);
+
+  const g = (k: string) => String(form.get(k) ?? '').trim();
+  const on = (k: string) => form.get(k) === 'on';
+  // Amount fields: blank -> null; non-blank invalid -> validation error.
+  const amountKeys = ['food_share_amount', 'social_security_amount', 'ssi_amount', 'child_support_amount', 'unemployment_weekly_amount', 'other_income_amount'] as const;
+  const amounts: Record<string, number | null> = {};
+  let amountError = false;
+  for (const k of amountKeys) {
+    const raw = g(k);
+    if (raw === '') { amounts[k] = null; continue; }
+    const parsed = parseMoney(raw);
+    if (parsed === null) { amountError = true; break; }
+    amounts[k] = parsed;
   }
+  if (amountError) return Astro.redirect(`/admin/applications/${id}/edit?error=amount`, 303);
+
+  const bedChoice = (['sheets', 'blanket', 'none'].includes(g('bed_choice')) ? g('bed_choice') : 'none') as 'sheets' | 'blanket' | 'none';
+  const bedSize = ['twin', 'full', 'queen', 'king'].includes(g('bed_size')) ? (g('bed_size') as 'twin' | 'full' | 'queen' | 'king') : null;
+  const ht = (['family', 'elderly', 'disabled'].includes(g('household_type')) ? g('household_type') : 'family') as 'family' | 'elderly' | 'disabled';
+  const edit: ApplicationFullEdit = {
+    firstName: g('first_name'), lastName: g('last_name'), address: g('address'),
+    cityId: parseIntInRange(g('city_id'), 1, 9999) ?? 13, phone: g('phone'), email: g('email'),
+    diabetic: on('diabetic'), shareWithSponsor: on('share_with_sponsor'), permanentlyDisabled: on('permanently_disabled'),
+    bedChoice, bedSize: bedChoice === 'none' ? null : bedSize,
+    yearsReceivedHelp: parseIntInRange(g('years_received_help'), 0, 99) ?? 0, adoptedLastYear: on('adopted_last_year'), householdType: ht,
+    fullTimeResidenceConfirmed: on('full_time_residence_confirmed'), noEmploymentConfirmed: on('no_employment_confirmed'),
+    foodShareAmount: amounts['food_share_amount'], socialSecurityAmount: amounts['social_security_amount'], socialSecurityFor: g('social_security_for'),
+    ssiAmount: amounts['ssi_amount'], ssiFor: g('ssi_for'),
+    childSupportAmount: amounts['child_support_amount'], childSupportFor: g('child_support_for'),
+    unemploymentWeeklyAmount: amounts['unemployment_weekly_amount'], unemploymentFor: g('unemployment_for'),
+    otherIncomeAmount: amounts['other_income_amount'], otherIncomeFor: g('other_income_for'),
+    goodDeed: g('good_deed'), mayNotBeEligible: on('may_not_be_eligible'),
+  };
+  await updateApplicationFull(env.DB, id, edit);
+  return Astro.redirect(`/admin/applications/${id}`, 303);
 }
 
 const detail = Number.isInteger(id) ? await getApplicationDetail(env.DB, id) : null;
@@ -35,14 +56,19 @@ const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
 const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
 Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
 const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
-const a = detail?.app ?? {};
-const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3';
+const a = detail?.app ?? {} as Record<string, unknown>;
+const err = new URL(Astro.request.url).searchParams.get('error');
+const errText = err === 'amount' ? 'Please type a dollar amount like 250 or 250.00 (or leave it blank).' : err === 'csrf' ? 'That didn\'t save — please try again.' : '';
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-lg';
 ---
-<Admin title="Edit application" heading={detail ? `Edit — ${a.first_name} ${a.last_name}` : 'Not found'} back={{ href: `/admin/applications/${id}`, label: 'Back without saving' }}>
+<Admin title="Edit details" heading={detail ? `Edit details — ${a.first_name} ${a.last_name}` : 'Not found'} back={{ href: `/admin/applications/${id}`, label: 'Back without saving' }}>
   {!detail ? <p class="mt-4">That application could not be found.</p> : (
     <form method="post" class="mt-6 max-w-2xl space-y-4">
       <input type="hidden" name="csrf_token" value={csrfToken} />
-      <p class="text-lg text-stone-600">Help: fix typos in the family's details here. To change who is in the household, use the next update (coming soon).</p>
+      {errText && <div class="rounded border-l-4 border-berry-700 bg-white p-4" role="alert"><p class="font-bold text-berry-800">{errText}</p></div>}
+      <p class="text-lg text-stone-600">Help: correct any of the family's details here, then press Save. To change who is in the household or their jobs, use the buttons on the application page.</p>
+
+      <h2 class="text-2xl font-bold text-holly-800">About the household</h2>
       <div class="grid gap-4 sm:grid-cols-2">
         <label class="block font-semibold">First name<input class={input} type="text" name="first_name" value={a.first_name} /></label>
         <label class="block font-semibold">Last name<input class={input} type="text" name="last_name" value={a.last_name} /></label>
@@ -77,7 +103,31 @@ const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3';
         <label class="flex items-center gap-3"><input type="checkbox" name="permanently_disabled" checked={a.permanently_disabled === 1} class="h-6 w-6" /> Someone is permanently disabled</label>
         <label class="flex items-center gap-3"><input type="checkbox" name="share_with_sponsor" checked={a.share_with_sponsor === 1} class="h-6 w-6" /> OK to share needs with a sponsor</label>
         <label class="flex items-center gap-3"><input type="checkbox" name="adopted_last_year" checked={a.adopted_last_year === 1} class="h-6 w-6" /> Adopted last year</label>
+        <label class="flex items-center gap-3"><input type="checkbox" name="full_time_residence_confirmed" checked={a.full_time_residence_confirmed === 1} class="h-6 w-6" /> Confirmed they live in Grant County full time</label>
+        <label class="flex items-center gap-3"><input type="checkbox" name="no_employment_confirmed" checked={a.no_employment_confirmed === 1} class="h-6 w-6" /> Confirmed no one in the household is employed</label>
+        <label class="flex items-center gap-3"><input type="checkbox" name="may_not_be_eligible" checked={a.may_not_be_eligible === 1} class="h-6 w-6" /> Flag: may not be eligible (needs a closer look)</label>
       </div>
+
+      <h2 class="text-2xl font-bold text-holly-800">Income and benefits</h2>
+      <p class="text-lg text-stone-600">Leave a box blank if it does not apply. Use numbers like 250 or 250.00.</p>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="block font-semibold">Food Share (monthly $)<input class={input} type="text" inputmode="decimal" name="food_share_amount" value={a.food_share_amount ?? ''} /></label>
+        <div></div>
+        <label class="block font-semibold">Social Security ($)<input class={input} type="text" inputmode="decimal" name="social_security_amount" value={a.social_security_amount ?? ''} /></label>
+        <label class="block font-semibold">Social Security — for whom<input class={input} type="text" name="social_security_for" value={a.social_security_for ?? ''} /></label>
+        <label class="block font-semibold">SSI ($)<input class={input} type="text" inputmode="decimal" name="ssi_amount" value={a.ssi_amount ?? ''} /></label>
+        <label class="block font-semibold">SSI — for whom<input class={input} type="text" name="ssi_for" value={a.ssi_for ?? ''} /></label>
+        <label class="block font-semibold">Child support ($)<input class={input} type="text" inputmode="decimal" name="child_support_amount" value={a.child_support_amount ?? ''} /></label>
+        <label class="block font-semibold">Child support — for whom<input class={input} type="text" name="child_support_for" value={a.child_support_for ?? ''} /></label>
+        <label class="block font-semibold">Unemployment (weekly $)<input class={input} type="text" inputmode="decimal" name="unemployment_weekly_amount" value={a.unemployment_weekly_amount ?? ''} /></label>
+        <label class="block font-semibold">Unemployment — for whom<input class={input} type="text" name="unemployment_for" value={a.unemployment_for ?? ''} /></label>
+        <label class="block font-semibold">Other income ($)<input class={input} type="text" inputmode="decimal" name="other_income_amount" value={a.other_income_amount ?? ''} /></label>
+        <label class="block font-semibold">Other income — for whom<input class={input} type="text" name="other_income_for" value={a.other_income_for ?? ''} /></label>
+      </div>
+
+      <h2 class="text-2xl font-bold text-holly-800">Good deed</h2>
+      <label class="block font-semibold">What good deed did they do?<textarea class={input} name="good_deed" rows="3">{a.good_deed}</textarea></label>
+
       <button type="submit" class="rounded-lg bg-holly-700 px-6 py-3 text-lg font-bold text-white hover:bg-holly-900">Save changes</button>
     </form>
   )}

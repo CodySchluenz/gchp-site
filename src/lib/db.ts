@@ -252,7 +252,7 @@ export async function restoreApplication(db: D1Database, id: number): Promise<vo
   await db.prepare('UPDATE applications SET deleted_at = NULL WHERE id = ?').bind(id).run();
 }
 
-export type ApplicationCoreEdit = {
+export type ApplicationFullEdit = {
   firstName: string;
   lastName: string;
   address: string;
@@ -267,21 +267,52 @@ export type ApplicationCoreEdit = {
   yearsReceivedHelp: number;
   adoptedLastYear: boolean;
   householdType: 'family' | 'elderly' | 'disabled';
+  fullTimeResidenceConfirmed: boolean;
+  noEmploymentConfirmed: boolean;
+  foodShareAmount: number | null;
+  socialSecurityAmount: number | null;
+  socialSecurityFor: string;
+  ssiAmount: number | null;
+  ssiFor: string;
+  childSupportAmount: number | null;
+  childSupportFor: string;
+  unemploymentWeeklyAmount: number | null;
+  unemploymentFor: string;
+  otherIncomeAmount: number | null;
+  otherIncomeFor: string;
+  goodDeed: string;
+  mayNotBeEligible: boolean;
 };
 
-export async function updateApplicationCore(db: D1Database, id: number, f: ApplicationCoreEdit): Promise<void> {
+export async function updateApplicationFull(db: D1Database, id: number, f: ApplicationFullEdit): Promise<void> {
   await db
     .prepare(
       `UPDATE applications SET
          first_name = ?, last_name = ?, address = ?, city_id = ?, phone = ?, email = ?,
          diabetic = ?, share_with_sponsor = ?, permanently_disabled = ?,
-         bed_choice = ?, bed_size = ?, years_received_help = ?, adopted_last_year = ?, household_type = ?
+         bed_choice = ?, bed_size = ?, years_received_help = ?, adopted_last_year = ?, household_type = ?,
+         full_time_residence_confirmed = ?, no_employment_confirmed = ?,
+         food_share_amount = ?,
+         social_security_amount = ?, social_security_for = ?,
+         ssi_amount = ?, ssi_for = ?,
+         child_support_amount = ?, child_support_for = ?,
+         unemployment_weekly_amount = ?, unemployment_for = ?,
+         other_income_amount = ?, other_income_for = ?,
+         good_deed = ?, may_not_be_eligible = ?
        WHERE id = ?`,
     )
     .bind(
       f.firstName, f.lastName, f.address, f.cityId, f.phone, f.email,
       f.diabetic ? 1 : 0, f.shareWithSponsor ? 1 : 0, f.permanentlyDisabled ? 1 : 0,
       f.bedChoice, f.bedSize, f.yearsReceivedHelp, f.adoptedLastYear ? 1 : 0, f.householdType,
+      f.fullTimeResidenceConfirmed ? 1 : 0, f.noEmploymentConfirmed ? 1 : 0,
+      f.foodShareAmount,
+      f.socialSecurityAmount, f.socialSecurityFor,
+      f.ssiAmount, f.ssiFor,
+      f.childSupportAmount, f.childSupportFor,
+      f.unemploymentWeeklyAmount, f.unemploymentFor,
+      f.otherIncomeAmount, f.otherIncomeFor,
+      f.goodDeed, f.mayNotBeEligible ? 1 : 0,
       id,
     )
     .run();
