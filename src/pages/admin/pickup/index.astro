@@ -40,6 +40,8 @@ if (Astro.request.method === 'POST') {
       await movePickupDay(env.DB, id, act === 'move_up' ? 'up' : 'down');
       return Astro.redirect('/admin/pickup?saved=moved', 303);
     }
+  } else {
+    return Astro.redirect('/admin/pickup?error=csrf', 303);
   }
 }
 
@@ -49,6 +51,7 @@ const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
 const saved = url.searchParams.get('saved');
 const banner = saved === 'added' ? 'Added.' : saved === 'saved' ? 'Saved.' : saved === 'moved' ? 'Moved.'
   : url.searchParams.get('error') === 'date' ? 'Please enter a date before adding.'
+  : url.searchParams.get('error') === 'csrf' ? 'That didn\'t save — please try again.'
   : url.searchParams.get('restored') === '1' ? 'It\'s back in your list.' : '';
 const settings = await getSettings(env.DB);
 const days = await listAllPickupDays(env.DB);

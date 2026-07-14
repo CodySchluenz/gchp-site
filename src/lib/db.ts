@@ -224,13 +224,15 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
 
 export async function assignPuNumber(db: D1Database, id: number, seasonYear: number): Promise<number> {
   // Single-statement assign: only fills a NULL pu_number, so it is idempotent and
-  // closes the read-then-write gap of the previous version. The subquery excludes
-  // the row being updated (its pu_number is still NULL) and soft-deleted rows.
+  // closes the read-then-write gap of the previous version. The subquery counts
+  // all rows in the season, including soft-deleted ones, so a restored application
+  // never collides with a number handed out while it was deleted; gaps in the
+  // numbering are harmless, duplicates are not.
   await db
     .prepare(
       `UPDATE applications
          SET pu_number = (SELECT COALESCE(MAX(pu_number), 0) + 1 FROM applications
-                          WHERE season_year = ?1 AND deleted_at IS NULL)
+                          WHERE season_year = ?1)
        WHERE id = ?2 AND season_year = ?1 AND pu_number IS NULL`,
     )
     .bind(seasonYear, id)

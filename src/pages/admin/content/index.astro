@@ -36,6 +36,8 @@ if (Astro.request.method === 'POST') {
     } else if (v.title === '' && (act === 'create' || act === 'update')) {
       return Astro.redirect('/admin/content?error=title', 303);
     }
+  } else {
+    return Astro.redirect('/admin/content?error=csrf', 303);
   }
 }
 
@@ -45,6 +47,7 @@ const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
 const saved = url.searchParams.get('saved');
 const banner = saved === 'added' ? 'Added.' : saved === 'saved' ? 'Saved.' : saved === 'moved' ? 'Moved.'
   : url.searchParams.get('error') === 'title' ? 'Please give the item a title before saving.'
+  : url.searchParams.get('error') === 'csrf' ? 'That didn\'t save — please try again.'
   : url.searchParams.get('restored') === '1' ? 'It\'s back in your list.' : '';
 const blocks = await listAllContentBlocks(env.DB);
 
