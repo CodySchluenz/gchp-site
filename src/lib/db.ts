@@ -218,18 +218,23 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
 }
 
 export async function assignPuNumber(db: D1Database, id: number, seasonYear: number): Promise<number> {
-  const current = await db
+  // Single-statement assign: only fills a NULL pu_number, so it is idempotent and
+  // closes the read-then-write gap of the previous version. The subquery excludes
+  // the row being updated (its pu_number is still NULL) and soft-deleted rows.
+  await db
+    .prepare(
+      `UPDATE applications
+         SET pu_number = (SELECT COALESCE(MAX(pu_number), 0) + 1 FROM applications
+                          WHERE season_year = ?1 AND deleted_at IS NULL)
+       WHERE id = ?2 AND season_year = ?1 AND pu_number IS NULL`,
+    )
+    .bind(seasonYear, id)
+    .run();
+  const row = await db
     .prepare('SELECT pu_number FROM applications WHERE id = ?')
     .bind(id)
     .first<{ pu_number: number | null }>();
-  if (current?.pu_number != null) return current.pu_number;
-  const max = await db
-    .prepare('SELECT COALESCE(MAX(pu_number), 0) AS m FROM applications WHERE season_year = ?')
-    .bind(seasonYear)
-    .first<{ m: number }>();
-  const next = (max?.m ?? 0) + 1;
-  await db.prepare('UPDATE applications SET pu_number = ? WHERE id = ?').bind(next, id).run();
-  return next;
+  return row?.pu_number ?? 0;
 }
 
 export async function setApplicationStatus(
