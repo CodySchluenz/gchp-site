@@ -517,3 +517,51 @@ export async function movePickupDay(db: D1Database, id: number, dir: 'up' | 'dow
     ),
   );
 }
+
+export type MemberEdit = {
+  name: string; relationship: string; sex: string; age: number;
+  pants: string; shirtTop: string; underwear: string; socks: string; diapers: string; gifts: string;
+};
+
+export async function insertMember(db: D1Database, applicationId: number, m: MemberEdit): Promise<number> {
+  const max = await db
+    .prepare('SELECT COALESCE(MAX(position), 0) AS m FROM household_members WHERE application_id = ?')
+    .bind(applicationId)
+    .first<{ m: number }>();
+  const res = await db
+    .prepare(
+      `INSERT INTO household_members
+         (application_id, position, name, relationship, sex, age, pants, shirt_top, underwear, socks, diapers, gifts)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(applicationId, (max?.m ?? 0) + 1, m.name, m.relationship, m.sex, m.age, m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.gifts)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function updateMember(db: D1Database, id: number, applicationId: number, m: MemberEdit): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE household_members SET
+         name = ?, relationship = ?, sex = ?, age = ?,
+         pants = ?, shirt_top = ?, underwear = ?, socks = ?, diapers = ?, gifts = ?
+       WHERE id = ? AND application_id = ?`,
+    )
+    .bind(m.name, m.relationship, m.sex, m.age, m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.gifts, id, applicationId)
+    .run();
+}
+
+export async function deleteMember(db: D1Database, id: number, applicationId: number): Promise<void> {
+  await db.prepare('DELETE FROM household_members WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
+  // Renumber the survivors 1..n by ascending position so gaps do not accumulate.
+  const { results } = await db
+    .prepare('SELECT id FROM household_members WHERE application_id = ? ORDER BY position, id')
+    .bind(applicationId)
+    .all<{ id: number }>();
+  if (results.length > 0) {
+    await db.batch(
+      results.map((r, i) =>
+        db.prepare('UPDATE household_members SET position = ? WHERE id = ?').bind(i + 1, r.id)),
+    );
+  }
+}
