@@ -456,3 +456,64 @@ export async function moveContentBlock(db: D1Database, id: number, dir: 'up' | '
     ),
   );
 }
+
+export type AdminPickupDay = {
+  id: number;
+  date_text: string;
+  description: string;
+  sort_order: number;
+};
+
+export async function listAllPickupDays(db: D1Database): Promise<AdminPickupDay[]> {
+  const { results } = await db
+    .prepare('SELECT id, date_text, description, sort_order FROM pickup_days WHERE deleted_at IS NULL ORDER BY sort_order, id')
+    .all<AdminPickupDay>();
+  return results;
+}
+
+export async function createPickupDay(
+  db: D1Database,
+  v: { date_text: string; description: string },
+): Promise<number> {
+  const max = await db
+    .prepare('SELECT COALESCE(MAX(sort_order), 0) AS m FROM pickup_days WHERE deleted_at IS NULL')
+    .first<{ m: number }>();
+  const res = await db
+    .prepare('INSERT INTO pickup_days (date_text, description, sort_order) VALUES (?, ?, ?)')
+    .bind(v.date_text, v.description, (max?.m ?? 0) + 1)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function updatePickupDay(
+  db: D1Database,
+  id: number,
+  v: { date_text: string; description: string },
+): Promise<void> {
+  await db
+    .prepare('UPDATE pickup_days SET date_text = ?, description = ? WHERE id = ?')
+    .bind(v.date_text, v.description, id)
+    .run();
+}
+
+export async function softDeletePickupDay(db: D1Database, id: number, iso: string): Promise<void> {
+  await db.prepare('UPDATE pickup_days SET deleted_at = ? WHERE id = ?').bind(iso, id).run();
+}
+
+export async function restorePickupDay(db: D1Database, id: number): Promise<void> {
+  await db.prepare('UPDATE pickup_days SET deleted_at = NULL WHERE id = ?').bind(id).run();
+}
+
+export async function movePickupDay(db: D1Database, id: number, dir: 'up' | 'down'): Promise<void> {
+  const rows = await listAllPickupDays(db);
+  const i = rows.findIndex((r) => r.id === id);
+  if (i === -1) return;
+  const j = dir === 'up' ? i - 1 : i + 1;
+  if (j < 0 || j >= rows.length) return;
+  [rows[i], rows[j]] = [rows[j], rows[i]];
+  await db.batch(
+    rows.map((r, idx) =>
+      db.prepare('UPDATE pickup_days SET sort_order = ? WHERE id = ?').bind(idx + 1, r.id),
+    ),
+  );
+}
