@@ -44,5 +44,7 @@ describe('updateApplicationFull', () => {
     expect(a.good_deed).toBe('second');
     expect(a.may_not_be_eligible).toBe(1);
     expect(a.household_type).toBe('elderly');
+    expect(a.address).toBe('2 Ave');
+    expect((await getApplicationDetail(db, id))!.members).toHaveLength(1); // members untouched by a row update
   });
 });
