@@ -9,7 +9,6 @@ import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf'
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
-let banner = '';
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -24,24 +23,29 @@ if (Astro.request.method === 'POST') {
     };
     if (act === 'create' && v.title !== '') {
       await createContentBlock(env.DB, v);
-      banner = 'Added.';
+      return Astro.redirect('/admin/content?saved=added', 303);
     } else if (act === 'update' && Number.isInteger(id) && v.title !== '') {
       await updateContentBlock(env.DB, id, v);
-      banner = 'Saved.';
+      return Astro.redirect('/admin/content?saved=saved', 303);
     } else if (act === 'delete' && Number.isInteger(id)) {
       await softDeleteContentBlock(env.DB, id, new Date().toISOString());
       return Astro.redirect(`/admin/content?undo=${id}`, 303);
     } else if ((act === 'move_up' || act === 'move_down') && Number.isInteger(id)) {
       await moveContentBlock(env.DB, id, act === 'move_up' ? 'up' : 'down');
-      banner = 'Moved.';
+      return Astro.redirect('/admin/content?saved=moved', 303);
     } else if (v.title === '' && (act === 'create' || act === 'update')) {
-      banner = 'Please give the item a title before saving.';
+      return Astro.redirect('/admin/content?error=title', 303);
     }
   }
 }
 
-const undoRaw = new URL(Astro.request.url).searchParams.get('undo');
+const url = new URL(Astro.request.url);
+const undoRaw = url.searchParams.get('undo');
 const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
+const saved = url.searchParams.get('saved');
+const banner = saved === 'added' ? 'Added.' : saved === 'saved' ? 'Saved.' : saved === 'moved' ? 'Moved.'
+  : url.searchParams.get('error') === 'title' ? 'Please give the item a title before saving.'
+  : url.searchParams.get('restored') === '1' ? 'It\'s back in your list.' : '';
 const blocks = await listAllContentBlocks(env.DB);
 
 const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';

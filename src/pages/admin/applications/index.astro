@@ -51,6 +51,9 @@ const exportHref = `/admin/applications/export.csv?season=${season}&status=${sta
       </form>
     </div>
   )}
+  {new URL(Astro.request.url).searchParams.get('restored') === '1' && (
+    <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">It's back in your list.</p></div>
+  )}
 
   <div class="mt-6 flex flex-wrap items-end gap-4">
     <nav aria-label="Filter by status" class="flex flex-wrap gap-2">

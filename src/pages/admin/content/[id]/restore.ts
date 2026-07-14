@@ -13,5 +13,5 @@ export const POST: APIRoute = async ({ locals, params, request, cookies, redirec
     String(form.get('csrf_token') ?? ''),
   );
   if (ok && Number.isInteger(id)) await restoreContentBlock(locals.runtime.env.DB, id);
-  return redirect('/admin/content', 303);
+  return redirect('/admin/content?restored=1', 303);
 };

@@ -13,5 +13,5 @@ export const POST: APIRoute = async ({ locals, params, request, cookies, redirec
     String(form.get('csrf_token') ?? ''),
   );
   if (ok && Number.isInteger(id)) await restorePickupDay(locals.runtime.env.DB, id);
-  return redirect('/admin/pickup', 303);
+  return redirect('/admin/pickup?restored=1', 303);
 };
