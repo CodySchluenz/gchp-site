@@ -11,44 +11,43 @@ export const prerender = false;
 
 const env = Astro.locals.runtime.env;
 const id = Number(Astro.params.id);
-let banner = '';
-let emailNote = '';
+const detailUrl = `/admin/applications/${id}`;
 
 if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   const form = await Astro.request.formData();
   const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (!okCsrf) return Astro.redirect(`${detailUrl}?error=csrf`, 303);
   const act = String(form.get('act') ?? '');
-  if (okCsrf) {
-    const detail = await getApplicationDetail(env.DB, id);
-    if (detail) {
-      const season = detail.app.season_year as number;
-      const firstName = detail.app.first_name as string;
-      const email = detail.app.email as string;
-      if (act === 'approve_email' || act === 'approve_silent') {
-        await assignPuNumber(env.DB, id, season);
-        await setApplicationStatus(env.DB, id, 'approved');
-        banner = 'Approved.';
-        if (act === 'approve_email') {
-          const r = await sendEmail(env, email, renderApprovedEmail(firstName));
-          emailNote = r.sent ? 'Approval email sent.' : 'Approved, but the email could not be sent right now — their application is still saved.';
-        }
-      } else if (act === 'deny_email' || act === 'deny_silent') {
-        await setApplicationStatus(env.DB, id, 'denied');
-        banner = 'Marked as denied.';
-        if (act === 'deny_email') {
-          const r = await sendEmail(env, email, renderDeniedEmail(firstName));
-          emailNote = r.sent ? 'Email sent.' : 'Saved, but the email could not be sent right now.';
-        }
-      } else if (act === 'set_bags') {
-        const raw = String(form.get('bags_count') ?? '').trim();
-        await setBagsCount(env.DB, id, raw === '' ? null : Math.max(0, Math.floor(Number(raw)) || 0));
-        banner = 'Bag count saved.';
-      } else if (act === 'delete') {
-        await softDeleteApplication(env.DB, id, new Date().toISOString());
-        return Astro.redirect(`/admin/applications?undo=${id}`, 303);
+  const detail = await getApplicationDetail(env.DB, id);
+  if (detail) {
+    const season = detail.app.season_year as number;
+    const firstName = detail.app.first_name as string;
+    const email = detail.app.email as string;
+    if (act === 'approve_email' || act === 'approve_silent') {
+      await assignPuNumber(env.DB, id, season);
+      await setApplicationStatus(env.DB, id, 'approved');
+      if (act === 'approve_email') {
+        const r = await sendEmail(env, email, renderApprovedEmail(firstName));
+        return Astro.redirect(`${detailUrl}?done=approved&mail=${r.sent ? 'ok' : 'fail'}`, 303);
       }
+      return Astro.redirect(`${detailUrl}?done=approved`, 303);
+    } else if (act === 'deny_email' || act === 'deny_silent') {
+      await setApplicationStatus(env.DB, id, 'denied');
+      if (act === 'deny_email') {
+        const r = await sendEmail(env, email, renderDeniedEmail(firstName));
+        return Astro.redirect(`${detailUrl}?done=denied&mail=${r.sent ? 'ok' : 'fail'}`, 303);
+      }
+      return Astro.redirect(`${detailUrl}?done=denied`, 303);
+    } else if (act === 'set_bags') {
+      const raw = String(form.get('bags_count') ?? '').trim();
+      await setBagsCount(env.DB, id, raw === '' ? null : Math.max(0, Math.floor(Number(raw)) || 0));
+      return Astro.redirect(`${detailUrl}?done=bags`, 303);
+    } else if (act === 'delete') {
+      await softDeleteApplication(env.DB, id, new Date().toISOString());
+      return Astro.redirect(`/admin/applications?undo=${id}`, 303);
     }
   }
+  return Astro.redirect(detailUrl, 303);
 }
 
 const detail = Number.isInteger(id) ? await getApplicationDetail(env.DB, id) : null;
@@ -57,6 +56,12 @@ const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
 const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
 Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
 const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+
+const flags = new URL(Astro.request.url).searchParams;
+const done = flags.get('done');
+const mail = flags.get('mail');
+const mailNote = mail === 'ok' ? ' The email was sent.' : mail === 'fail' ? ' The email could not be sent right now — the application is still saved.' : '';
+const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'bags' ? 'Bag count saved.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
 
 const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
@@ -68,7 +73,7 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
     <p class="mt-4">That application could not be found. It may have been deleted.</p>
   ) : (
     <>
-      {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner} {emailNote}</p></div>}
+      {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
       {a.may_not_be_eligible === 1 && (
         <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4">
           <p class="font-bold">Please check eligibility.</p>
@@ -122,7 +127,9 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
 
       <section class="mt-6 flex flex-wrap gap-3">
         <a href={`/admin/applications/${id}/slip`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800">Print pickup slip</a>
-        <a href={`/admin/applications/${id}/edit`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800">Edit this application</a>
+        <a href={`/admin/applications/${id}/edit`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800">Edit details</a>
+        <a href={`/admin/applications/${id}/members`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800">Edit household members</a>
+        <a href={`/admin/applications/${id}/employers`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800">Edit jobs</a>
       </section>
 
       <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">

@@ -137,6 +137,8 @@ issue — an unvalidated `?undo=` param interpolated into a CSRF-armed form acti
 the Undo POST to the new applications-open toggle — fixed in Plan 3b (commit 46eacc5) by requiring
 `undoId` to be all digits in the content/pickup/applications index pages.
 
+Plan 3c delivered: full-parity application editing (details including income/benefits/confirmations/good-deed/eligibility, plus add/edit/remove of household members and employers); PRG on approve/deny and on news/pickup edits; undo/restore confirmation banners; CSRF-failure and validation-error banners; single-statement assignPuNumber; LIKE-wildcard escaping in name search; fuller Excel export honoring the name filter; no-cache on /application.pdf. Donations/donor directory and contact-messages deferred to Plan 3d.
+
 Carried forward to Plan 3c (still deferred from Plan 3a's notes, plus new ones):
 - **PRG on approve/deny** (detail-page POST re-renders; refresh re-sends the applicant email).
 - **PRG on content/pickup add/update/move:** these render the banner on the POST response with no
@@ -153,6 +155,28 @@ Carried forward to Plan 3c (still deferred from Plan 3a's notes, plus new ones):
   minutes. Either drop the caching on that route or soften the post-upload banner wording.
 - Plus the originally-deferred 3c scope: donors/donations recording, contact-messages admin screen,
   and member/employer/benefit-level application editing.
+
+## Plan 3d binding notes (carried from Plan 3c whole-branch review, 2026-07-14)
+
+Plan 3c's whole-branch review confirmed the applications surface merges clean after a fix wave
+(commit 42c09f0: no pickup-number reuse after delete+restore; CSRF-failure feedback on the restore
+endpoints and the news/pickup POST handlers; dead export helper removed). These smaller items were
+triaged as defer-to-3d and must not drop off the list:
+- **Edit forms should not wipe typed input on error.** The Edit-details, members, and jobs editors
+  redirect on a validation/CSRF error and re-render from the stored DB record, so one bad amount (or
+  a stale token) discards the rest of that submission's edits — against the project's "never wipe
+  what they typed" principle. Repopulate the form from the submitted values on error.
+- **Light server-side validation gaps on the admin surfaces:** the Edit-details form still saves a
+  blank first name as `''`; `set_bags` still coerces non-numeric input to 0 under a "Bag count
+  saved." banner; a pickup-day **update** (unlike create) still accepts an empty date. Add gentle
+  required-field / "please type a number" feedback.
+- **Admin `hours_per_week` is uncapped** (the public applicant form rejects > 168 via
+  `validateEmployment`); an operator could enter an implausible value that lands in the export.
+- **Member-cap error precedence** (`members.astro`): a hand-crafted add POST that is both blank and
+  at `MAX_MEMBERS` reports `?error=fields` rather than `?error=full`. Cap is still enforced before
+  insert; message-only, reachable only by a crafted POST.
+- Note (`assignPuNumber`): now returns `0` as a "not applicable" sentinel for a non-existent id or a
+  season mismatch (unreachable via the current caller); future callers should know this.
 
 ## Still open (owner actions, not design questions)
 - Rotate the live admin password and the MySQL password (both were exposed in the original repo

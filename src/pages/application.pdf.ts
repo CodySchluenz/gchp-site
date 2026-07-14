@@ -19,7 +19,7 @@ export const GET: APIRoute = async ({ locals }) => {
       headers: {
         'Content-Type': 'application/pdf',
         'Content-Disposition': 'inline; filename="GCHP-application.pdf"',
-        'Cache-Control': 'public, max-age=300',
+        'Cache-Control': 'no-cache',
       },
     });
   } catch {

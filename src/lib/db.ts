@@ -145,17 +145,22 @@ export type ApplicationListRow = {
   pu_number: number | null;
 };
 
+// Escape LIKE metacharacters so operator-typed % or _ match literally.
+export function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 export async function listApplications(
   db: D1Database,
   seasonYear: number,
   status: 'all' | 'new' | 'approved' | 'denied',
   search: string,
 ): Promise<ApplicationListRow[]> {
-  const like = `%${search.trim().toLowerCase()}%`;
+  const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const cols = `a.id, a.first_name, a.last_name, c.name AS city_name, a.submitted_at,
                 a.status, a.may_not_be_eligible, a.pu_number`;
   // The name filter is a no-op when the search box is empty (like === '%%').
-  const nameFilter = `(? = '%%' OR lower(a.first_name) LIKE ? OR lower(a.last_name) LIKE ?)`;
+  const nameFilter = `(? = '%%' OR lower(a.first_name) LIKE ? ESCAPE '\\' OR lower(a.last_name) LIKE ? ESCAPE '\\')`;
   const order = `ORDER BY a.submitted_at DESC, a.id DESC`;
 
   const stmt =
@@ -218,18 +223,25 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
 }
 
 export async function assignPuNumber(db: D1Database, id: number, seasonYear: number): Promise<number> {
-  const current = await db
+  // Single-statement assign: only fills a NULL pu_number, so it is idempotent and
+  // closes the read-then-write gap of the previous version. The subquery counts
+  // all rows in the season, including soft-deleted ones, so a restored application
+  // never collides with a number handed out while it was deleted; gaps in the
+  // numbering are harmless, duplicates are not.
+  await db
+    .prepare(
+      `UPDATE applications
+         SET pu_number = (SELECT COALESCE(MAX(pu_number), 0) + 1 FROM applications
+                          WHERE season_year = ?1)
+       WHERE id = ?2 AND season_year = ?1 AND pu_number IS NULL`,
+    )
+    .bind(seasonYear, id)
+    .run();
+  const row = await db
     .prepare('SELECT pu_number FROM applications WHERE id = ?')
     .bind(id)
     .first<{ pu_number: number | null }>();
-  if (current?.pu_number != null) return current.pu_number;
-  const max = await db
-    .prepare('SELECT COALESCE(MAX(pu_number), 0) AS m FROM applications WHERE season_year = ?')
-    .bind(seasonYear)
-    .first<{ m: number }>();
-  const next = (max?.m ?? 0) + 1;
-  await db.prepare('UPDATE applications SET pu_number = ? WHERE id = ?').bind(next, id).run();
-  return next;
+  return row?.pu_number ?? 0;
 }
 
 export async function setApplicationStatus(
@@ -252,7 +264,7 @@ export async function restoreApplication(db: D1Database, id: number): Promise<vo
   await db.prepare('UPDATE applications SET deleted_at = NULL WHERE id = ?').bind(id).run();
 }
 
-export type ApplicationCoreEdit = {
+export type ApplicationFullEdit = {
   firstName: string;
   lastName: string;
   address: string;
@@ -267,21 +279,52 @@ export type ApplicationCoreEdit = {
   yearsReceivedHelp: number;
   adoptedLastYear: boolean;
   householdType: 'family' | 'elderly' | 'disabled';
+  fullTimeResidenceConfirmed: boolean;
+  noEmploymentConfirmed: boolean;
+  foodShareAmount: number | null;
+  socialSecurityAmount: number | null;
+  socialSecurityFor: string;
+  ssiAmount: number | null;
+  ssiFor: string;
+  childSupportAmount: number | null;
+  childSupportFor: string;
+  unemploymentWeeklyAmount: number | null;
+  unemploymentFor: string;
+  otherIncomeAmount: number | null;
+  otherIncomeFor: string;
+  goodDeed: string;
+  mayNotBeEligible: boolean;
 };
 
-export async function updateApplicationCore(db: D1Database, id: number, f: ApplicationCoreEdit): Promise<void> {
+export async function updateApplicationFull(db: D1Database, id: number, f: ApplicationFullEdit): Promise<void> {
   await db
     .prepare(
       `UPDATE applications SET
          first_name = ?, last_name = ?, address = ?, city_id = ?, phone = ?, email = ?,
          diabetic = ?, share_with_sponsor = ?, permanently_disabled = ?,
-         bed_choice = ?, bed_size = ?, years_received_help = ?, adopted_last_year = ?, household_type = ?
+         bed_choice = ?, bed_size = ?, years_received_help = ?, adopted_last_year = ?, household_type = ?,
+         full_time_residence_confirmed = ?, no_employment_confirmed = ?,
+         food_share_amount = ?,
+         social_security_amount = ?, social_security_for = ?,
+         ssi_amount = ?, ssi_for = ?,
+         child_support_amount = ?, child_support_for = ?,
+         unemployment_weekly_amount = ?, unemployment_for = ?,
+         other_income_amount = ?, other_income_for = ?,
+         good_deed = ?, may_not_be_eligible = ?
        WHERE id = ?`,
     )
     .bind(
       f.firstName, f.lastName, f.address, f.cityId, f.phone, f.email,
       f.diabetic ? 1 : 0, f.shareWithSponsor ? 1 : 0, f.permanentlyDisabled ? 1 : 0,
       f.bedChoice, f.bedSize, f.yearsReceivedHelp, f.adoptedLastYear ? 1 : 0, f.householdType,
+      f.fullTimeResidenceConfirmed ? 1 : 0, f.noEmploymentConfirmed ? 1 : 0,
+      f.foodShareAmount,
+      f.socialSecurityAmount, f.socialSecurityFor,
+      f.ssiAmount, f.ssiFor,
+      f.childSupportAmount, f.childSupportFor,
+      f.unemploymentWeeklyAmount, f.unemploymentFor,
+      f.otherIncomeAmount, f.otherIncomeFor,
+      f.goodDeed, f.mayNotBeEligible ? 1 : 0,
       id,
     )
     .run();
@@ -300,29 +343,48 @@ export type ExportRow = {
   household_type: string;
   may_not_be_eligible: number;
   bags_count: number | null;
+  years_received_help: number;
+  adopted_last_year: number;
+  bed_choice: string;
+  bed_size: string | null;
+  food_share_amount: number | null;
+  social_security_amount: number | null;
+  ssi_amount: number | null;
+  child_support_amount: number | null;
+  unemployment_weekly_amount: number | null;
+  other_income_amount: number | null;
+  member_count: number;
   member_summary: string;
+  employment_summary: string;
 };
 
 export async function listApplicationsForExport(
   db: D1Database,
   seasonYear: number,
   status: 'all' | 'new' | 'approved' | 'denied',
+  search: string,
 ): Promise<ExportRow[]> {
+  const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const statusFilter = status === 'all' ? '' : 'AND a.status = ?2';
+  // Name filter is a no-op when the search box is empty (like === '%%').
+  const nameFilter = `AND (?3 = '%%' OR lower(a.first_name) LIKE ?3 ESCAPE '\\' OR lower(a.last_name) LIKE ?3 ESCAPE '\\')`;
   const sql = `
     SELECT a.pu_number, a.status, a.submitted_at, a.first_name, a.last_name, a.address,
            c.name AS city_name, a.phone, a.email, a.household_type, a.may_not_be_eligible, a.bags_count,
-           COALESCE(GROUP_CONCAT(m.name || ' (' || m.age || ')', '; '), '') AS member_summary
+           a.years_received_help, a.adopted_last_year, a.bed_choice, a.bed_size,
+           a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
+           a.unemployment_weekly_amount, a.other_income_amount,
+           COUNT(DISTINCT m.id) AS member_count,
+           COALESCE(GROUP_CONCAT(m.name || ' (' || m.age || ')', '; '), '') AS member_summary,
+           (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
+              FROM employers e WHERE e.application_id = a.id) AS employment_summary
     FROM applications a
     JOIN cities c ON c.id = a.city_id
     LEFT JOIN household_members m ON m.application_id = a.id
-    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter}
+    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter} ${nameFilter}
     GROUP BY a.id
     ORDER BY a.submitted_at DESC, a.id DESC`;
-  const stmt =
-    status === 'all'
-      ? db.prepare(sql).bind(seasonYear)
-      : db.prepare(sql).bind(seasonYear, status);
+  const stmt = db.prepare(sql).bind(seasonYear, status === 'all' ? '' : status, like);
   const { results } = await stmt.all<ExportRow>();
   return results;
 }
@@ -516,4 +578,73 @@ export async function movePickupDay(db: D1Database, id: number, dir: 'up' | 'dow
       db.prepare('UPDATE pickup_days SET sort_order = ? WHERE id = ?').bind(idx + 1, r.id),
     ),
   );
+}
+
+export type MemberEdit = {
+  name: string; relationship: string; sex: string; age: number;
+  pants: string; shirtTop: string; underwear: string; socks: string; diapers: string; gifts: string;
+};
+
+export async function insertMember(db: D1Database, applicationId: number, m: MemberEdit): Promise<number> {
+  const max = await db
+    .prepare('SELECT COALESCE(MAX(position), 0) AS m FROM household_members WHERE application_id = ?')
+    .bind(applicationId)
+    .first<{ m: number }>();
+  const res = await db
+    .prepare(
+      `INSERT INTO household_members
+         (application_id, position, name, relationship, sex, age, pants, shirt_top, underwear, socks, diapers, gifts)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(applicationId, (max?.m ?? 0) + 1, m.name, m.relationship, m.sex, m.age, m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.gifts)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function updateMember(db: D1Database, id: number, applicationId: number, m: MemberEdit): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE household_members SET
+         name = ?, relationship = ?, sex = ?, age = ?,
+         pants = ?, shirt_top = ?, underwear = ?, socks = ?, diapers = ?, gifts = ?
+       WHERE id = ? AND application_id = ?`,
+    )
+    .bind(m.name, m.relationship, m.sex, m.age, m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.gifts, id, applicationId)
+    .run();
+}
+
+export async function deleteMember(db: D1Database, id: number, applicationId: number): Promise<void> {
+  await db.prepare('DELETE FROM household_members WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
+  // Renumber the survivors 1..n by ascending position so gaps do not accumulate.
+  const { results } = await db
+    .prepare('SELECT id FROM household_members WHERE application_id = ? ORDER BY position, id')
+    .bind(applicationId)
+    .all<{ id: number }>();
+  if (results.length > 0) {
+    await db.batch(
+      results.map((r, i) =>
+        db.prepare('UPDATE household_members SET position = ? WHERE id = ?').bind(i + 1, r.id)),
+    );
+  }
+}
+
+export type EmployerEdit = { employerName: string; workerName: string; hourlyWage: number; hoursPerWeek: number };
+
+export async function insertEmployer(db: D1Database, applicationId: number, e: EmployerEdit): Promise<number> {
+  const res = await db
+    .prepare('INSERT INTO employers (application_id, employer_name, worker_name, hourly_wage, hours_per_week) VALUES (?, ?, ?, ?, ?)')
+    .bind(applicationId, e.employerName, e.workerName, e.hourlyWage, e.hoursPerWeek)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function updateEmployer(db: D1Database, id: number, applicationId: number, e: EmployerEdit): Promise<void> {
+  await db
+    .prepare('UPDATE employers SET employer_name = ?, worker_name = ?, hourly_wage = ?, hours_per_week = ? WHERE id = ? AND application_id = ?')
+    .bind(e.employerName, e.workerName, e.hourlyWage, e.hoursPerWeek, id, applicationId)
+    .run();
+}
+
+export async function deleteEmployer(db: D1Database, id: number, applicationId: number): Promise<void> {
+  await db.prepare('DELETE FROM employers WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
 }

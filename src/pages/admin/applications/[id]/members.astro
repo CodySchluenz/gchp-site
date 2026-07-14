@@ -1,0 +1,116 @@
+---
+import '../../../../styles/global.css';
+import Admin from '../../../../layouts/Admin.astro';
+import { getApplicationDetail, insertMember, updateMember, deleteMember, type MemberEdit } from '../../../../lib/db';
+import { parseIntInRange, MAX_MEMBERS } from '../../../../lib/validation/application';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+const id = Number(Astro.params.id);
+const base = `/admin/applications/${id}/members`;
+
+if (Astro.request.method === 'POST' && Number.isInteger(id)) {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (!okCsrf) return Astro.redirect(`${base}?error=csrf`, 303);
+  const act = String(form.get('act') ?? '');
+  const memberId = Number(form.get('member_id'));
+  const g = (k: string) => String(form.get(k) ?? '').trim();
+  const detail = await getApplicationDetail(env.DB, id);
+  if (!detail) return Astro.redirect(base, 303);
+
+  if (act === 'delete' && Number.isInteger(memberId)) {
+    await deleteMember(env.DB, memberId, id);
+    return Astro.redirect(`${base}?removed=1`, 303);
+  }
+  const age = parseIntInRange(g('age'), 0, 120);
+  const name = g('name');
+  if (name === '' || age === null) return Astro.redirect(`${base}?error=fields`, 303);
+  const m: MemberEdit = {
+    name, relationship: g('relationship'), sex: g('sex'), age,
+    pants: g('pants'), shirtTop: g('shirt_top'), underwear: g('underwear'), socks: g('socks'), diapers: g('diapers'), gifts: g('gifts'),
+  };
+  if (act === 'create') {
+    if (detail.members.length >= MAX_MEMBERS) return Astro.redirect(`${base}?error=full`, 303);
+    await insertMember(env.DB, id, m);
+    return Astro.redirect(`${base}?added=1`, 303);
+  }
+  if (act === 'update' && Number.isInteger(memberId)) {
+    await updateMember(env.DB, memberId, id, m);
+    return Astro.redirect(`${base}?saved=1`, 303);
+  }
+  return Astro.redirect(base, 303);
+}
+
+const detail = Number.isInteger(id) ? await getApplicationDetail(env.DB, id) : null;
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const a = detail?.app ?? {} as Record<string, unknown>;
+const flags = new URL(Astro.request.url).searchParams;
+const banner = flags.get('added') ? 'Person added.' : flags.get('saved') ? 'Saved.' : flags.get('removed') ? 'Person removed.'
+  : flags.get('error') === 'fields' ? 'Please enter a name and an age (0-120).'
+  : flags.get('error') === 'full' ? 'That is the most people we can list for one household.'
+  : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-lg';
+const full = detail ? detail.members.length >= MAX_MEMBERS : false;
+---
+<Admin title="Edit household members" heading={detail ? `People — ${a.first_name} ${a.last_name}` : 'Not found'} back={{ href: `/admin/applications/${id}`, label: 'Back to the application' }}>
+  {!detail ? <p class="mt-4">That application could not be found.</p> : (
+    <>
+      <p class="mt-1 text-lg text-stone-600">Help: fix a person's details and press Save. Add someone at the bottom, or press Remove to take a person off this application.</p>
+      {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+
+      {detail.members.map((m) => (
+        <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
+          <form method="post" class="space-y-3">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <input type="hidden" name="member_id" value={String(m.id)} />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block font-semibold">Name<input class={input} type="text" name="name" value={m.name} /></label>
+              <label class="block font-semibold">Relationship<input class={input} type="text" name="relationship" value={m.relationship} /></label>
+              <label class="block font-semibold">Sex<input class={input} type="text" name="sex" value={m.sex} /></label>
+              <label class="block font-semibold">Age<input class={input} type="text" inputmode="numeric" name="age" value={m.age} /></label>
+              <label class="block font-semibold">Pants size<input class={input} type="text" name="pants" value={m.pants} /></label>
+              <label class="block font-semibold">Shirt/top size<input class={input} type="text" name="shirt_top" value={m.shirt_top} /></label>
+              <label class="block font-semibold">Underwear size<input class={input} type="text" name="underwear" value={m.underwear} /></label>
+              <label class="block font-semibold">Socks size<input class={input} type="text" name="socks" value={m.socks} /></label>
+              <label class="block font-semibold">Diapers size<input class={input} type="text" name="diapers" value={m.diapers} /></label>
+              <label class="block font-semibold">Gifts / toys wanted<input class={input} type="text" name="gifts" value={m.gifts} /></label>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button type="submit" name="act" value="update" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save</button>
+              <button type="submit" name="act" value="delete" data-confirm="Remove this person from the application? This cannot be undone." class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800">Remove</button>
+            </div>
+          </form>
+        </section>
+      ))}
+
+      <section class="mt-8 rounded-lg border-2 border-holly-700 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Add a person</h2>
+        {full ? <p class="mt-2 text-lg">This household already has the most people we can list.</p> : (
+          <form method="post" class="mt-3 space-y-3">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block font-semibold">Name<input class={input} type="text" name="name" /></label>
+              <label class="block font-semibold">Relationship<input class={input} type="text" name="relationship" /></label>
+              <label class="block font-semibold">Sex<input class={input} type="text" name="sex" /></label>
+              <label class="block font-semibold">Age<input class={input} type="text" inputmode="numeric" name="age" /></label>
+              <label class="block font-semibold">Pants size<input class={input} type="text" name="pants" /></label>
+              <label class="block font-semibold">Shirt/top size<input class={input} type="text" name="shirt_top" /></label>
+              <label class="block font-semibold">Underwear size<input class={input} type="text" name="underwear" /></label>
+              <label class="block font-semibold">Socks size<input class={input} type="text" name="socks" /></label>
+              <label class="block font-semibold">Diapers size<input class={input} type="text" name="diapers" /></label>
+              <label class="block font-semibold">Gifts / toys wanted<input class={input} type="text" name="gifts" /></label>
+            </div>
+            <button type="submit" name="act" value="create" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Add this person</button>
+          </form>
+        )}
+      </section>
+
+      <script src="/scripts/print-button.js" defer></script>
+    </>
+  )}
+</Admin>

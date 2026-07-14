@@ -9,7 +9,6 @@ import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf'
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
-let banner = '';
 
 if (Astro.request.method === 'POST') {
   const form = await Astro.request.formData();
@@ -23,26 +22,37 @@ if (Astro.request.method === 'POST') {
         intro: String(form.get('intro') ?? '').trim(),
         footer: String(form.get('footer') ?? '').trim(),
       });
-      banner = 'Pickup wording saved.';
+      return Astro.redirect('/admin/pickup?saved=saved', 303);
     } else if (act === 'create') {
       const d = { date_text: String(form.get('date_text') ?? '').trim(), description: String(form.get('description') ?? '').trim() };
-      if (d.date_text !== '') { await createPickupDay(env.DB, d); banner = 'Pickup day added.'; }
-      else banner = 'Please enter a date before adding.';
+      if (d.date_text !== '') {
+        await createPickupDay(env.DB, d);
+        return Astro.redirect('/admin/pickup?saved=added', 303);
+      }
+      return Astro.redirect('/admin/pickup?error=date', 303);
     } else if (act === 'update' && Number.isInteger(id)) {
       await updatePickupDay(env.DB, id, { date_text: String(form.get('date_text') ?? '').trim(), description: String(form.get('description') ?? '').trim() });
-      banner = 'Saved.';
+      return Astro.redirect('/admin/pickup?saved=saved', 303);
     } else if (act === 'delete' && Number.isInteger(id)) {
       await softDeletePickupDay(env.DB, id, new Date().toISOString());
       return Astro.redirect(`/admin/pickup?undo=${id}`, 303);
     } else if ((act === 'move_up' || act === 'move_down') && Number.isInteger(id)) {
       await movePickupDay(env.DB, id, act === 'move_up' ? 'up' : 'down');
-      banner = 'Moved.';
+      return Astro.redirect('/admin/pickup?saved=moved', 303);
     }
+  } else {
+    return Astro.redirect('/admin/pickup?error=csrf', 303);
   }
 }
 
-const undoRaw = new URL(Astro.request.url).searchParams.get('undo');
+const url = new URL(Astro.request.url);
+const undoRaw = url.searchParams.get('undo');
 const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
+const saved = url.searchParams.get('saved');
+const banner = saved === 'added' ? 'Added.' : saved === 'saved' ? 'Saved.' : saved === 'moved' ? 'Moved.'
+  : url.searchParams.get('error') === 'date' ? 'Please enter a date before adding.'
+  : url.searchParams.get('error') === 'csrf' ? 'That didn\'t save — please try again.'
+  : url.searchParams.get('restored') === '1' ? 'It\'s back in your list.' : '';
 const settings = await getSettings(env.DB);
 const days = await listAllPickupDays(env.DB);
 
