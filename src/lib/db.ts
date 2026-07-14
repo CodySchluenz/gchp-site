@@ -394,3 +394,65 @@ export async function updatePickupText(
 export async function setPdfUploadedAt(db: D1Database, iso: string): Promise<void> {
   await db.prepare('UPDATE settings SET pdf_uploaded_at = ? WHERE id = 1').bind(iso).run();
 }
+
+export type AdminContentBlock = {
+  id: number;
+  title: string;
+  subtitle: string;
+  body: string;
+  sort_order: number;
+};
+
+export async function listAllContentBlocks(db: D1Database): Promise<AdminContentBlock[]> {
+  const { results } = await db
+    .prepare('SELECT id, title, subtitle, body, sort_order FROM content_blocks WHERE deleted_at IS NULL ORDER BY sort_order, id')
+    .all<AdminContentBlock>();
+  return results;
+}
+
+export async function createContentBlock(
+  db: D1Database,
+  v: { title: string; subtitle: string; body: string },
+): Promise<number> {
+  const max = await db
+    .prepare('SELECT COALESCE(MAX(sort_order), 0) AS m FROM content_blocks WHERE deleted_at IS NULL')
+    .first<{ m: number }>();
+  const res = await db
+    .prepare('INSERT INTO content_blocks (title, subtitle, body, sort_order) VALUES (?, ?, ?, ?)')
+    .bind(v.title, v.subtitle, v.body, (max?.m ?? 0) + 1)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function updateContentBlock(
+  db: D1Database,
+  id: number,
+  v: { title: string; subtitle: string; body: string },
+): Promise<void> {
+  await db
+    .prepare('UPDATE content_blocks SET title = ?, subtitle = ?, body = ? WHERE id = ?')
+    .bind(v.title, v.subtitle, v.body, id)
+    .run();
+}
+
+export async function softDeleteContentBlock(db: D1Database, id: number, iso: string): Promise<void> {
+  await db.prepare('UPDATE content_blocks SET deleted_at = ? WHERE id = ?').bind(iso, id).run();
+}
+
+export async function restoreContentBlock(db: D1Database, id: number): Promise<void> {
+  await db.prepare('UPDATE content_blocks SET deleted_at = NULL WHERE id = ?').bind(id).run();
+}
+
+export async function moveContentBlock(db: D1Database, id: number, dir: 'up' | 'down'): Promise<void> {
+  const rows = await listAllContentBlocks(db);
+  const i = rows.findIndex((r) => r.id === id);
+  if (i === -1) return;
+  const j = dir === 'up' ? i - 1 : i + 1;
+  if (j < 0 || j >= rows.length) return;
+  [rows[i], rows[j]] = [rows[j], rows[i]];
+  await db.batch(
+    rows.map((r, idx) =>
+      db.prepare('UPDATE content_blocks SET sort_order = ? WHERE id = ?').bind(idx + 1, r.id),
+    ),
+  );
+}
