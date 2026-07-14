@@ -37,7 +37,7 @@ Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: 
 const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
 ---
 {signedInEmail ? (
-  <AdminHome email={signedInEmail} />
+  <AdminHome email={signedInEmail} csrfToken={csrfToken} />
 ) : (
   <html lang="en">
     <head>

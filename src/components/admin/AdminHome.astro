@@ -1,7 +1,7 @@
 ---
 import { getSettings } from '../../lib/db';
-interface Props { email: string }
-const { email } = Astro.props;
+interface Props { email: string; csrfToken: string }
+const { email, csrfToken } = Astro.props;
 const settings = await getSettings(Astro.locals.runtime.env.DB);
 const open = settings.applications_open === 1;
 ---
@@ -26,14 +26,19 @@ const open = settings.applications_open === 1;
       <p class="mt-2 text-stone-700">You're signed in as {email}.</p>
 
       <div class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
-        <p class="text-xl font-bold">
-          Applications are {open ? 'OPEN' : 'CLOSED'} right now.
-        </p>
-        <p class="mt-1 text-stone-700">
+        <p class="text-xl font-bold">Applications are {open ? 'OPEN' : 'CLOSED'} right now.</p>
+        <p class="mt-1 text-lg text-stone-700">
           {open
-            ? 'Families can apply online. You can turn this off from the settings screen (coming soon).'
-            : 'The online form is closed. You can turn it on from the settings screen (coming soon).'}
+            ? 'Families can apply online right now.'
+            : 'The online application form is closed. Families see a message with the phone line and paper application.'}
         </p>
+        <form method="post" action="/admin/settings/applications-open" class="mt-3"
+          data-confirm={open ? 'Close applications so families can no longer apply online?' : 'Open applications so families can apply online?'}>
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+          <button type="submit" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">
+            {open ? 'Close applications' : 'Open applications'}
+          </button>
+        </form>
       </div>
 
       <div class="mt-8 grid gap-4 sm:grid-cols-2">
@@ -45,5 +50,6 @@ const open = settings.applications_open === 1;
 
       <p class="mt-8 text-lg text-stone-600">More sections (news, pickup schedule, donors) are coming soon.</p>
     </main>
+    <script src="/scripts/print-button.js" defer></script>
   </body>
 </html>
