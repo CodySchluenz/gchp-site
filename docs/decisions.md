@@ -137,6 +137,8 @@ issue — an unvalidated `?undo=` param interpolated into a CSRF-armed form acti
 the Undo POST to the new applications-open toggle — fixed in Plan 3b (commit 46eacc5) by requiring
 `undoId` to be all digits in the content/pickup/applications index pages.
 
+Plan 3c delivered: full-parity application editing (details including income/benefits/confirmations/good-deed/eligibility, plus add/edit/remove of household members and employers); PRG on approve/deny and on news/pickup edits; undo/restore confirmation banners; CSRF-failure and validation-error banners; single-statement assignPuNumber; LIKE-wildcard escaping in name search; fuller Excel export honoring the name filter; no-cache on /application.pdf. Donations/donor directory and contact-messages deferred to Plan 3d.
+
 Carried forward to Plan 3c (still deferred from Plan 3a's notes, plus new ones):
 - **PRG on approve/deny** (detail-page POST re-renders; refresh re-sends the applicant email).
 - **PRG on content/pickup add/update/move:** these render the banner on the POST response with no
