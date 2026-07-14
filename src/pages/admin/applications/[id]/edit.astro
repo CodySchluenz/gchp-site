@@ -1,0 +1,84 @@
+---
+import '../../../../styles/global.css';
+import Admin from '../../../../layouts/Admin.astro';
+import { getApplicationDetail, listCities, updateApplicationCore } from '../../../../lib/db';
+import { parseIntInRange } from '../../../../lib/validation/application';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+const id = Number(Astro.params.id);
+
+if (Astro.request.method === 'POST' && Number.isInteger(id)) {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (okCsrf) {
+    const g = (k: string) => String(form.get(k) ?? '').trim();
+    const on = (k: string) => form.get(k) === 'on';
+    const bedChoice = (['sheets', 'blanket', 'none'].includes(g('bed_choice')) ? g('bed_choice') : 'none') as 'sheets' | 'blanket' | 'none';
+    const bedSize = ['twin', 'full', 'queen', 'king'].includes(g('bed_size')) ? (g('bed_size') as 'twin' | 'full' | 'queen' | 'king') : null;
+    const ht = (['family', 'elderly', 'disabled'].includes(g('household_type')) ? g('household_type') : 'family') as 'family' | 'elderly' | 'disabled';
+    await updateApplicationCore(env.DB, id, {
+      firstName: g('first_name'), lastName: g('last_name'), address: g('address'),
+      cityId: parseIntInRange(g('city_id'), 1, 9999) ?? 13, phone: g('phone'), email: g('email'),
+      diabetic: on('diabetic'), shareWithSponsor: on('share_with_sponsor'), permanentlyDisabled: on('permanently_disabled'),
+      bedChoice, bedSize: bedChoice === 'none' ? null : bedSize,
+      yearsReceivedHelp: parseIntInRange(g('years_received_help'), 0, 99) ?? 0, adoptedLastYear: on('adopted_last_year'), householdType: ht,
+    });
+    return Astro.redirect(`/admin/applications/${id}`, 303);
+  }
+}
+
+const detail = Number.isInteger(id) ? await getApplicationDetail(env.DB, id) : null;
+const cities = await listCities(env.DB);
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const a = detail?.app ?? {};
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3';
+---
+<Admin title="Edit application" heading={detail ? `Edit — ${a.first_name} ${a.last_name}` : 'Not found'} back={{ href: `/admin/applications/${id}`, label: 'Back without saving' }}>
+  {!detail ? <p class="mt-4">That application could not be found.</p> : (
+    <form method="post" class="mt-6 max-w-2xl space-y-4">
+      <input type="hidden" name="csrf_token" value={csrfToken} />
+      <p class="text-lg text-stone-600">Help: fix typos in the family's details here. To change who is in the household, use the next update (coming soon).</p>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="block font-semibold">First name<input class={input} type="text" name="first_name" value={a.first_name} /></label>
+        <label class="block font-semibold">Last name<input class={input} type="text" name="last_name" value={a.last_name} /></label>
+        <label class="block font-semibold">Address<input class={input} type="text" name="address" value={a.address} /></label>
+        <label class="block font-semibold">Town
+          <select class={input} name="city_id">
+            {cities.map((c) => <option value={String(c.id)} selected={c.id === a.city_id}>{c.name}</option>)}
+          </select>
+        </label>
+        <label class="block font-semibold">Phone<input class={input} type="text" name="phone" value={a.phone} /></label>
+        <label class="block font-semibold">Email<input class={input} type="email" name="email" value={a.email} /></label>
+        <label class="block font-semibold">Bed choice
+          <select class={input} name="bed_choice">
+            {['none', 'sheets', 'blanket'].map((v) => <option value={v} selected={v === a.bed_choice}>{v}</option>)}
+          </select>
+        </label>
+        <label class="block font-semibold">Bed size
+          <select class={input} name="bed_size">
+            <option value="" selected={!a.bed_size}>—</option>
+            {['twin', 'full', 'queen', 'king'].map((v) => <option value={v} selected={v === a.bed_size}>{v}</option>)}
+          </select>
+        </label>
+        <label class="block font-semibold">Years received help<input class={input} type="text" inputmode="numeric" name="years_received_help" value={a.years_received_help} /></label>
+        <label class="block font-semibold">Household type
+          <select class={input} name="household_type">
+            {['family', 'elderly', 'disabled'].map((v) => <option value={v} selected={v === a.household_type}>{v}</option>)}
+          </select>
+        </label>
+      </div>
+      <div class="space-y-2">
+        <label class="flex items-center gap-3"><input type="checkbox" name="diabetic" checked={a.diabetic === 1} class="h-6 w-6" /> Someone in the household is diabetic</label>
+        <label class="flex items-center gap-3"><input type="checkbox" name="permanently_disabled" checked={a.permanently_disabled === 1} class="h-6 w-6" /> Someone is permanently disabled</label>
+        <label class="flex items-center gap-3"><input type="checkbox" name="share_with_sponsor" checked={a.share_with_sponsor === 1} class="h-6 w-6" /> OK to share needs with a sponsor</label>
+        <label class="flex items-center gap-3"><input type="checkbox" name="adopted_last_year" checked={a.adopted_last_year === 1} class="h-6 w-6" /> Adopted last year</label>
+      </div>
+      <button type="submit" class="rounded-lg bg-holly-700 px-6 py-3 text-lg font-bold text-white hover:bg-holly-900">Save changes</button>
+    </form>
+  )}
+</Admin>

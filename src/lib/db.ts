@@ -133,3 +133,246 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
 
   return appId;
 }
+
+export type ApplicationListRow = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  city_name: string;
+  submitted_at: string;
+  status: string;
+  may_not_be_eligible: number;
+  pu_number: number | null;
+};
+
+export async function listApplications(
+  db: D1Database,
+  seasonYear: number,
+  status: 'all' | 'new' | 'approved' | 'denied',
+  search: string,
+): Promise<ApplicationListRow[]> {
+  const like = `%${search.trim().toLowerCase()}%`;
+  const cols = `a.id, a.first_name, a.last_name, c.name AS city_name, a.submitted_at,
+                a.status, a.may_not_be_eligible, a.pu_number`;
+  // The name filter is a no-op when the search box is empty (like === '%%').
+  const nameFilter = `(? = '%%' OR lower(a.first_name) LIKE ? OR lower(a.last_name) LIKE ?)`;
+  const order = `ORDER BY a.submitted_at DESC, a.id DESC`;
+
+  const stmt =
+    status === 'all'
+      ? db
+          .prepare(
+            `SELECT ${cols} FROM applications a JOIN cities c ON c.id = a.city_id
+             WHERE a.deleted_at IS NULL AND a.season_year = ? AND ${nameFilter} ${order}`,
+          )
+          .bind(seasonYear, like, like, like)
+      : db
+          .prepare(
+            `SELECT ${cols} FROM applications a JOIN cities c ON c.id = a.city_id
+             WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = ? AND ${nameFilter} ${order}`,
+          )
+          .bind(seasonYear, status, like, like, like);
+
+  const { results } = await stmt.all<ApplicationListRow>();
+  return results;
+}
+
+export async function listSeasons(db: D1Database): Promise<number[]> {
+  const { results } = await db
+    .prepare('SELECT DISTINCT season_year FROM applications WHERE deleted_at IS NULL ORDER BY season_year DESC')
+    .all<{ season_year: number }>();
+  return results.map((r) => r.season_year);
+}
+
+export type ApplicationDetail = {
+  app: Record<string, unknown>;
+  city_name: string;
+  members: Record<string, unknown>[];
+  employers: Record<string, unknown>[];
+};
+
+export async function getApplicationDetail(db: D1Database, id: number): Promise<ApplicationDetail | null> {
+  const app = await db
+    .prepare('SELECT * FROM applications WHERE id = ? AND deleted_at IS NULL')
+    .bind(id)
+    .first<Record<string, unknown>>();
+  if (!app) return null;
+  const city = await db
+    .prepare('SELECT name FROM cities WHERE id = ?')
+    .bind(app.city_id as number)
+    .first<{ name: string }>();
+  const members = await db
+    .prepare('SELECT * FROM household_members WHERE application_id = ? ORDER BY position')
+    .bind(id)
+    .all<Record<string, unknown>>();
+  const employers = await db
+    .prepare('SELECT * FROM employers WHERE application_id = ? ORDER BY id')
+    .bind(id)
+    .all<Record<string, unknown>>();
+  return {
+    app,
+    city_name: city?.name ?? '',
+    members: members.results,
+    employers: employers.results,
+  };
+}
+
+export async function assignPuNumber(db: D1Database, id: number, seasonYear: number): Promise<number> {
+  const current = await db
+    .prepare('SELECT pu_number FROM applications WHERE id = ?')
+    .bind(id)
+    .first<{ pu_number: number | null }>();
+  if (current?.pu_number != null) return current.pu_number;
+  const max = await db
+    .prepare('SELECT COALESCE(MAX(pu_number), 0) AS m FROM applications WHERE season_year = ?')
+    .bind(seasonYear)
+    .first<{ m: number }>();
+  const next = (max?.m ?? 0) + 1;
+  await db.prepare('UPDATE applications SET pu_number = ? WHERE id = ?').bind(next, id).run();
+  return next;
+}
+
+export async function setApplicationStatus(
+  db: D1Database,
+  id: number,
+  status: 'approved' | 'denied',
+): Promise<void> {
+  await db.prepare('UPDATE applications SET status = ? WHERE id = ?').bind(status, id).run();
+}
+
+export async function setBagsCount(db: D1Database, id: number, bags: number | null): Promise<void> {
+  await db.prepare('UPDATE applications SET bags_count = ? WHERE id = ?').bind(bags, id).run();
+}
+
+export async function softDeleteApplication(db: D1Database, id: number, nowIso: string): Promise<void> {
+  await db.prepare('UPDATE applications SET deleted_at = ? WHERE id = ?').bind(nowIso, id).run();
+}
+
+export async function restoreApplication(db: D1Database, id: number): Promise<void> {
+  await db.prepare('UPDATE applications SET deleted_at = NULL WHERE id = ?').bind(id).run();
+}
+
+export type ApplicationCoreEdit = {
+  firstName: string;
+  lastName: string;
+  address: string;
+  cityId: number;
+  phone: string;
+  email: string;
+  diabetic: boolean;
+  shareWithSponsor: boolean;
+  permanentlyDisabled: boolean;
+  bedChoice: 'sheets' | 'blanket' | 'none';
+  bedSize: 'twin' | 'full' | 'queen' | 'king' | null;
+  yearsReceivedHelp: number;
+  adoptedLastYear: boolean;
+  householdType: 'family' | 'elderly' | 'disabled';
+};
+
+export async function updateApplicationCore(db: D1Database, id: number, f: ApplicationCoreEdit): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE applications SET
+         first_name = ?, last_name = ?, address = ?, city_id = ?, phone = ?, email = ?,
+         diabetic = ?, share_with_sponsor = ?, permanently_disabled = ?,
+         bed_choice = ?, bed_size = ?, years_received_help = ?, adopted_last_year = ?, household_type = ?
+       WHERE id = ?`,
+    )
+    .bind(
+      f.firstName, f.lastName, f.address, f.cityId, f.phone, f.email,
+      f.diabetic ? 1 : 0, f.shareWithSponsor ? 1 : 0, f.permanentlyDisabled ? 1 : 0,
+      f.bedChoice, f.bedSize, f.yearsReceivedHelp, f.adoptedLastYear ? 1 : 0, f.householdType,
+      id,
+    )
+    .run();
+}
+
+export type ExportRow = {
+  pu_number: number | null;
+  status: string;
+  submitted_at: string;
+  first_name: string;
+  last_name: string;
+  address: string;
+  city_name: string;
+  phone: string;
+  email: string;
+  household_type: string;
+  may_not_be_eligible: number;
+  bags_count: number | null;
+  member_summary: string;
+};
+
+export async function listApplicationsForExport(
+  db: D1Database,
+  seasonYear: number,
+  status: 'all' | 'new' | 'approved' | 'denied',
+): Promise<ExportRow[]> {
+  const statusFilter = status === 'all' ? '' : 'AND a.status = ?2';
+  const sql = `
+    SELECT a.pu_number, a.status, a.submitted_at, a.first_name, a.last_name, a.address,
+           c.name AS city_name, a.phone, a.email, a.household_type, a.may_not_be_eligible, a.bags_count,
+           COALESCE(GROUP_CONCAT(m.name || ' (' || m.age || ')', '; '), '') AS member_summary
+    FROM applications a
+    JOIN cities c ON c.id = a.city_id
+    LEFT JOIN household_members m ON m.application_id = a.id
+    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter}
+    GROUP BY a.id
+    ORDER BY a.submitted_at DESC, a.id DESC`;
+  const stmt =
+    status === 'all'
+      ? db.prepare(sql).bind(seasonYear)
+      : db.prepare(sql).bind(seasonYear, status);
+  const { results } = await stmt.all<ExportRow>();
+  return results;
+}
+
+export async function listApprovedForSlips(db: D1Database, seasonYear: number): Promise<ApplicationDetail[]> {
+  const apps = await db
+    .prepare(
+      `SELECT * FROM applications
+       WHERE deleted_at IS NULL AND season_year = ? AND status = 'approved'
+       ORDER BY pu_number IS NULL, pu_number, id`,
+    )
+    .bind(seasonYear)
+    .all<Record<string, unknown>>();
+  if (apps.results.length === 0) return [];
+
+  // Fetch cities and members by JOINing to the approved-season set so the number
+  // of BOUND PARAMETERS stays 1 regardless of how many apps are approved — D1
+  // caps bound parameters at 100 per query, so an IN(...id list) would fail at scale.
+  const [cities, members] = await Promise.all([
+    db
+      .prepare(
+        `SELECT DISTINCT c.id, c.name FROM cities c
+         JOIN applications a ON a.city_id = c.id
+         WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'`,
+      )
+      .bind(seasonYear)
+      .all<{ id: number; name: string }>(),
+    db
+      .prepare(
+        `SELECT hm.* FROM household_members hm
+         JOIN applications a ON a.id = hm.application_id
+         WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
+         ORDER BY hm.application_id, hm.position`,
+      )
+      .bind(seasonYear)
+      .all<Record<string, unknown>>(),
+  ]);
+
+  const cityById = new Map(cities.results.map((c) => [c.id, c.name]));
+  const membersByApp = new Map<number, Record<string, unknown>[]>();
+  for (const m of members.results) {
+    const aid = m.application_id as number;
+    if (!membersByApp.has(aid)) membersByApp.set(aid, []);
+    membersByApp.get(aid)!.push(m);
+  }
+
+  return apps.results.map((app) => ({
+    app,
+    city_name: cityById.get(app.city_id as number) ?? '',
+    members: membersByApp.get(app.id as number) ?? [],
+    employers: [], // SlipCard does not render employers
+  }));
+}

@@ -1,0 +1,72 @@
+---
+import '../../styles/global.css';
+import { isAllowedEmail, createLoginToken } from '../../lib/auth';
+import { renderSignInEmail } from '../../lib/email/render';
+import { sendEmail } from '../../lib/email/send';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../lib/csrf';
+import { allowRequest, D1RateStore } from '../../lib/rate-limit';
+import AdminHome from '../../components/admin/AdminHome.astro';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+const signedInEmail = Astro.locals.adminEmail;
+
+let sent = false;
+if (!signedInEmail && Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(
+    env.CSRF_SECRET,
+    Astro.cookies.get('csrf')?.value ?? '',
+    String(form.get('csrf_token') ?? ''),
+  );
+  const email = String(form.get('email') ?? '').trim();
+  const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const okRate = await allowRequest(new D1RateStore(env.DB), `signin:${ip}`, 5, 15 * 60_000, Date.now());
+  if (okCsrf && okRate && email !== '' && (await isAllowedEmail(env.DB, email))) {
+    const token = await createLoginToken(env.DB, email, Date.now());
+    const link = `${new URL(Astro.request.url).origin}/admin/verify?token=${token}`;
+    await sendEmail(env, email, renderSignInEmail(link));
+  }
+  // Always the same response — never reveal whether an address is on the list.
+  sent = true;
+}
+
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+---
+{signedInEmail ? (
+  <AdminHome email={signedInEmail} />
+) : (
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>Sign in — GCHP Admin</title>
+    </head>
+    <body class="min-h-screen bg-cream text-stone-900 text-lg leading-relaxed">
+      <main class="mx-auto max-w-md px-4 py-16">
+        <h1 class="text-3xl font-bold text-holly-800">Grant County Holiday Project — Admin</h1>
+        {sent ? (
+          <div class="mt-6 rounded border-l-4 border-holly-700 bg-white p-5">
+            <p class="text-xl font-bold text-holly-800">Check your email</p>
+            <p class="mt-2">If that address is on our list, a sign-in link is on its way. It works for 15 minutes.</p>
+            <p class="mt-2">Didn't get it? Check your spam folder, or <a href="/admin" class="font-semibold text-berry-700 underline">try again</a>.</p>
+          </div>
+        ) : (
+          <form method="post" class="mt-6 space-y-4">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <label for="email" class="block font-semibold">Type your email address</label>
+            <input type="email" id="email" name="email" autocomplete="email" required
+              class="w-full rounded border-2 border-stone-400 bg-white p-3" />
+            <button type="submit" class="w-full rounded-lg bg-holly-700 px-6 py-3 text-lg font-bold text-white hover:bg-holly-900">
+              Email me a sign-in link
+            </button>
+            <p class="text-lg text-stone-700">We'll send a link to your email. Click it and you're signed in for 30 days. There's no password to remember.</p>
+          </form>
+        )}
+      </main>
+    </body>
+  </html>
+)}
