@@ -1,0 +1,103 @@
+---
+import '../../../../styles/global.css';
+import Admin from '../../../../layouts/Admin.astro';
+import { getApplicationDetail, insertEmployer, updateEmployer, deleteEmployer, type EmployerEdit } from '../../../../lib/db';
+import { parseMoney, MAX_EMPLOYERS } from '../../../../lib/validation/application';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+const id = Number(Astro.params.id);
+const base = `/admin/applications/${id}/employers`;
+
+if (Astro.request.method === 'POST' && Number.isInteger(id)) {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (!okCsrf) return Astro.redirect(`${base}?error=csrf`, 303);
+  const act = String(form.get('act') ?? '');
+  const employerId = Number(form.get('employer_id'));
+  const g = (k: string) => String(form.get(k) ?? '').trim();
+  const detail = await getApplicationDetail(env.DB, id);
+  if (!detail) return Astro.redirect(base, 303);
+
+  if (act === 'delete' && Number.isInteger(employerId)) {
+    await deleteEmployer(env.DB, employerId, id);
+    return Astro.redirect(`${base}?removed=1`, 303);
+  }
+  const wage = parseMoney(g('hourly_wage'));
+  const hours = parseMoney(g('hours_per_week'));
+  const employerName = g('employer_name');
+  const workerName = g('worker_name');
+  if (employerName === '' || workerName === '' || wage === null || hours === null) return Astro.redirect(`${base}?error=fields`, 303);
+  const e: EmployerEdit = { employerName, workerName, hourlyWage: wage, hoursPerWeek: hours };
+  if (act === 'create') {
+    if (detail.employers.length >= MAX_EMPLOYERS) return Astro.redirect(`${base}?error=full`, 303);
+    await insertEmployer(env.DB, id, e);
+    return Astro.redirect(`${base}?added=1`, 303);
+  }
+  if (act === 'update' && Number.isInteger(employerId)) {
+    await updateEmployer(env.DB, employerId, id, e);
+    return Astro.redirect(`${base}?saved=1`, 303);
+  }
+  return Astro.redirect(base, 303);
+}
+
+const detail = Number.isInteger(id) ? await getApplicationDetail(env.DB, id) : null;
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const a = detail?.app ?? {} as Record<string, unknown>;
+const flags = new URL(Astro.request.url).searchParams;
+const banner = flags.get('added') ? 'Job added.' : flags.get('saved') ? 'Saved.' : flags.get('removed') ? 'Job removed.'
+  : flags.get('error') === 'fields' ? 'Please fill in the employer, worker, wage, and hours (numbers for wage and hours).'
+  : flags.get('error') === 'full' ? 'That is the most jobs we can list for one household.'
+  : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-lg';
+const full = detail ? detail.employers.length >= MAX_EMPLOYERS : false;
+---
+<Admin title="Edit jobs" heading={detail ? `Jobs — ${a.first_name} ${a.last_name}` : 'Not found'} back={{ href: `/admin/applications/${id}`, label: 'Back to the application' }}>
+  {!detail ? <p class="mt-4">That application could not be found.</p> : (
+    <>
+      <p class="mt-1 text-lg text-stone-600">Help: correct a job and press Save, add a job at the bottom, or press Remove to take a job off this application.</p>
+      {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+
+      {detail.employers.map((e) => (
+        <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
+          <form method="post" class="space-y-3">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <input type="hidden" name="employer_id" value={String(e.id)} />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block font-semibold">Employer<input class={input} type="text" name="employer_name" value={e.employer_name} /></label>
+              <label class="block font-semibold">Worker<input class={input} type="text" name="worker_name" value={e.worker_name} /></label>
+              <label class="block font-semibold">Hourly wage ($)<input class={input} type="text" inputmode="decimal" name="hourly_wage" value={e.hourly_wage} /></label>
+              <label class="block font-semibold">Hours per week<input class={input} type="text" inputmode="decimal" name="hours_per_week" value={e.hours_per_week} /></label>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button type="submit" name="act" value="update" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save</button>
+              <button type="submit" name="act" value="delete" data-confirm="Remove this job from the application? This cannot be undone." class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800">Remove</button>
+            </div>
+          </form>
+        </section>
+      ))}
+
+      <section class="mt-8 rounded-lg border-2 border-holly-700 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Add a job</h2>
+        {full ? <p class="mt-2 text-lg">This household already has the most jobs we can list.</p> : (
+          <form method="post" class="mt-3 space-y-3">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <label class="block font-semibold">Employer<input class={input} type="text" name="employer_name" /></label>
+              <label class="block font-semibold">Worker<input class={input} type="text" name="worker_name" /></label>
+              <label class="block font-semibold">Hourly wage ($)<input class={input} type="text" inputmode="decimal" name="hourly_wage" /></label>
+              <label class="block font-semibold">Hours per week<input class={input} type="text" inputmode="decimal" name="hours_per_week" /></label>
+            </div>
+            <button type="submit" name="act" value="create" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Add this job</button>
+          </form>
+        )}
+      </section>
+
+      <script src="/scripts/print-button.js" defer></script>
+    </>
+  )}
+</Admin>
