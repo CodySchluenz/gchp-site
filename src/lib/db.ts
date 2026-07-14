@@ -341,29 +341,48 @@ export type ExportRow = {
   household_type: string;
   may_not_be_eligible: number;
   bags_count: number | null;
+  years_received_help: number;
+  adopted_last_year: number;
+  bed_choice: string;
+  bed_size: string | null;
+  food_share_amount: number | null;
+  social_security_amount: number | null;
+  ssi_amount: number | null;
+  child_support_amount: number | null;
+  unemployment_weekly_amount: number | null;
+  other_income_amount: number | null;
+  member_count: number;
   member_summary: string;
+  employment_summary: string;
 };
 
 export async function listApplicationsForExport(
   db: D1Database,
   seasonYear: number,
   status: 'all' | 'new' | 'approved' | 'denied',
+  search: string,
 ): Promise<ExportRow[]> {
+  const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const statusFilter = status === 'all' ? '' : 'AND a.status = ?2';
+  // Name filter is a no-op when the search box is empty (like === '%%').
+  const nameFilter = `AND (?3 = '%%' OR lower(a.first_name) LIKE ?3 ESCAPE '\\' OR lower(a.last_name) LIKE ?3 ESCAPE '\\')`;
   const sql = `
     SELECT a.pu_number, a.status, a.submitted_at, a.first_name, a.last_name, a.address,
            c.name AS city_name, a.phone, a.email, a.household_type, a.may_not_be_eligible, a.bags_count,
-           COALESCE(GROUP_CONCAT(m.name || ' (' || m.age || ')', '; '), '') AS member_summary
+           a.years_received_help, a.adopted_last_year, a.bed_choice, a.bed_size,
+           a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
+           a.unemployment_weekly_amount, a.other_income_amount,
+           COUNT(DISTINCT m.id) AS member_count,
+           COALESCE(GROUP_CONCAT(m.name || ' (' || m.age || ')', '; '), '') AS member_summary,
+           (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
+              FROM employers e WHERE e.application_id = a.id) AS employment_summary
     FROM applications a
     JOIN cities c ON c.id = a.city_id
     LEFT JOIN household_members m ON m.application_id = a.id
-    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter}
+    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter} ${nameFilter}
     GROUP BY a.id
     ORDER BY a.submitted_at DESC, a.id DESC`;
-  const stmt =
-    status === 'all'
-      ? db.prepare(sql).bind(seasonYear)
-      : db.prepare(sql).bind(seasonYear, status);
+  const stmt = db.prepare(sql).bind(seasonYear, status === 'all' ? '' : status, like);
   const { results } = await stmt.all<ExportRow>();
   return results;
 }
