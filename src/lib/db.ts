@@ -565,3 +565,24 @@ export async function deleteMember(db: D1Database, id: number, applicationId: nu
     );
   }
 }
+
+export type EmployerEdit = { employerName: string; workerName: string; hourlyWage: number; hoursPerWeek: number };
+
+export async function insertEmployer(db: D1Database, applicationId: number, e: EmployerEdit): Promise<number> {
+  const res = await db
+    .prepare('INSERT INTO employers (application_id, employer_name, worker_name, hourly_wage, hours_per_week) VALUES (?, ?, ?, ?, ?)')
+    .bind(applicationId, e.employerName, e.workerName, e.hourlyWage, e.hoursPerWeek)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function updateEmployer(db: D1Database, id: number, applicationId: number, e: EmployerEdit): Promise<void> {
+  await db
+    .prepare('UPDATE employers SET employer_name = ?, worker_name = ?, hourly_wage = ?, hours_per_week = ? WHERE id = ? AND application_id = ?')
+    .bind(e.employerName, e.workerName, e.hourlyWage, e.hoursPerWeek, id, applicationId)
+    .run();
+}
+
+export async function deleteEmployer(db: D1Database, id: number, applicationId: number): Promise<void> {
+  await db.prepare('DELETE FROM employers WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
+}
