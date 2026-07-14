@@ -13,7 +13,8 @@ const statusParam = url.searchParams.get('status') ?? 'new';
 const status = (['all', 'new', 'approved', 'denied'].includes(statusParam) ? statusParam : 'new') as
   'all' | 'new' | 'approved' | 'denied';
 const search = url.searchParams.get('q') ?? '';
-const undoId = url.searchParams.get('undo');
+const undoRaw = url.searchParams.get('undo');
+const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
 
 const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
 const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();

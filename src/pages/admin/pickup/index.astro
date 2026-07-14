@@ -41,7 +41,8 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-const undoId = new URL(Astro.request.url).searchParams.get('undo');
+const undoRaw = new URL(Astro.request.url).searchParams.get('undo');
+const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
 const settings = await getSettings(env.DB);
 const days = await listAllPickupDays(env.DB);
 

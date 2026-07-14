@@ -40,7 +40,8 @@ if (Astro.request.method === 'POST') {
   }
 }
 
-const undoId = new URL(Astro.request.url).searchParams.get('undo');
+const undoRaw = new URL(Astro.request.url).searchParams.get('undo');
+const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
 const blocks = await listAllContentBlocks(env.DB);
 
 const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
