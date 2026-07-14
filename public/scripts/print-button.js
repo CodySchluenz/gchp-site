@@ -6,10 +6,13 @@ document.querySelectorAll('[data-print]').forEach(function (btn) {
   });
 });
 
-// CSP-safe confirm: forms opt in with data-confirm; block submit if the
-// operator cancels. (Inline onsubmit is blocked by script-src 'self'.)
-document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+// CSP-safe confirm: a form OR a specific submit button opts in with data-confirm.
+// Reading the submit event's submitter lets one form host both an unconfirmed
+// submit (Save/Move) and a confirmed one (Delete) in the same editor row.
+document.querySelectorAll('form').forEach(function (form) {
   form.addEventListener('submit', function (e) {
-    if (!window.confirm(form.getAttribute('data-confirm'))) e.preventDefault();
+    var el = e.submitter;
+    var msg = (el && el.getAttribute('data-confirm')) || form.getAttribute('data-confirm');
+    if (msg && !window.confirm(msg)) e.preventDefault();
   });
 });

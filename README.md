@@ -28,22 +28,25 @@ Submitted test applications land in the `applications` table:
 
 ### Working on the admin console
 
-The admin is at `/admin`. To sign in locally you need an allow-listed email and a way to
-receive the magic link. Two options:
+Sign-in needs an allow-listed email and a session. Two working ways to get in locally:
 
-1. **Add your email to the allow-list** and read the link from the dev server log (email
-   sending fails without a real Resend key, but the link is built and the token row is created):
+1. **Mint a token directly, then click through the interstitial.** Insert an allow-listed
+   email, then insert a login token with a known raw value and open the verify link:
 
        npx wrangler d1 execute gchp --local --command "INSERT OR IGNORE INTO admin_emails (email) VALUES ('you@example.com')"
 
-   Then request a link at http://localhost:4321/admin and check the token in the database.
+   Generate a random token, store its SHA-256 hash in `login_tokens` (with a far-future
+   `expires_at`), then open `http://localhost:4321/admin/verify?token=<raw>` and click
+   "Sign me in". (The raw token is what you put in the URL; only its hash is stored.)
 
-2. **Create a session row directly** (fastest for iterating on admin pages). Generate a random
-   id, store its SHA-256 hash in `sessions`, and send the raw id as the `admin_session` cookie.
-   See `.superpowers/sdd` verification notes, or use the browser after a real magic-link round trip.
+2. **Create a session row directly** (fastest for iterating on admin pages): generate a
+   random id, store its SHA-256 hash in `sessions` with a far-future `expires_at`, and send
+   the raw id as the `admin_session` cookie on your requests.
 
-The applications workflow lives under `/admin/applications`. Test rows must be deleted
-children-first (`household_members`, `employers`, then `applications`) because of foreign keys.
+Editors live at `/admin/content`, `/admin/pickup`, and `/admin/paper-application`. Content
+and pickup rows soft-delete (Undo appears right after); the applications-open toggle is on
+the admin home. Test rows in the applications tables must be deleted children-first
+(`household_members`, `employers`, then `applications`).
 
 ## Production setup (one time)
 

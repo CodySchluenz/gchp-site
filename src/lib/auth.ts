@@ -27,17 +27,19 @@ export async function consumeLoginToken(
   rawToken: string,
   now: number,
 ): Promise<string | null> {
-  const hash = await sha256Hex(rawToken);
+  // One atomic statement: claim the token only if it is unused and unexpired.
+  // RETURNING makes the winning claimer the only caller that gets the email,
+  // so two racing sign-in clicks (or a scanner + a human) can't both succeed.
+  const nowIso = iso(now);
   const row = await db
-    .prepare('SELECT email, expires_at, used_at FROM login_tokens WHERE token_hash = ?')
-    .bind(hash)
-    .first<{ email: string; expires_at: string; used_at: string | null }>();
-  if (!row || row.used_at !== null || Date.parse(row.expires_at) < now) return null;
-  await db
-    .prepare('UPDATE login_tokens SET used_at = ? WHERE token_hash = ?')
-    .bind(iso(now), hash)
-    .run();
-  return row.email;
+    .prepare(
+      `UPDATE login_tokens SET used_at = ?
+       WHERE token_hash = ? AND used_at IS NULL AND expires_at >= ?
+       RETURNING email`,
+    )
+    .bind(nowIso, await sha256Hex(rawToken), nowIso)
+    .first<{ email: string }>();
+  return row?.email ?? null;
 }
 
 export async function createSession(db: D1Database, email: string, now: number): Promise<string> {

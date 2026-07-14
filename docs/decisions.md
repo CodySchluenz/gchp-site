@@ -128,6 +128,32 @@ Do these in Plan 3b (admin content/pickup/donors/messages/PDF upload):
 - **Accepted risk (record, no fix):** the admin name-search puts applicant surnames in the URL
   (`?q=Smith`) — operator-typed, gated route, low sensitivity, but it lands in her browser history.
 
+## Plan 3c binding notes (carried from Plan 3b whole-branch review, 2026-07-13)
+
+Plan 3b delivered: magic-link verify interstitial + atomic token consume, applications-open
+toggle, news/gifts + pickup editors (add/edit/reorder/soft-delete+undo), paper-application PDF
+upload to R2, apostrophe sweep, README dev-login fix. The whole-branch review found one Important
+issue — an unvalidated `?undo=` param interpolated into a CSRF-armed form action could retarget
+the Undo POST to the new applications-open toggle — fixed in Plan 3b (commit 46eacc5) by requiring
+`undoId` to be all digits in the content/pickup/applications index pages.
+
+Carried forward to Plan 3c (still deferred from Plan 3a's notes, plus new ones):
+- **PRG on approve/deny** (detail-page POST re-renders; refresh re-sends the applicant email).
+- **PRG on content/pickup add/update/move:** these render the banner on the POST response with no
+  redirect, so a browser refresh can duplicate an "Add." Same fix class as approve/deny PRG.
+- **Undo/restore confirmation banner** (redirect with `?restored=1` + "It's back in your list.").
+- **CSRF-failure + light-validation feedback banners** (edit/detail POSTs silently discard on stale
+  CSRF; blank first name saves ''; `set_bags` coerces garbage to 0; empty-date on pickup day update).
+- **PU# assignment race** (`assignPuNumber` read-then-write → single statement).
+- **LIKE-wildcard escaping** in the admin name search (`%`/`_` unescaped).
+- **Fuller Excel export columns** (years received, adopted last year, bed choice/size, benefit
+  amounts, employment summary, member count) and honor `q` in the export href (or drop it).
+- **Paper-application PDF cache:** `/application.pdf` serves `Cache-Control: public, max-age=300`,
+  so after an upload the "now published" banner + "View it" link can show the old PDF for up to 5
+  minutes. Either drop the caching on that route or soften the post-upload banner wording.
+- Plus the originally-deferred 3c scope: donors/donations recording, contact-messages admin screen,
+  and member/employer/benefit-level application editing.
+
 ## Still open (owner actions, not design questions)
 - Rotate the live admin password and the MySQL password (both were exposed in the original repo
   contents, and the admin password also appeared in chat).

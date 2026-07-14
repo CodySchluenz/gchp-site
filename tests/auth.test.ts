@@ -58,4 +58,14 @@ describe('auth data layer', () => {
     await deleteSession(db, id);
     expect(await getSessionEmail(db, id, T0 + 1000)).toBeNull();
   });
+
+  it('lets only one of two racing consumers win a single-use token', async () => {
+    const token = await createLoginToken(db, 'boss@example.com', T0);
+    const [a, b] = await Promise.all([
+      consumeLoginToken(db, token, T0 + 1000),
+      consumeLoginToken(db, token, T0 + 1000),
+    ]);
+    const wins = [a, b].filter((r) => r === 'boss@example.com').length;
+    expect(wins).toBe(1);
+  });
 });
