@@ -1,0 +1,108 @@
+---
+import '../../../styles/global.css';
+import Admin from '../../../layouts/Admin.astro';
+import {
+  getSettings, updatePickupText, listAllPickupDays, createPickupDay,
+  updatePickupDay, softDeletePickupDay, movePickupDay, type AdminPickupDay,
+} from '../../../lib/db';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+let banner = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (okCsrf) {
+    const act = String(form.get('act') ?? '');
+    const id = Number(form.get('id'));
+    if (act === 'save_text') {
+      await updatePickupText(env.DB, {
+        title: String(form.get('title') ?? '').trim(),
+        intro: String(form.get('intro') ?? '').trim(),
+        footer: String(form.get('footer') ?? '').trim(),
+      });
+      banner = 'Pickup wording saved.';
+    } else if (act === 'create') {
+      const d = { date_text: String(form.get('date_text') ?? '').trim(), description: String(form.get('description') ?? '').trim() };
+      if (d.date_text !== '') { await createPickupDay(env.DB, d); banner = 'Pickup day added.'; }
+      else banner = 'Please enter a date before adding.';
+    } else if (act === 'update' && Number.isInteger(id)) {
+      await updatePickupDay(env.DB, id, { date_text: String(form.get('date_text') ?? '').trim(), description: String(form.get('description') ?? '').trim() });
+      banner = 'Saved.';
+    } else if (act === 'delete' && Number.isInteger(id)) {
+      await softDeletePickupDay(env.DB, id, new Date().toISOString());
+      return Astro.redirect(`/admin/pickup?undo=${id}`, 303);
+    } else if ((act === 'move_up' || act === 'move_down') && Number.isInteger(id)) {
+      await movePickupDay(env.DB, id, act === 'move_up' ? 'up' : 'down');
+      banner = 'Moved.';
+    }
+  }
+}
+
+const undoId = new URL(Astro.request.url).searchParams.get('undo');
+const settings = await getSettings(env.DB);
+const days = await listAllPickupDays(env.DB);
+
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-lg';
+---
+<Admin title="Pickup schedule" heading="Pickup schedule" back={{ href: '/admin', label: 'Back to admin home' }}>
+  <p class="mt-1 text-lg text-stone-600">Help: this is what families see on the Pickup Schedule page. Edit the wording at the top, then add or change the pickup days below.</p>
+
+  {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+  {undoId && (
+    <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
+      <form method="post" action={`/admin/pickup/${undoId}/restore`} class="flex flex-wrap items-center gap-3">
+        <input type="hidden" name="csrf_token" value={csrfToken} />
+        <span class="font-semibold">That pickup day was deleted.</span>
+        <button type="submit" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Undo delete</button>
+      </form>
+    </div>
+  )}
+
+  <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
+    <h2 class="text-2xl font-bold text-holly-800">Wording</h2>
+    <form method="post" class="mt-3 space-y-3">
+      <input type="hidden" name="csrf_token" value={csrfToken} />
+      <label class="block font-semibold">Title<input class={input} type="text" name="title" value={settings.pickup_title} /></label>
+      <label class="block font-semibold">Intro paragraph<textarea class={input} name="intro" rows="3">{settings.pickup_intro}</textarea></label>
+      <label class="block font-semibold">Footer note<textarea class={input} name="footer" rows="2">{settings.pickup_footer}</textarea></label>
+      <button type="submit" name="act" value="save_text" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save wording</button>
+    </form>
+  </section>
+
+  <h2 class="mt-8 text-2xl font-bold text-holly-800">Pickup days</h2>
+  {days.map((d: AdminPickupDay, idx: number) => (
+    <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+      <form method="post" class="space-y-3">
+        <input type="hidden" name="csrf_token" value={csrfToken} />
+        <input type="hidden" name="id" value={String(d.id)} />
+        <label class="block font-semibold">Date<input class={input} type="text" name="date_text" value={d.date_text} /></label>
+        <label class="block font-semibold">Who picks up / time<textarea class={input} name="description" rows="2">{d.description}</textarea></label>
+        <div class="flex flex-wrap gap-2">
+          <button type="submit" name="act" value="update" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save</button>
+          <button type="submit" name="act" value="move_up" disabled={idx === 0} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 disabled:opacity-40">Move up</button>
+          <button type="submit" name="act" value="move_down" disabled={idx === days.length - 1} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 disabled:opacity-40">Move down</button>
+          <button type="submit" name="act" value="delete" data-confirm="Delete this pickup day? You'll get an Undo link right after." class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800">Delete</button>
+        </div>
+      </form>
+    </section>
+  ))}
+
+  <section class="mt-6 rounded-lg border-2 border-holly-700 bg-white p-5">
+    <h2 class="text-2xl font-bold text-holly-800">Add a pickup day</h2>
+    <form method="post" class="mt-3 space-y-3">
+      <input type="hidden" name="csrf_token" value={csrfToken} />
+      <label class="block font-semibold">Date<input class={input} type="text" name="date_text" /></label>
+      <label class="block font-semibold">Who picks up / time<textarea class={input} name="description" rows="2"></textarea></label>
+      <button type="submit" name="act" value="create" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Add this day</button>
+    </form>
+  </section>
+
+  <script src="/scripts/print-button.js" defer></script>
+</Admin>
