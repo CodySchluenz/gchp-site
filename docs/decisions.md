@@ -156,6 +156,28 @@ Carried forward to Plan 3c (still deferred from Plan 3a's notes, plus new ones):
 - Plus the originally-deferred 3c scope: donors/donations recording, contact-messages admin screen,
   and member/employer/benefit-level application editing.
 
+## Plan 3d binding notes (carried from Plan 3c whole-branch review, 2026-07-14)
+
+Plan 3c's whole-branch review confirmed the applications surface merges clean after a fix wave
+(commit 42c09f0: no pickup-number reuse after delete+restore; CSRF-failure feedback on the restore
+endpoints and the news/pickup POST handlers; dead export helper removed). These smaller items were
+triaged as defer-to-3d and must not drop off the list:
+- **Edit forms should not wipe typed input on error.** The Edit-details, members, and jobs editors
+  redirect on a validation/CSRF error and re-render from the stored DB record, so one bad amount (or
+  a stale token) discards the rest of that submission's edits — against the project's "never wipe
+  what they typed" principle. Repopulate the form from the submitted values on error.
+- **Light server-side validation gaps on the admin surfaces:** the Edit-details form still saves a
+  blank first name as `''`; `set_bags` still coerces non-numeric input to 0 under a "Bag count
+  saved." banner; a pickup-day **update** (unlike create) still accepts an empty date. Add gentle
+  required-field / "please type a number" feedback.
+- **Admin `hours_per_week` is uncapped** (the public applicant form rejects > 168 via
+  `validateEmployment`); an operator could enter an implausible value that lands in the export.
+- **Member-cap error precedence** (`members.astro`): a hand-crafted add POST that is both blank and
+  at `MAX_MEMBERS` reports `?error=fields` rather than `?error=full`. Cap is still enforced before
+  insert; message-only, reachable only by a crafted POST.
+- Note (`assignPuNumber`): now returns `0` as a "not applicable" sentinel for a non-existent id or a
+  season mismatch (unreachable via the current caller); future callers should know this.
+
 ## Still open (owner actions, not design questions)
 - Rotate the live admin password and the MySQL password (both were exposed in the original repo
   contents, and the admin password also appeared in chat).
