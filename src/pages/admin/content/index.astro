@@ -1,0 +1,96 @@
+---
+import '../../../styles/global.css';
+import Admin from '../../../layouts/Admin.astro';
+import {
+  listAllContentBlocks, createContentBlock, updateContentBlock,
+  softDeleteContentBlock, moveContentBlock, type AdminContentBlock,
+} from '../../../lib/db';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+let banner = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (okCsrf) {
+    const act = String(form.get('act') ?? '');
+    const id = Number(form.get('id'));
+    const v = {
+      title: String(form.get('title') ?? '').trim(),
+      subtitle: String(form.get('subtitle') ?? '').trim(),
+      body: String(form.get('body') ?? '').trim(),
+    };
+    if (act === 'create' && v.title !== '') {
+      await createContentBlock(env.DB, v);
+      banner = 'Added.';
+    } else if (act === 'update' && Number.isInteger(id) && v.title !== '') {
+      await updateContentBlock(env.DB, id, v);
+      banner = 'Saved.';
+    } else if (act === 'delete' && Number.isInteger(id)) {
+      await softDeleteContentBlock(env.DB, id, new Date().toISOString());
+      return Astro.redirect(`/admin/content?undo=${id}`, 303);
+    } else if ((act === 'move_up' || act === 'move_down') && Number.isInteger(id)) {
+      await moveContentBlock(env.DB, id, act === 'move_up' ? 'up' : 'down');
+      banner = 'Moved.';
+    } else if (v.title === '' && (act === 'create' || act === 'update')) {
+      banner = 'Please give the item a title before saving.';
+    }
+  }
+}
+
+const undoId = new URL(Astro.request.url).searchParams.get('undo');
+const blocks = await listAllContentBlocks(env.DB);
+
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-lg';
+---
+<Admin title="This year's news" heading="This year's news & gifts list" back={{ href: '/admin', label: 'Back to admin home' }}>
+  <p class="mt-1 text-lg text-stone-600">Help: these boxes show on the home page under "This Year's News." Edit one and press Save, or add a new one at the bottom.</p>
+
+  {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+  {undoId && (
+    <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
+      <form method="post" action={`/admin/content/${undoId}/restore`} class="flex flex-wrap items-center gap-3">
+        <input type="hidden" name="csrf_token" value={csrfToken} />
+        <span class="font-semibold">That item was deleted.</span>
+        <button type="submit" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Undo delete</button>
+      </form>
+    </div>
+  )}
+
+  {blocks.map((b: AdminContentBlock, idx: number) => (
+    <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
+      <form method="post" class="space-y-3">
+        <input type="hidden" name="csrf_token" value={csrfToken} />
+        <input type="hidden" name="id" value={String(b.id)} />
+        <label class="block font-semibold">Title<input class={input} type="text" name="title" value={b.title} /></label>
+        <label class="block font-semibold">Subtitle<input class={input} type="text" name="subtitle" value={b.subtitle} /></label>
+        <label class="block font-semibold">Text<textarea class={input} name="body" rows="4">{b.body}</textarea></label>
+        <div class="flex flex-wrap gap-2">
+          <button type="submit" name="act" value="update" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save</button>
+          <button type="submit" name="act" value="move_up" disabled={idx === 0} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 disabled:opacity-40">Move up</button>
+          <button type="submit" name="act" value="move_down" disabled={idx === blocks.length - 1} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 disabled:opacity-40">Move down</button>
+          <button type="submit" name="act" value="delete" data-confirm="Delete this item? You'll get an Undo link right after." class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800">Delete</button>
+        </div>
+      </form>
+    </section>
+  ))}
+
+  <section class="mt-8 rounded-lg border-2 border-holly-700 bg-white p-5">
+    <h2 class="text-2xl font-bold text-holly-800">Add a new item</h2>
+    <form method="post" class="mt-3 space-y-3">
+      <input type="hidden" name="csrf_token" value={csrfToken} />
+      <label class="block font-semibold">Title<input class={input} type="text" name="title" /></label>
+      <label class="block font-semibold">Subtitle<input class={input} type="text" name="subtitle" /></label>
+      <label class="block font-semibold">Text<textarea class={input} name="body" rows="4"></textarea></label>
+      <button type="submit" name="act" value="create" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Add this item</button>
+    </form>
+  </section>
+
+  <script src="/scripts/print-button.js" defer></script>
+</Admin>
