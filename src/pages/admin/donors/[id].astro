@@ -1,0 +1,141 @@
+---
+import '../../../styles/global.css';
+import Admin from '../../../layouts/Admin.astro';
+import {
+  getDonor, updateDonor, listDonationsForDonor, createDonation, softDeleteDonation, restoreDonation, type DonorEdit,
+} from '../../../lib/db';
+import { parseMoney } from '../../../lib/validation/application';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+const id = Number(Astro.params.id);
+const base = `/admin/donors/${id}`;
+
+if (Astro.request.method === 'POST' && Number.isInteger(id)) {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (!okCsrf) return Astro.redirect(`${base}?error=csrf`, 303);
+  const act = String(form.get('act') ?? '');
+  const g = (k: string) => String(form.get(k) ?? '').trim();
+  const donationId = Number(form.get('donation_id'));
+
+  if (act === 'save_donor') {
+    if (g('name') === '') return Astro.redirect(`${base}?error=name`, 303);
+    const f: DonorEdit = {
+      name: g('name'), contact_person: g('contact_person'), address: g('address'), city: g('city'),
+      state: g('state'), zip: g('zip'), phone: g('phone'), email: g('email'),
+    };
+    await updateDonor(env.DB, id, f);
+    return Astro.redirect(`${base}?saved=donor`, 303);
+  } else if (act === 'add_donation') {
+    const date = g('date');
+    const rawAmount = g('amount');
+    const amount = rawAmount === '' ? null : parseMoney(rawAmount);
+    const item = g('item_description');
+    // Require a date and at least an amount or an item; a non-blank amount must be valid money.
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || (rawAmount !== '' && amount === null) || (amount === null && item === '')) {
+      return Astro.redirect(`${base}?error=donation`, 303);
+    }
+    await createDonation(env.DB, id, { date, amount, itemDescription: item });
+    return Astro.redirect(`${base}?saved=donation`, 303);
+  } else if (act === 'delete_donation' && Number.isInteger(donationId)) {
+    await softDeleteDonation(env.DB, donationId, id, new Date().toISOString());
+    return Astro.redirect(`${base}?undo_donation=${donationId}`, 303);
+  } else if (act === 'restore_donation' && Number.isInteger(donationId)) {
+    await restoreDonation(env.DB, donationId, id);
+    return Astro.redirect(`${base}?restored_donation=1`, 303);
+  }
+  return Astro.redirect(base, 303);
+}
+
+const donor = Number.isInteger(id) ? await getDonor(env.DB, id) : null;
+const donations = donor ? await listDonationsForDonor(env.DB, id) : [];
+
+const url = new URL(Astro.request.url);
+const undoRaw = url.searchParams.get('undo_donation');
+const undoDonationId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
+const saved = url.searchParams.get('saved');
+const banner = saved === 'donor' ? 'Saved.' : saved === 'donation' ? 'Donation added.'
+  : url.searchParams.get('error') === 'name' ? 'Please enter the donor\'s name.'
+  : url.searchParams.get('error') === 'donation' ? 'Please enter a date and an amount or an item.'
+  : url.searchParams.get('error') === 'csrf' ? 'That didn\'t save — please try again.'
+  : url.searchParams.get('restored_donation') === '1' ? 'The donation is back.' : '';
+
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-lg';
+const today = new Date().toISOString().slice(0, 10);
+const d = donor ?? {} as Record<string, string>;
+const money = (v: number | null) => (v == null ? '' : `$${Number(v).toFixed(2)}`);
+---
+<Admin title="Donor" heading={donor ? donor.name : 'Donor not found'} back={{ href: '/admin/donors', label: 'Back to donors' }}>
+  {!donor ? <p class="mt-4">That donor could not be found.</p> : (
+    <>
+      {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+      {undoDonationId && (
+        <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
+          <form method="post" class="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <input type="hidden" name="donation_id" value={undoDonationId} />
+            <span class="font-semibold">That donation was deleted.</span>
+            <button type="submit" name="act" value="restore_donation" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Undo delete</button>
+          </form>
+        </div>
+      )}
+
+      <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Donor details</h2>
+        <form method="post" class="mt-3 space-y-3">
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+          <div class="grid gap-4 sm:grid-cols-2">
+            <label class="block font-semibold">Name (required)<input class={input} type="text" name="name" value={d.name} /></label>
+            <label class="block font-semibold">Contact person<input class={input} type="text" name="contact_person" value={d.contact_person} /></label>
+            <label class="block font-semibold">Address<input class={input} type="text" name="address" value={d.address} /></label>
+            <label class="block font-semibold">City<input class={input} type="text" name="city" value={d.city} /></label>
+            <label class="block font-semibold">State<input class={input} type="text" name="state" value={d.state} /></label>
+            <label class="block font-semibold">Zip<input class={input} type="text" name="zip" value={d.zip} /></label>
+            <label class="block font-semibold">Phone<input class={input} type="text" name="phone" value={d.phone} /></label>
+            <label class="block font-semibold">Email<input class={input} type="email" name="email" value={d.email} /></label>
+          </div>
+          <button type="submit" name="act" value="save_donor" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save donor</button>
+        </form>
+      </section>
+
+      <h2 class="mt-8 text-2xl font-bold text-holly-800">Donations</h2>
+      {donations.length === 0 ? <p class="mt-2 text-lg">No donations recorded yet.</p> : (
+        <ul class="mt-2 space-y-2">
+          {donations.map((dn) => (
+            <li class="rounded-lg border-2 border-stone-300 bg-white p-4">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <span class="text-lg">{dn.date} · {money(dn.amount)}{dn.amount != null && dn.item_description ? ' · ' : ''}{dn.item_description}</span>
+                <form method="post" data-confirm="Delete this donation? You'll get an Undo link right after.">
+                  <input type="hidden" name="csrf_token" value={csrfToken} />
+                  <input type="hidden" name="donation_id" value={String(dn.id)} />
+                  <button type="submit" name="act" value="delete_donation" class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800">Delete</button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <section class="mt-6 rounded-lg border-2 border-holly-700 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Add a donation</h2>
+        <form method="post" class="mt-3 space-y-3">
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+          <div class="grid gap-4 sm:grid-cols-3">
+            <label class="block font-semibold">Date<input class={input} type="date" name="date" value={today} /></label>
+            <label class="block font-semibold">Amount ($)<input class={input} type="text" inputmode="decimal" name="amount" /></label>
+            <label class="block font-semibold">Item (if not cash)<input class={input} type="text" name="item_description" /></label>
+          </div>
+          <button type="submit" name="act" value="add_donation" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Add this donation</button>
+        </form>
+      </section>
+
+      <script src="/scripts/print-button.js" defer></script>
+    </>
+  )}
+</Admin>

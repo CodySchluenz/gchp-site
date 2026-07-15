@@ -1,0 +1,79 @@
+---
+import '../../../styles/global.css';
+import Admin from '../../../layouts/Admin.astro';
+import { listContactMessages, setMessageRead, deleteContactMessage } from '../../../lib/db';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (!okCsrf) return Astro.redirect('/admin/messages?error=csrf', 303);
+  const act = String(form.get('act') ?? '');
+  const id = Number(form.get('id'));
+  if (Number.isInteger(id)) {
+    if (act === 'mark_read') {
+      await setMessageRead(env.DB, id, true, new Date().toISOString());
+      return Astro.redirect('/admin/messages?saved=read', 303);
+    } else if (act === 'mark_unread') {
+      await setMessageRead(env.DB, id, false, new Date().toISOString());
+      return Astro.redirect('/admin/messages?saved=unread', 303);
+    } else if (act === 'delete') {
+      await deleteContactMessage(env.DB, id);
+      return Astro.redirect('/admin/messages?saved=deleted', 303);
+    }
+  }
+  return Astro.redirect('/admin/messages', 303);
+}
+
+const url = new URL(Astro.request.url);
+const saved = url.searchParams.get('saved');
+const banner = saved === 'read' ? 'Marked as read.' : saved === 'unread' ? 'Marked as unread.'
+  : saved === 'deleted' ? 'Message deleted.'
+  : url.searchParams.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
+
+const messages = await listContactMessages(env.DB);
+
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const fmtDate = (iso: string) => iso.slice(0, 10);
+---
+<Admin title="Messages" heading="Messages" back={{ href: '/admin', label: 'Back to admin home' }}>
+  <p class="mt-1 text-lg text-stone-600">Help: these are messages sent through the Contact form. They also come to your email. Reply opens your email program.</p>
+
+  {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+
+  {messages.length === 0 ? <p class="mt-6 text-lg">No messages yet.</p> : (
+    <ul class="mt-6 space-y-3">
+      {messages.map((m) => (
+        <li class={`rounded-lg border-2 p-5 ${m.read_at ? 'border-stone-300 bg-white' : 'border-holly-700 bg-holly-100'}`}>
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-xl font-bold text-holly-800">{m.name || '(no name given)'} {!m.read_at && <span class="ml-2 rounded bg-holly-700 px-2 py-1 font-bold text-white">New</span>}</p>
+            <p class="text-lg text-stone-600">{fmtDate(m.received_at)}</p>
+          </div>
+          <p class="text-lg">{m.email}</p>
+          <p class="mt-2 whitespace-pre-wrap">{m.message}</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <a href={`mailto:${m.email}?subject=${encodeURIComponent('Re: your message to the Holiday Project')}`} class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Reply by email</a>
+            <form method="post">
+              <input type="hidden" name="csrf_token" value={csrfToken} />
+              <input type="hidden" name="id" value={String(m.id)} />
+              <button type="submit" name="act" value={m.read_at ? 'mark_unread' : 'mark_read'} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">{m.read_at ? 'Mark unread' : 'Mark read'}</button>
+            </form>
+            <form method="post" data-confirm="Delete this message? This can't be undone.">
+              <input type="hidden" name="csrf_token" value={csrfToken} />
+              <input type="hidden" name="id" value={String(m.id)} />
+              <button type="submit" name="act" value="delete" class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800">Delete</button>
+            </form>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <script src="/scripts/print-button.js" defer></script>
+</Admin>

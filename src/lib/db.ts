@@ -648,3 +648,129 @@ export async function updateEmployer(db: D1Database, id: number, applicationId: 
 export async function deleteEmployer(db: D1Database, id: number, applicationId: number): Promise<void> {
   await db.prepare('DELETE FROM employers WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
 }
+
+export type AdminDonor = {
+  id: number; name: string; contact_person: string; address: string;
+  city: string; state: string; zip: string; phone: string; email: string;
+};
+export type DonorEdit = Omit<AdminDonor, 'id'>;
+
+export async function listDonors(db: D1Database, search: string): Promise<AdminDonor[]> {
+  const like = `%${escapeLike(search.trim().toLowerCase())}%`;
+  const { results } = await db
+    .prepare(
+      `SELECT id, name, contact_person, address, city, state, zip, phone, email
+       FROM donors
+       WHERE deleted_at IS NULL AND (? = '%%' OR lower(name) LIKE ? ESCAPE '\\')
+       ORDER BY name COLLATE NOCASE, id`,
+    )
+    .bind(like, like)
+    .all<AdminDonor>();
+  return results;
+}
+
+export async function getDonor(db: D1Database, id: number): Promise<AdminDonor | null> {
+  return await db
+    .prepare(
+      `SELECT id, name, contact_person, address, city, state, zip, phone, email
+       FROM donors WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(id)
+    .first<AdminDonor>();
+}
+
+export async function createDonor(db: D1Database, f: DonorEdit): Promise<number> {
+  const res = await db
+    .prepare(
+      `INSERT INTO donors (name, contact_person, address, city, state, zip, phone, email)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(f.name, f.contact_person, f.address, f.city, f.state, f.zip, f.phone, f.email)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function updateDonor(db: D1Database, id: number, f: DonorEdit): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE donors SET name = ?, contact_person = ?, address = ?, city = ?, state = ?, zip = ?, phone = ?, email = ?
+       WHERE id = ?`,
+    )
+    .bind(f.name, f.contact_person, f.address, f.city, f.state, f.zip, f.phone, f.email, id)
+    .run();
+}
+
+export async function softDeleteDonor(db: D1Database, id: number, iso: string): Promise<void> {
+  await db.prepare('UPDATE donors SET deleted_at = ? WHERE id = ?').bind(iso, id).run();
+}
+
+export async function restoreDonor(db: D1Database, id: number): Promise<void> {
+  await db.prepare('UPDATE donors SET deleted_at = NULL WHERE id = ?').bind(id).run();
+}
+
+export type AdminDonation = { id: number; donor_id: number; date: string; item_description: string; amount: number | null };
+
+export async function listDonationsForDonor(db: D1Database, donorId: number): Promise<AdminDonation[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT id, donor_id, date, item_description, amount FROM donations
+       WHERE donor_id = ? AND deleted_at IS NULL ORDER BY date DESC, id DESC`,
+    )
+    .bind(donorId)
+    .all<AdminDonation>();
+  return results;
+}
+
+export async function createDonation(
+  db: D1Database,
+  donorId: number,
+  v: { date: string; amount: number | null; itemDescription: string },
+): Promise<number> {
+  const res = await db
+    .prepare('INSERT INTO donations (donor_id, date, item_description, amount) VALUES (?, ?, ?, ?)')
+    .bind(donorId, v.date, v.itemDescription, v.amount)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function softDeleteDonation(db: D1Database, id: number, donorId: number, iso: string): Promise<void> {
+  await db.prepare('UPDATE donations SET deleted_at = ? WHERE id = ? AND donor_id = ?').bind(iso, id, donorId).run();
+}
+
+export async function restoreDonation(db: D1Database, id: number, donorId: number): Promise<void> {
+  await db.prepare('UPDATE donations SET deleted_at = NULL WHERE id = ? AND donor_id = ?').bind(id, donorId).run();
+}
+
+export async function donationSummaryForYear(db: D1Database, year: string): Promise<{ count: number; total: number }> {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS count, COALESCE(SUM(d.amount), 0) AS total
+       FROM donations d JOIN donors dn ON dn.id = d.donor_id
+       WHERE d.deleted_at IS NULL AND dn.deleted_at IS NULL AND substr(d.date, 1, 4) = ?`,
+    )
+    .bind(year)
+    .first<{ count: number; total: number }>();
+  return { count: row?.count ?? 0, total: row?.total ?? 0 };
+}
+
+export type AdminMessage = { id: number; received_at: string; name: string; email: string; message: string; read_at: string | null };
+
+export async function listContactMessages(db: D1Database): Promise<AdminMessage[]> {
+  const { results } = await db
+    .prepare('SELECT id, received_at, name, email, message, read_at FROM contact_messages ORDER BY received_at DESC, id DESC')
+    .all<AdminMessage>();
+  return results;
+}
+
+export async function setMessageRead(db: D1Database, id: number, read: boolean, iso: string): Promise<void> {
+  await db.prepare('UPDATE contact_messages SET read_at = ? WHERE id = ?').bind(read ? iso : null, id).run();
+}
+
+export async function deleteContactMessage(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM contact_messages WHERE id = ?').bind(id).run();
+}
+
+export async function unreadMessageCount(db: D1Database): Promise<number> {
+  const row = await db.prepare('SELECT COUNT(*) AS c FROM contact_messages WHERE read_at IS NULL').first<{ c: number }>();
+  return row?.c ?? 0;
+}

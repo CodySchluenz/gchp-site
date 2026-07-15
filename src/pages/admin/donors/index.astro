@@ -1,0 +1,115 @@
+---
+import '../../../styles/global.css';
+import Admin from '../../../layouts/Admin.astro';
+import { listDonors, createDonor, softDeleteDonor, donationSummaryForYear, type DonorEdit } from '../../../lib/db';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (!okCsrf) return Astro.redirect('/admin/donors?error=csrf', 303);
+  const act = String(form.get('act') ?? '');
+  const id = Number(form.get('id'));
+  if (act === 'create') {
+    const g = (k: string) => String(form.get(k) ?? '').trim();
+    if (g('name') === '') return Astro.redirect('/admin/donors?error=name', 303);
+    const f: DonorEdit = {
+      name: g('name'), contact_person: g('contact_person'), address: g('address'), city: g('city'),
+      state: g('state'), zip: g('zip'), phone: g('phone'), email: g('email'),
+    };
+    await createDonor(env.DB, f);
+    return Astro.redirect('/admin/donors?saved=added', 303);
+  } else if (act === 'delete' && Number.isInteger(id)) {
+    await softDeleteDonor(env.DB, id, new Date().toISOString());
+    return Astro.redirect(`/admin/donors?undo=${id}`, 303);
+  }
+  return Astro.redirect('/admin/donors', 303);
+}
+
+const url = new URL(Astro.request.url);
+const search = url.searchParams.get('q') ?? '';
+const undoRaw = url.searchParams.get('undo');
+const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
+const saved = url.searchParams.get('saved');
+const banner = saved === 'added' ? 'Donor added.'
+  : url.searchParams.get('error') === 'name' ? 'Please enter the donor\'s name.'
+  : url.searchParams.get('error') === 'csrf' ? 'That didn\'t save — please try again.'
+  : url.searchParams.get('restored') === '1' ? 'It\'s back in your list.' : '';
+
+const donors = await listDonors(env.DB, search);
+const year = String(new Date().getFullYear());
+const summary = await donationSummaryForYear(env.DB, year);
+
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-lg';
+---
+<Admin title="Donors" heading="Donors and donations" back={{ href: '/admin', label: 'Back to admin home' }}>
+  <p class="mt-1 text-lg text-stone-600">Help: search or add a donor below, then open a donor to record their donations.</p>
+
+  {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+  {undoId && (
+    <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
+      <form method="post" action={`/admin/donors/${undoId}/restore`} class="flex flex-wrap items-center gap-3">
+        <input type="hidden" name="csrf_token" value={csrfToken} />
+        <span class="font-semibold">That donor was deleted.</span>
+        <button type="submit" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Undo delete</button>
+      </form>
+    </div>
+  )}
+
+  <p class="mt-4 text-xl"><strong>This year ({year}):</strong> {summary.count} donations, ${summary.total.toFixed(2)} total.</p>
+
+  <form method="get" class="mt-4 flex items-end gap-2">
+    <label class="font-semibold">Search by name
+      <input type="text" name="q" value={search} class="ml-2 rounded border-2 border-stone-400 p-2 text-lg" />
+    </label>
+    <button type="submit" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Search</button>
+  </form>
+
+  <h2 class="mt-8 text-2xl font-bold text-holly-800">Donors</h2>
+  {donors.length === 0 ? <p class="mt-2 text-lg">No donors found.</p> : (
+    <ul class="mt-2 space-y-2">
+      {donors.map((d) => (
+        <li class="rounded-lg border-2 border-stone-300 bg-white p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <a href={`/admin/donors/${d.id}`} class="text-xl font-bold text-holly-800 underline">{d.name}</a>
+              <p class="text-stone-700">{[d.contact_person, d.city, d.phone].filter(Boolean).join(' · ') || '—'}</p>
+            </div>
+            <form method="post" data-confirm="Delete this donor? You'll get an Undo link right after.">
+              <input type="hidden" name="csrf_token" value={csrfToken} />
+              <input type="hidden" name="id" value={String(d.id)} />
+              <button type="submit" name="act" value="delete" class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800">Delete</button>
+            </form>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )}
+
+  <section class="mt-8 rounded-lg border-2 border-holly-700 bg-white p-5">
+    <h2 class="text-2xl font-bold text-holly-800">Add a donor</h2>
+    <form method="post" class="mt-3 space-y-3">
+      <input type="hidden" name="csrf_token" value={csrfToken} />
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="block font-semibold">Name (required)<input class={input} type="text" name="name" /></label>
+        <label class="block font-semibold">Contact person<input class={input} type="text" name="contact_person" /></label>
+        <label class="block font-semibold">Address<input class={input} type="text" name="address" /></label>
+        <label class="block font-semibold">City<input class={input} type="text" name="city" /></label>
+        <label class="block font-semibold">State<input class={input} type="text" name="state" /></label>
+        <label class="block font-semibold">Zip<input class={input} type="text" name="zip" /></label>
+        <label class="block font-semibold">Phone<input class={input} type="text" name="phone" /></label>
+        <label class="block font-semibold">Email<input class={input} type="email" name="email" /></label>
+      </div>
+      <button type="submit" name="act" value="create" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Add this donor</button>
+    </form>
+  </section>
+
+  <script src="/scripts/print-button.js" defer></script>
+</Admin>
