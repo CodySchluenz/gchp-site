@@ -33,14 +33,21 @@ yours to fill in; never paste secrets into this file or any commit.
       paste it into `wrangler.toml` (replace the `database_id = "set-in-task-13-..."` placeholder on
       the `[[d1_databases]]` block), then commit that one-line change.
 - [ ] Create the R2 bucket for the paper application PDF: `npx wrangler r2 bucket create gchp-files`.
-- [ ] **Create the Pages project by connecting the GitHub repo in the dashboard** (this gives the
-      main = production + PR-preview workflow, and it must exist before you can set secrets). In the
-      Cloudflare dashboard: **Workers & Pages → Create → Pages → Connect to Git** → pick this repo →
-      project name `gchp-site`, production branch `main`, build command `npm run build`, output
-      directory `dist`, and add a build variable `NODE_VERSION=22`. Save/deploy. The first build may
-      fail because the secrets and `database_id` aren't set yet — that is expected; you fix it in the
-      next steps and re-deploy. (Do NOT use `wrangler pages project create` — that makes a
-      Direct-Upload project that can't be connected to Git afterward.)
+- [ ] **Create the Pages project.** The project must exist before you can set secrets. Pick ONE path:
+      - **Path A — GitHub (recommended: gives push-to-deploy + PR previews + an offsite backup).**
+        This repo has no remote yet, so first create a **Private** repo on github.com (e.g. `gchp-site`;
+        no README/.gitignore/license), then push it:
+        `git remote add origin https://github.com/<you>/gchp-site.git` and `git push -u origin main`
+        (safe to push — secrets and the real `dump.sql`/`import.sql` are git-ignored, legacy is scrubbed).
+        Then in the dashboard: **Workers & Pages → Create → Pages → Connect to Git** → pick the repo →
+        project name `gchp-site`, production branch `main`, build command `npm run build`, output
+        directory `dist`, build variable `NODE_VERSION=22`. The first build may fail until secrets +
+        `database_id` are set — expected; re-deploy after.
+      - **Path B — Direct upload (no GitHub needed; simpler, but no push-to-deploy/PR previews).**
+        `npm run build` then `npx wrangler pages deploy dist --project-name gchp-site` — the first run
+        creates the project and deploys. Future code changes ship by re-running those two commands.
+      - Do NOT use `wrangler pages project create` for Path A — a Direct-Upload project can't be
+        connected to Git afterward.
 - [ ] Confirm the `admin_emails` seed lists the correct operator + owner addresses; edit
       `migrations/0002_seed.sql` first if not (it has not been applied to production yet).
 - [ ] Apply the schema + seed to production (this runs `migrations/0001_init.sql` then
@@ -61,9 +68,11 @@ yours to fill in; never paste secrets into this file or any commit.
 - [ ] Spot-check counts: `npx wrangler d1 execute gchp --command "SELECT (SELECT COUNT(*) FROM donors) AS donors, (SELECT COUNT(*) FROM applications) AS apps, (SELECT COUNT(*) FROM household_members) AS members, (SELECT COUNT(*) FROM employers) AS employers" --remote` and compare to the migration report.
 
 ## 5. Deploy the app (not yet the live domain)
-- [ ] The Pages project + Git connection were set up in Step 3. Now that the `database_id`, bindings,
-      and secrets are in place, trigger a fresh build: push a commit to `main`, or in the dashboard use
-      **Deployments → Retry deployment**. Confirm it builds green and the `*.pages.dev` URL loads.
+- [ ] The Pages project was created in Step 3. Now that the `database_id`, bindings, and secrets are
+      in place, trigger a fresh deploy: **Path A (GitHub):** push a commit to `main` or use
+      **Deployments → Retry deployment** in the dashboard. **Path B (direct upload):** re-run
+      `npm run build` then `npx wrangler pages deploy dist --project-name gchp-site`. Confirm it builds
+      green and the `*.pages.dev` URL loads.
 - [ ] Confirm the D1 (`DB` → `gchp`) and R2 (`FILES` → `gchp-files`) bindings are attached to the
       project (they come from `wrangler.toml`; if the dashboard doesn't show them, add them under
       **Settings → Bindings**).
