@@ -21,7 +21,7 @@ if (!signedInEmail && Astro.request.method === 'POST') {
   );
   const email = String(form.get('email') ?? '').trim();
   const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown';
-  const okRate = await allowRequest(new D1RateStore(env.DB), `signin:${ip}`, 5, 15 * 60_000, Date.now());
+  const okRate = await allowRequest(new D1RateStore(env.DB), `signin:${ip}`, 10, 15 * 60_000, Date.now());
   if (okCsrf && okRate && email !== '' && (await isAllowedEmail(env.DB, email))) {
     const token = await createLoginToken(env.DB, email, Date.now());
     const link = `${new URL(Astro.request.url).origin}/admin/verify?token=${token}`;
