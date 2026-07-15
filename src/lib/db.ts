@@ -752,3 +752,25 @@ export async function donationSummaryForYear(db: D1Database, year: string): Prom
     .first<{ count: number; total: number }>();
   return { count: row?.count ?? 0, total: row?.total ?? 0 };
 }
+
+export type AdminMessage = { id: number; received_at: string; name: string; email: string; message: string; read_at: string | null };
+
+export async function listContactMessages(db: D1Database): Promise<AdminMessage[]> {
+  const { results } = await db
+    .prepare('SELECT id, received_at, name, email, message, read_at FROM contact_messages ORDER BY received_at DESC, id DESC')
+    .all<AdminMessage>();
+  return results;
+}
+
+export async function setMessageRead(db: D1Database, id: number, read: boolean, iso: string): Promise<void> {
+  await db.prepare('UPDATE contact_messages SET read_at = ? WHERE id = ?').bind(read ? iso : null, id).run();
+}
+
+export async function deleteContactMessage(db: D1Database, id: number): Promise<void> {
+  await db.prepare('DELETE FROM contact_messages WHERE id = ?').bind(id).run();
+}
+
+export async function unreadMessageCount(db: D1Database): Promise<number> {
+  const row = await db.prepare('SELECT COUNT(*) AS c FROM contact_messages WHERE read_at IS NULL').first<{ c: number }>();
+  return row?.c ?? 0;
+}
