@@ -13,6 +13,6 @@ binding = "FILES"
 bucket_name = "gchp-files"
 
 [vars]
-EMAIL_FROM = "Grant County Holiday Project <no-reply@grantcountyholidayproject.com>"
+EMAIL_FROM = "Grant County Holiday Project <no-reply@grantcountyholidayproject.org>"
 EMAIL_REPLY_TO = "skleinow@co.grant.wi.gov"
 CONTACT_TO = "skleinow@co.grant.wi.gov"
