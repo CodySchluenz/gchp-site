@@ -62,12 +62,12 @@ const fmtDate = (iso: string) => iso.slice(0, 10);
             <form method="post">
               <input type="hidden" name="csrf_token" value={csrfToken} />
               <input type="hidden" name="id" value={String(m.id)} />
-              <button type="submit" name="act" value={m.read_at ? 'mark_unread' : 'mark_read'} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">{m.read_at ? 'Mark unread' : 'Mark read'}</button>
+              <button type="submit" name="act" value={m.read_at ? 'mark_unread' : 'mark_read'} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">{m.read_at ? 'Mark unread' : 'Mark read'}</button>
             </form>
             <form method="post" data-confirm="Delete this message? This can't be undone.">
               <input type="hidden" name="csrf_token" value={csrfToken} />
               <input type="hidden" name="id" value={String(m.id)} />
-              <button type="submit" name="act" value="delete" class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800">Delete</button>
+              <button type="submit" name="act" value="delete" class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800 hover:bg-berry-100">Delete</button>
             </form>
           </div>
         </li>
