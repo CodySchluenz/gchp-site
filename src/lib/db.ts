@@ -707,3 +707,48 @@ export async function softDeleteDonor(db: D1Database, id: number, iso: string): 
 export async function restoreDonor(db: D1Database, id: number): Promise<void> {
   await db.prepare('UPDATE donors SET deleted_at = NULL WHERE id = ?').bind(id).run();
 }
+
+export type AdminDonation = { id: number; donor_id: number; date: string; item_description: string; amount: number | null };
+
+export async function listDonationsForDonor(db: D1Database, donorId: number): Promise<AdminDonation[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT id, donor_id, date, item_description, amount FROM donations
+       WHERE donor_id = ? AND deleted_at IS NULL ORDER BY date DESC, id DESC`,
+    )
+    .bind(donorId)
+    .all<AdminDonation>();
+  return results;
+}
+
+export async function createDonation(
+  db: D1Database,
+  donorId: number,
+  v: { date: string; amount: number | null; itemDescription: string },
+): Promise<number> {
+  const res = await db
+    .prepare('INSERT INTO donations (donor_id, date, item_description, amount) VALUES (?, ?, ?, ?)')
+    .bind(donorId, v.date, v.itemDescription, v.amount)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function softDeleteDonation(db: D1Database, id: number, donorId: number, iso: string): Promise<void> {
+  await db.prepare('UPDATE donations SET deleted_at = ? WHERE id = ? AND donor_id = ?').bind(iso, id, donorId).run();
+}
+
+export async function restoreDonation(db: D1Database, id: number, donorId: number): Promise<void> {
+  await db.prepare('UPDATE donations SET deleted_at = NULL WHERE id = ? AND donor_id = ?').bind(id, donorId).run();
+}
+
+export async function donationSummaryForYear(db: D1Database, year: string): Promise<{ count: number; total: number }> {
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) AS count, COALESCE(SUM(d.amount), 0) AS total
+       FROM donations d JOIN donors dn ON dn.id = d.donor_id
+       WHERE d.deleted_at IS NULL AND dn.deleted_at IS NULL AND substr(d.date, 1, 4) = ?`,
+    )
+    .bind(year)
+    .first<{ count: number; total: number }>();
+  return { count: row?.count ?? 0, total: row?.total ?? 0 };
+}
