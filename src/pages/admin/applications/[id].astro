@@ -158,7 +158,7 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
       <section class="mt-6 rounded-lg border-2 border-berry-700 bg-white p-5">
         <h2 class="text-2xl font-bold text-berry-800">Delete</h2>
         <p>This removes the application from your lists. You'll get an <strong>Undo</strong> link right after, so it's safe.</p>
-        <form method="post" class="mt-2" data-confirm="Delete this application? You will get an Undo link on the next screen.">
+        <form method="post" class="mt-2" data-confirm="Delete this application? You'll see an Undo button on the next screen.">
           <input type="hidden" name="csrf_token" value={csrfToken} />
           <button type="submit" name="act" value="delete" class="rounded bg-berry-700 px-4 py-3 font-bold text-white hover:bg-berry-800">Delete this application</button>
         </form>

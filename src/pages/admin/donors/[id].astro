@@ -111,7 +111,7 @@ const money = (v: number | null) => (v == null ? '' : `$${Number(v).toFixed(2)}`
             <li class="rounded-lg border-2 border-stone-300 bg-white p-4">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <span class="text-lg">{dn.date} · {money(dn.amount)}{dn.amount != null && dn.item_description ? ' · ' : ''}{dn.item_description}</span>
-                <form method="post" data-confirm="Delete this donation? You'll get an Undo link right after.">
+                <form method="post" data-confirm="Delete this donation? You'll see an Undo button right after.">
                   <input type="hidden" name="csrf_token" value={csrfToken} />
                   <input type="hidden" name="donation_id" value={String(dn.id)} />
                   <button type="submit" name="act" value="delete_donation" class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800 hover:bg-berry-100">Delete</button>

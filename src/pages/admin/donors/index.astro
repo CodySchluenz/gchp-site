@@ -98,7 +98,7 @@ const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-l
               <a href={`/admin/donors/${d.id}`} class="text-xl font-bold text-holly-800 underline">{d.name}</a>
               <p class="text-stone-700">{[d.contact_person, d.city, d.phone].filter(Boolean).join(' · ') || '—'}</p>
             </div>
-            <form method="post" data-confirm="Delete this donor? You'll get an Undo link right after.">
+            <form method="post" data-confirm="Delete this donor? You'll see an Undo button right after.">
               <input type="hidden" name="csrf_token" value={csrfToken} />
               <input type="hidden" name="id" value={String(d.id)} />
               <button type="submit" name="act" value="delete" class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800 hover:bg-berry-100">Delete</button>
