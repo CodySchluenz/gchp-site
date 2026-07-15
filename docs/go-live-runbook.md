@@ -33,25 +33,42 @@ yours to fill in; never paste secrets into this file or any commit.
       paste it into `wrangler.toml` (replace the `database_id = "set-in-task-13-..."` placeholder on
       the `[[d1_databases]]` block), then commit that one-line change.
 - [ ] Create the R2 bucket for the paper application PDF: `npx wrangler r2 bucket create gchp-files`.
+- [ ] **Create the Pages project by connecting the GitHub repo in the dashboard** (this gives the
+      main = production + PR-preview workflow, and it must exist before you can set secrets). In the
+      Cloudflare dashboard: **Workers & Pages → Create → Pages → Connect to Git** → pick this repo →
+      project name `gchp-site`, production branch `main`, build command `npm run build`, output
+      directory `dist`, and add a build variable `NODE_VERSION=22`. Save/deploy. The first build may
+      fail because the secrets and `database_id` aren't set yet — that is expected; you fix it in the
+      next steps and re-deploy. (Do NOT use `wrangler pages project create` — that makes a
+      Direct-Upload project that can't be connected to Git afterward.)
 - [ ] Confirm the `admin_emails` seed lists the correct operator + owner addresses; edit
       `migrations/0002_seed.sql` first if not (it has not been applied to production yet).
 - [ ] Apply the schema + seed to production (this runs `migrations/0001_init.sql` then
       `0002_seed.sql` in order and tracks them): `npm run db:migrate:remote`
       (equivalently `npx wrangler d1 migrations apply gchp --remote`).
-- [ ] Set secrets (never commit them). Generate a fresh 64-hex CSRF secret with
-      `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`, then:
-      `npx wrangler pages secret put CSRF_SECRET --project-name gchp-site` (paste the value), and
-      `npx wrangler pages secret put RESEND_API_KEY --project-name gchp-site` (paste your Resend key).
+- [ ] Set the two secrets (never commit them). Generate a fresh 64-hex CSRF value first:
+      `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. Then EITHER:
+      - **Dashboard (simplest):** the `gchp-site` project → **Settings → Variables and Secrets** → add
+        `CSRF_SECRET` (paste the hex) and `RESEND_API_KEY` (your Resend key), both as **Secret** (encrypted),
+        for the **Production** environment. OR
+      - **CLI:** `npx wrangler pages secret put CSRF_SECRET --project-name gchp-site` then
+        `npx wrangler pages secret put RESEND_API_KEY --project-name gchp-site`. **Note:** `CSRF_SECRET`
+        is the secret's NAME you type in the command; each command then prompts `Enter a secret value:`
+        — paste the value THERE, not on the command line (that also keeps it out of your shell history).
 
 ## 4. Load the migrated data
 - [ ] `npx wrangler d1 execute gchp --file=import.sql --remote`
 - [ ] Spot-check counts: `npx wrangler d1 execute gchp --command "SELECT (SELECT COUNT(*) FROM donors) AS donors, (SELECT COUNT(*) FROM applications) AS apps, (SELECT COUNT(*) FROM household_members) AS members, (SELECT COUNT(*) FROM employers) AS employers" --remote` and compare to the migration report.
 
 ## 5. Deploy the app (not yet the live domain)
-- [ ] Connect the GitHub repo to Cloudflare Pages; set the production branch to `main` and
-      `NODE_VERSION=22` in the Pages build settings. Deploy.
+- [ ] The Pages project + Git connection were set up in Step 3. Now that the `database_id`, bindings,
+      and secrets are in place, trigger a fresh build: push a commit to `main`, or in the dashboard use
+      **Deployments → Retry deployment**. Confirm it builds green and the `*.pages.dev` URL loads.
+- [ ] Confirm the D1 (`DB` → `gchp`) and R2 (`FILES` → `gchp-files`) bindings are attached to the
+      project (they come from `wrangler.toml`; if the dashboard doesn't show them, add them under
+      **Settings → Bindings**).
 - [ ] Upload the current paper-application PDF via the admin (`/admin/paper-application`) on the
-      Pages preview URL, or put it in R2 as `application.pdf`.
+      `*.pages.dev` URL, or put it in R2 as `application.pdf`.
 
 ## 6. Verify on the Pages URL — BEFORE touching DNS
 - [ ] Sign in to `/admin` via the magic link (confirm the email arrives and the link works).
