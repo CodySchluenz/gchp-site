@@ -34,4 +34,15 @@ describe('parse', () => {
     expect(parseRows(DUMP, 'nope')).toEqual([]);
     expect(parseColumns(DUMP, 'nope')).toEqual([]);
   });
+
+  it('throws rather than silently dropping data when a row has more values than columns', () => {
+    const DUMP2 = `
+CREATE TABLE \`t\` (
+  \`a\` int,
+  \`b\` int
+) ENGINE=MyISAM;
+INSERT INTO \`t\` VALUES (1,2,3);
+`;
+    expect(() => parseRows(DUMP2, 't')).toThrow(/2 columns/);
+  });
 });

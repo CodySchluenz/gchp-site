@@ -72,6 +72,9 @@ export function parseRows(sql, table) {
     const useCols = colMatch ? colMatch[1].replace(/`/g, '').split(',').map((s) => s.trim()) : cols;
     const { tuples, end } = parseTuples(sql, vIdx + 'VALUES'.length);
     for (const vals of tuples) {
+      if (vals.length !== useCols.length) {
+        throw new Error(`parseRows(${table}): a row has ${vals.length} values but ${useCols.length} columns were found - the dump format is unexpected; aborting rather than risk misaligned data.`);
+      }
       const obj = {};
       for (let k = 0; k < useCols.length; k++) obj[useCols[k]] = vals[k] ?? null;
       rows.push(obj);
