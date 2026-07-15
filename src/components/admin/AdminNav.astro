@@ -1,0 +1,20 @@
+---
+// The admin section nav bar. Shared by the Admin layout (sub-pages) and the
+// AdminHome screen so the two can never drift apart — add a section here once.
+const sections = [
+  { href: '/admin', label: 'Home' },
+  { href: '/admin/applications', label: 'Applications this year' },
+  { href: '/admin/content', label: "This year's news" },
+  { href: '/admin/pickup', label: 'Pickup schedule' },
+  { href: '/admin/paper-application', label: 'Paper application' },
+  { href: '/admin/donors', label: 'Donors' },
+  { href: '/admin/messages', label: 'Messages' },
+];
+---
+<nav aria-label="Admin sections" class="bg-holly-700">
+  <ul class="mx-auto flex max-w-5xl flex-wrap px-2">
+    {sections.map((s) => (
+      <li><a href={s.href} class="block px-4 py-3 font-semibold text-white hover:bg-holly-900">{s.label}</a></li>
+    ))}
+  </ul>
+</nav>

@@ -1,19 +1,11 @@
 ---
+import AdminNav from '../components/admin/AdminNav.astro';
 interface Props {
   title: string;
   heading: string;
   back?: { href: string; label: string };
 }
 const { title, heading, back } = Astro.props;
-const sections = [
-  { href: '/admin', label: 'Home' },
-  { href: '/admin/applications', label: 'Applications this year' },
-  { href: '/admin/content', label: "This year's news" },
-  { href: '/admin/pickup', label: 'Pickup schedule' },
-  { href: '/admin/paper-application', label: 'Paper application' },
-  { href: '/admin/donors', label: 'Donors' },
-  { href: '/admin/messages', label: 'Messages' },
-];
 ---
 <!doctype html>
 <html lang="en">
@@ -34,13 +26,7 @@ const sections = [
           </form>
         </div>
       </div>
-      <nav aria-label="Admin sections" class="bg-holly-700">
-        <ul class="mx-auto flex max-w-5xl flex-wrap px-2">
-          {sections.map((s) => (
-            <li><a href={s.href} class="block px-4 py-3 font-semibold text-white hover:bg-holly-900">{s.label}</a></li>
-          ))}
-        </ul>
-      </nav>
+      <AdminNav />
     </header>
     <main id="main" class="mx-auto max-w-5xl px-4 py-8">
       {back && (
