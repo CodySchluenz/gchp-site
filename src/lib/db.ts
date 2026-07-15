@@ -753,6 +753,20 @@ export async function donationSummaryForYear(db: D1Database, year: string): Prom
   return { count: row?.count ?? 0, total: row?.total ?? 0 };
 }
 
+// The distinct calendar years that have (non-deleted) donations, newest first —
+// used to let the admin view a past year's donation total, not just the current one.
+export async function listDonationYears(db: D1Database): Promise<string[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT DISTINCT substr(d.date, 1, 4) AS year
+       FROM donations d JOIN donors dn ON dn.id = d.donor_id
+       WHERE d.deleted_at IS NULL AND dn.deleted_at IS NULL
+       ORDER BY year DESC`,
+    )
+    .all<{ year: string }>();
+  return results.map((r) => r.year);
+}
+
 export type AdminMessage = { id: number; received_at: string; name: string; email: string; message: string; read_at: string | null };
 
 export async function listContactMessages(db: D1Database): Promise<AdminMessage[]> {

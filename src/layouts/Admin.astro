@@ -27,9 +27,12 @@ const sections = [
     <header class="border-b-4 border-gold-500 bg-holly-800 text-white">
       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
         <p class="text-2xl font-bold">Holiday Project — Admin</p>
-        <form method="post" action="/admin/signout">
-          <button type="submit" class="rounded bg-white px-4 py-2 font-semibold text-holly-900 hover:bg-holly-100">Sign out</button>
-        </form>
+        <div class="flex flex-wrap items-center gap-3">
+          <a href="/" class="rounded border-2 border-white px-4 py-2 font-semibold text-white hover:bg-holly-900">View the website</a>
+          <form method="post" action="/admin/signout">
+            <button type="submit" class="rounded bg-white px-4 py-2 font-semibold text-holly-900 hover:bg-holly-100">Sign out</button>
+          </form>
+        </div>
       </div>
       <nav aria-label="Admin sections" class="bg-holly-700">
         <ul class="mx-auto flex max-w-5xl flex-wrap px-2">

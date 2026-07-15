@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
 import {
   createDonor, listDonationsForDonor, createDonation, softDeleteDonation, restoreDonation,
-  donationSummaryForYear, softDeleteDonor, type DonorEdit,
+  donationSummaryForYear, listDonationYears, softDeleteDonor, type DonorEdit,
 } from '../src/lib/db';
 
 const blank: DonorEdit = { name: '', contact_person: '', address: '', city: '', state: '', zip: '', phone: '', email: '' };
@@ -52,5 +52,18 @@ describe('donation admin helpers', () => {
       const s = await donationSummaryForYear(db2, '2026');
       expect(s).toEqual({ count: 2, total: 200 });
     } finally { await d2(); }
+  });
+
+  it('lists distinct donation years newest-first, excluding deleted donations and donors', async () => {
+    const { db: db3, dispose: d3 } = await getTestDb();
+    try {
+      const a = await createDonor(db3, { ...blank, name: 'Years' });
+      await createDonation(db3, a, { date: '2026-03-01', amount: 10, itemDescription: '' });
+      await createDonation(db3, a, { date: '2025-11-01', amount: 20, itemDescription: '' });
+      await createDonation(db3, a, { date: '2026-07-01', amount: 30, itemDescription: '' }); // same year, dedup
+      const del = await createDonation(db3, a, { date: '2024-01-01', amount: 5, itemDescription: '' });
+      await softDeleteDonation(db3, del, a, '2024-02-01T00:00:00Z'); // deleted -> its year excluded
+      expect(await listDonationYears(db3)).toEqual(['2026', '2025']);
+    } finally { await d3(); }
   });
 });
