@@ -16,6 +16,10 @@ export function parseColumns(sql, table) {
   return cols;
 }
 
+// mysqldump encodes control chars in string values as backslash sequences.
+// Decode the standard ones; any other \x is a literal x (covers \' \" \\ \% etc.).
+const SQL_ESCAPES = { '0': '\0', b: '\b', n: '\n', r: '\r', t: '\t', Z: '\x1a' };
+
 // Parse the `(v1, v2, ...),(...)` tuples starting after VALUES; stop at a top-level ';'.
 function parseTuples(sql, start) {
   const tuples = [];
@@ -34,7 +38,12 @@ function parseTuples(sql, start) {
         let s = '';
         while (i < n) {
           const ch = sql[i];
-          if (ch === '\\') { s += sql[i + 1] ?? ''; i += 2; continue; }
+          if (ch === '\\') {
+            const next = sql[i + 1] ?? '';
+            s += Object.prototype.hasOwnProperty.call(SQL_ESCAPES, next) ? SQL_ESCAPES[next] : next;
+            i += 2;
+            continue;
+          }
           if (ch === "'") {
             if (sql[i + 1] === "'") { s += "'"; i += 2; continue; }
             i++; break;

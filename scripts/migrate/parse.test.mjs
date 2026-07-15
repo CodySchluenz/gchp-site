@@ -45,4 +45,17 @@ INSERT INTO \`t\` VALUES (1,2,3);
 `;
     expect(() => parseRows(DUMP2, 't')).toThrow(/2 columns/);
   });
+
+  it('decodes backslash control-character escapes (newline, tab, CR) in values', () => {
+    const DUMP3 = `
+CREATE TABLE \`goodDeed\` (
+  \`appID\` int,
+  \`deedText\` varchar(255)
+) ENGINE=MyISAM;
+INSERT INTO \`goodDeed\` VALUES (1,'line one\\nline two\\ttab\\rend'),(2,'plain\\'quote and \\\\ slash');
+`;
+    const rows = parseRows(DUMP3, 'goodDeed');
+    expect(rows[0].deedText).toBe('line one\nline two\ttab\rend');
+    expect(rows[1].deedText).toBe("plain'quote and \\ slash"); // \' -> ' and \\ -> \ still work
+  });
 });
