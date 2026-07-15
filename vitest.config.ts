@@ -2,7 +2,7 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    include: ['tests/**/*.test.ts'],
+    include: ['tests/**/*.test.ts', 'scripts/migrate/**/*.test.mjs'],
     // The db-*.test.ts suites run against a real local Cloudflare D1 via wrangler's
     // getPlatformProxy. Spinning up the proxy and applying migrations is slow, and
     // several files running in parallel contend for it, so the 5000ms default timeout

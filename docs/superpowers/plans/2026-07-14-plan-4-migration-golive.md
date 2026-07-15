@@ -791,40 +791,94 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from '../../tests/helpers/d1';
 import { buildImport } from './run.mjs';
 
+// One column per line, closing `)` on its own line — the format real mysqldump emits
+// and the only format the parser targets (see parse.mjs's CREATE-TABLE reader).
 const DUMP = `
 CREATE TABLE \`donor\` (
-  \`donID\` int, \`donName\` varchar(50), \`donContact\` varchar(50), \`address\` varchar(50),
-  \`city\` varchar(50), \`state\` char(2), \`zip\` char(5), \`phone\` varchar(20), \`email\` varchar(50)
-) ENGINE=MyISAM;
+  \`donID\` int(11) NOT NULL,
+  \`donName\` varchar(50) DEFAULT NULL,
+  \`donContact\` varchar(50) DEFAULT NULL,
+  \`address\` varchar(50) DEFAULT NULL,
+  \`city\` varchar(50) DEFAULT NULL,
+  \`state\` char(2) DEFAULT NULL,
+  \`zip\` char(5) DEFAULT NULL,
+  \`phone\` varchar(20) DEFAULT NULL,
+  \`email\` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (\`donID\`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 INSERT INTO \`donor\` VALUES (1,'Acme','Sue','1 St','Lancaster','WI','53813','555','a@x.co');
 
 CREATE TABLE \`applicants\` (
-  \`appID\` int, \`fName\` varchar(50), \`lName\` varchar(50), \`address\` varchar(100), \`cityID\` int,
-  \`tree\` tinyint, \`diabetic\` tinyint, \`phone\` varchar(20), \`email\` varchar(50), \`date\` varchar(10),
-  \`approved\` varchar(11), \`reviewed\` varchar(11), \`bedType\` varchar(10), \`bedSize\` varchar(10)
-) ENGINE=MyISAM;
+  \`appID\` int(11) NOT NULL,
+  \`fName\` varchar(50) DEFAULT NULL,
+  \`lName\` varchar(50) DEFAULT NULL,
+  \`address\` varchar(100) DEFAULT NULL,
+  \`cityID\` int(11) DEFAULT NULL,
+  \`tree\` tinyint(4) DEFAULT NULL,
+  \`diabetic\` tinyint(4) DEFAULT NULL,
+  \`phone\` varchar(20) DEFAULT NULL,
+  \`email\` varchar(50) DEFAULT NULL,
+  \`date\` varchar(10) DEFAULT NULL,
+  \`approved\` varchar(11) DEFAULT NULL,
+  \`reviewed\` varchar(11) DEFAULT NULL,
+  \`bedType\` varchar(10) DEFAULT NULL,
+  \`bedSize\` varchar(10) DEFAULT NULL,
+  PRIMARY KEY (\`appID\`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 INSERT INTO \`applicants\` VALUES (10,'Sue','ONeil','1 Elm',13,1,0,'555','s@x.co','2025/8/15','1','1','blanket','queen'),(11,'Ann','Roe','2 Oak',13,0,1,'556','a@x.co','2025/10/1','0','0','sheet','');
 
 CREATE TABLE \`appEmp\` (
-  \`appEmpID\` int, \`appID\` int, \`employer1\` varchar(50), \`wage1\` decimal(6,2), \`hrsPerWk1\` int,
-  \`employer2\` varchar(50), \`wage2\` decimal(6,2), \`hrsPerWk2\` int, \`employer3\` varchar(50), \`wage3\` decimal(6,2), \`hrsPerWk3\` int,
-  \`employer4\` varchar(50), \`wage4\` decimal(6,2), \`hrsPerWk4\` int
-) ENGINE=MyISAM;
+  \`appEmpID\` int(11) NOT NULL,
+  \`appID\` int(11) DEFAULT NULL,
+  \`employer1\` varchar(50) DEFAULT NULL,
+  \`wage1\` decimal(6,2) DEFAULT NULL,
+  \`hrsPerWk1\` int(11) DEFAULT NULL,
+  \`employer2\` varchar(50) DEFAULT NULL,
+  \`wage2\` decimal(6,2) DEFAULT NULL,
+  \`hrsPerWk2\` int(11) DEFAULT NULL,
+  \`employer3\` varchar(50) DEFAULT NULL,
+  \`wage3\` decimal(6,2) DEFAULT NULL,
+  \`hrsPerWk3\` int(11) DEFAULT NULL,
+  \`employer4\` varchar(50) DEFAULT NULL,
+  \`wage4\` decimal(6,2) DEFAULT NULL,
+  \`hrsPerWk4\` int(11) DEFAULT NULL,
+  PRIMARY KEY (\`appEmpID\`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 INSERT INTO \`appEmp\` VALUES (1,10,'Acme',15.00,40,'',NULL,NULL,'',NULL,NULL,'',NULL,NULL);
 
 CREATE TABLE \`benefits\` (
-  \`benID\` int, \`appID\` int, \`fsAmount\` decimal(8,2), \`ssiAmount\` decimal(8,2), \`w2Amount\` decimal(8,2),
-  \`csAmount\` decimal(8,2), \`omAmount\` decimal(8,2), \`socAmount\` decimal(8,2)
-) ENGINE=MyISAM;
+  \`benID\` int(11) NOT NULL,
+  \`appID\` int(11) DEFAULT NULL,
+  \`fsAmount\` decimal(8,2) DEFAULT NULL,
+  \`ssiAmount\` decimal(8,2) DEFAULT NULL,
+  \`w2Amount\` decimal(8,2) DEFAULT NULL,
+  \`csAmount\` decimal(8,2) DEFAULT NULL,
+  \`omAmount\` decimal(8,2) DEFAULT NULL,
+  \`socAmount\` decimal(8,2) DEFAULT NULL,
+  PRIMARY KEY (\`benID\`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 INSERT INTO \`benefits\` VALUES (1,10,200.00,NULL,500.00,120.00,30.00,NULL);
 
 CREATE TABLE \`children\` (
-  \`childID\` int, \`appID\` int, \`name\` varchar(50), \`sex\` char(1), \`age\` int,
-  \`pantSize\` varchar(10), \`shirtSize\` varchar(10), \`undSize\` varchar(10), \`sockSize\` varchar(10), \`diaperSize\` varchar(10), \`gift\` varchar(255)
-) ENGINE=MyISAM;
+  \`childID\` int(11) NOT NULL,
+  \`appID\` int(11) DEFAULT NULL,
+  \`name\` varchar(50) DEFAULT NULL,
+  \`sex\` char(1) DEFAULT NULL,
+  \`age\` int(11) DEFAULT NULL,
+  \`pantSize\` varchar(10) DEFAULT NULL,
+  \`shirtSize\` varchar(10) DEFAULT NULL,
+  \`undSize\` varchar(10) DEFAULT NULL,
+  \`sockSize\` varchar(10) DEFAULT NULL,
+  \`diaperSize\` varchar(10) DEFAULT NULL,
+  \`gift\` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (\`childID\`)
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 INSERT INTO \`children\` VALUES (4,10,'Kid A','F',10,'10','L','10','L','','books'),(5,10,'Kid B','M',8,'8','M','8','M','','lego');
 
-CREATE TABLE \`goodDeed\` (\`appID\` int, \`deedText\` varchar(100)) ENGINE=MyISAM;
+CREATE TABLE \`goodDeed\` (
+  \`appID\` int(11) DEFAULT NULL,
+  \`deedText\` varchar(100) DEFAULT NULL
+) ENGINE=MyISAM DEFAULT CHARSET=latin1;
 INSERT INTO \`goodDeed\` VALUES (10,'Helped a neighbor');
 `;
 

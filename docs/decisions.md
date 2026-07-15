@@ -178,6 +178,21 @@ triaged as defer-to-3d and must not drop off the list:
 - Note (`assignPuNumber`): now returns `0` as a "not applicable" sentinel for a non-existent id or a
   season mismatch (unreachable via the current caller); future callers should know this.
 
+## Plan 4 notes (data migration tooling + go-live, 2026-07-15)
+
+The migration tooling (`scripts/migrate/`) and the go-live runbook (`docs/go-live-runbook.md`) are
+built and merged. The actual export, provisioning, data import, deploy, and DNS cutover are owner
+steps in the runbook. The whole-branch review found and fixed one Critical issue (the parser was
+silently mangling mysqldump control-character escapes like `\n` in multi-line gift/deed text; fixed
+in commit bda9f62 with a decode map + test). One deferred owner decision surfaced:
+- **Denied applicants migrate as `status='new'`, not `'denied'`.** Per the agreed field map, the old
+  `approved='1'` becomes `'approved'` and everything else becomes `'new'`. The old site also had a
+  `reviewed` flag, so a previously reviewed-and-denied applicant (`approved='0'` + `reviewed='1'`)
+  will import as "new" and reappear in the operator's review queue. The new schema does support
+  `'denied'`. If you'd rather preserve past denials, this is a one-line change to the applicant
+  transform (map `reviewed='1'` + `approved='0'` → `'denied'`) — say the word and it's a quick
+  amendment. Left as `'new'` for now per the approved spec.
+
 ## Still open (owner actions, not design questions)
 - Rotate the live admin password and the MySQL password (both were exposed in the original repo
   contents, and the admin password also appeared in chat).
