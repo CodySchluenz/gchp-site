@@ -6,7 +6,7 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "gchp"
-database_id = "set-in-task-13-after-wrangler-d1-create"
+database_id = "1cd37954-87a2-4df2-b9e5-97806e2ec43c"
 
 [[r2_buckets]]
 binding = "FILES"
