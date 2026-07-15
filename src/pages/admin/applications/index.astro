@@ -63,7 +63,7 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
       {tabs.map((t) => (
         <a href={qs({ status: t.key })}
            aria-current={status === t.key ? 'page' : undefined}
-           class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 aria-[current=page]:bg-holly-700 aria-[current=page]:text-white">
+           class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100 aria-[current=page]:bg-holly-700 aria-[current=page]:text-white aria-[current=page]:hover:bg-holly-900">
           {t.label}
         </a>
       ))}
@@ -87,11 +87,11 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
           {yearsToShow.map((y) => <option value={String(y)} selected={y === season}>{y}</option>)}
         </select>
       </label>
-      <button type="submit" class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">Go</button>
+      <button type="submit" class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Go</button>
     </form>
     <a href={exportHref} class="rounded bg-berry-700 px-4 py-2 font-bold text-white hover:bg-berry-800">Download list for Excel</a>
-    <button type="button" data-print class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">Print this list</button>
-    <a href={`/admin/applications/slips?season=${season}`} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800">Print all approved slips</a>
+    <button type="button" data-print class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Print this list</button>
+    <a href={`/admin/applications/slips?season=${season}`} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Print all approved slips</a>
   </div>
 
   <table class="mt-6 w-full border-collapse bg-white text-left">
