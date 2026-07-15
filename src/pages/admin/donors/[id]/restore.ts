@@ -13,6 +13,7 @@ export const POST: APIRoute = async ({ locals, params, request, cookies, redirec
     String(form.get('csrf_token') ?? ''),
   );
   if (!ok) return redirect('/admin/donors?error=csrf', 303);
-  if (Number.isInteger(id)) await restoreDonor(locals.runtime.env.DB, id);
+  if (!Number.isInteger(id)) return redirect('/admin/donors', 303);
+  await restoreDonor(locals.runtime.env.DB, id);
   return redirect('/admin/donors?restored=1', 303);
 };

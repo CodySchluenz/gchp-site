@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
 import {
   createDonor, listDonationsForDonor, createDonation, softDeleteDonation, restoreDonation,
-  donationSummaryForYear, type DonorEdit,
+  donationSummaryForYear, softDeleteDonor, type DonorEdit,
 } from '../src/lib/db';
 
 const blank: DonorEdit = { name: '', contact_person: '', address: '', city: '', state: '', zip: '', phone: '', email: '' };
@@ -46,6 +46,9 @@ describe('donation admin helpers', () => {
       await createDonation(db2, a, { date: '2025-06-01', amount: 999, itemDescription: '' });       // other year
       const gone = await createDonation(db2, a, { date: '2026-02-02', amount: 500, itemDescription: '' });
       await softDeleteDonation(db2, gone, a, '2026-03-01T00:00:00Z');                                // excluded
+      const b = await createDonor(db2, { ...blank, name: 'DeletedDonor' });
+      await createDonation(db2, b, { date: '2026-05-05', amount: 300, itemDescription: '' });
+      await softDeleteDonor(db2, b, '2026-06-01T00:00:00Z');
       const s = await donationSummaryForYear(db2, '2026');
       expect(s).toEqual({ count: 2, total: 200 });
     } finally { await d2(); }

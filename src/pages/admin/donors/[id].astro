@@ -34,7 +34,7 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
     const amount = rawAmount === '' ? null : parseMoney(rawAmount);
     const item = g('item_description');
     // Require a date and at least an amount or an item; a non-blank amount must be valid money.
-    if (date === '' || (rawAmount !== '' && amount === null) || (amount === null && item === '')) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || (rawAmount !== '' && amount === null) || (amount === null && item === '')) {
       return Astro.redirect(`${base}?error=donation`, 303);
     }
     await createDonation(env.DB, id, { date, amount, itemDescription: item });
