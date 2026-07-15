@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { listApplicationsForExport } from '../../../lib/db';
-import { toCsv } from '../../../lib/csv';
+import { buildXlsx } from '../../../lib/xlsx';
 
 export const prerender = false;
 
@@ -20,19 +20,18 @@ export const GET: APIRoute = async ({ locals, url }) => {
     'Phone', 'Email', 'Household type', 'Check eligibility', 'Bags',
     'People count', 'People', 'Years received', 'Adopted last year', 'Bed', 'Bed size', 'Income', 'Jobs',
   ];
-  const body = toCsv(
-    headers,
-    rows.map((r) => [
-      r.pu_number, r.status, r.submitted_at.slice(0, 10), r.first_name, r.last_name, r.address,
-      r.city_name, r.phone, r.email, r.household_type, r.may_not_be_eligible === 1 ? 'yes' : '', r.bags_count,
-      r.member_count, r.member_summary, r.years_received_help, r.adopted_last_year === 1 ? 'yes' : '',
-      r.bed_choice, r.bed_size ?? '', incomeSummary(r), r.employment_summary,
-    ]),
-  );
-  return new Response(body, {
+  const data: (string | number | null)[][] = rows.map((r) => [
+    r.pu_number, r.status, r.submitted_at.slice(0, 10), r.first_name, r.last_name, r.address,
+    r.city_name, r.phone, r.email, r.household_type, r.may_not_be_eligible === 1 ? 'yes' : '', r.bags_count,
+    r.member_count, r.member_summary, r.years_received_help, r.adopted_last_year === 1 ? 'yes' : '',
+    r.bed_choice, r.bed_size ?? '', incomeSummary(r), r.employment_summary,
+  ]);
+  const workbook = buildXlsx('Applications', headers, data);
+  // Uint8Array is a valid BodyInit at runtime; cast past the workers-types BodyInit union.
+  return new Response(workbook as BodyInit, {
     headers: {
-      'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="applications-${season}-${status}.csv"`,
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': `attachment; filename="applications-${season}-${status}.xlsx"`,
       'Cache-Control': 'no-store',
     },
   });
