@@ -132,9 +132,10 @@ never run it, and never carry its secrets or data forward.
 
 ## Content to carry over from the old PHP site
 - Mission and history (30+ years; partnered with Tri-State Toys for Tots, Dubuque IA).
-- Mailing address: 235 W. Elm St., Lancaster WI 53813.
-  CONFIRMED by the owner 2026-07-12: 235 is correct (the old site's "245" mentions were wrong).
-  PO Box 447 is also current, but the site should show the 235 address. See docs/decisions.md.
+- Mailing address: 245 W. Elm St., Lancaster WI 53813.
+  CORRECTED by the owner 2026-07-15: 245 is the correct number. (This reverses the 2026-07-12 note,
+  which wrongly said 235 was correct — that was a mistake the owner has since confirmed.)
+  PO Box 447 is also current, but the site should show the 245 address. See docs/decisions.md.
 - Contact: 608-723-2136 ext 1194 (message line only), skleinow@co.grant.wi.gov.
 - Donation drop-off sites: Allegiant Oil, 190 N 2nd St Platteville (Mon-Fri 6a-6p)
   and 1486 Industrial Park Rd Lancaster (Mon-Fri 7a-5p). Cash: checks payable to the project.

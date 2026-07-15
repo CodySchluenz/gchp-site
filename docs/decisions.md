@@ -9,9 +9,12 @@ the screenshots in `legacy/screenshots/` (which cover every admin screen). Never
 credential in this repo.
 
 ## 2. Mailing address
-The correct street address is **235 W. Elm St., Lancaster WI 53813**. The PO Box (PO Box 447) is
-also current, but the new site should show the **235** address. (The old site's "245" mentions
-were wrong; CLAUDE.md has been corrected.)
+The correct street address is **245 W. Elm St., Lancaster WI 53813**. The PO Box (PO Box 447) is
+also current, but the new site should show the **245** address.
+
+**Correction (2026-07-15):** an earlier 2026-07-12 note here said 235 was correct and 245 was the old
+site's error. That was a mistake — the owner has confirmed the correct number is **245**. All five
+source occurrences (footer, apply page x2, donate page, email footer) and CLAUDE.md were updated to 245.
 
 ## 3. Language
 No Spanish version needed.

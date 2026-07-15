@@ -19,7 +19,7 @@ export function emailShell(title: string, bodyHtml: string): string {
       <h1 style="font-size:22px;color:#14532d;margin-top:0;">${escapeHtml(title)}</h1>
       ${bodyHtml}
       <p style="font-size:15px;color:#57534e;border-top:1px solid #e7e5e4;padding-top:12px;margin-bottom:0;">
-        Grant County Holiday Project · 235 W. Elm St., Lancaster WI 53813 · 608-723-2136 ext 1194
+        Grant County Holiday Project · 245 W. Elm St., Lancaster WI 53813 · 608-723-2136 ext 1194
       </p>
     </div>
   </body>
