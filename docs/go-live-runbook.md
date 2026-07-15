@@ -7,6 +7,13 @@ yours to fill in; never paste secrets into this file or any commit.
 ## 0. Before you start
 - [ ] Confirm `main` builds and tests pass locally: `npm run test`, `npm run build`.
 - [ ] Have a Cloudflare account with the domain available, and the old site's database access.
+- [ ] **Wrangler is a local project dependency, not a global command.** Run every `wrangler`
+      command below through `npx` (e.g. `npx wrangler ...`) from the project folder, OR use the
+      `npm run` shortcuts noted below. Check it works: `npx wrangler --version` (expect 4.x).
+- [ ] **Log in once** so the `d1`/`r2`/`pages` commands can reach your account:
+      `npx wrangler login` (opens a browser to authorize). Confirm with `npx wrangler whoami`.
+- [ ] The project's `wrangler.toml` already names the pieces: Pages project `gchp-site`, D1 database
+      `gchp` (binding `DB`), R2 bucket `gchp-files` (binding `FILES`). Use those names below.
 
 ## 1. Export the old database
 - [ ] In the old host's phpMyAdmin (or cPanel), export the `grantco3_holidayProject` database as a
@@ -22,20 +29,23 @@ yours to fill in; never paste secrets into this file or any commit.
 - [ ] Open the generated `import.sql` and skim it. It is git-ignored — do not commit it.
 
 ## 3. Provision production Cloudflare resources
-- [ ] Create the production D1 database: `wrangler d1 create <DB_NAME>` and put its binding/id in
-      `wrangler.toml` (production environment).
-- [ ] Create the R2 bucket for the paper application PDF and bind it (`FILES`).
-- [ ] Set secrets (never commit them): `wrangler pages secret put CSRF_SECRET` (use a fresh 64-hex
-      random value), `wrangler pages secret put RESEND_API_KEY`.
-- [ ] Apply the schema + seed to production:
-      `wrangler d1 execute <DB_NAME> --file=migrations/0001_init.sql --remote` then
-      `wrangler d1 execute <DB_NAME> --file=migrations/0002_seed.sql --remote`.
-- [ ] Confirm the `admin_emails` seed lists the correct operator + owner addresses (edit
-      `migrations/0002_seed.sql` before applying if not).
+- [ ] Create the production D1 database: `npx wrangler d1 create gchp`. It prints a `database_id` —
+      paste it into `wrangler.toml` (replace the `database_id = "set-in-task-13-..."` placeholder on
+      the `[[d1_databases]]` block), then commit that one-line change.
+- [ ] Create the R2 bucket for the paper application PDF: `npx wrangler r2 bucket create gchp-files`.
+- [ ] Confirm the `admin_emails` seed lists the correct operator + owner addresses; edit
+      `migrations/0002_seed.sql` first if not (it has not been applied to production yet).
+- [ ] Apply the schema + seed to production (this runs `migrations/0001_init.sql` then
+      `0002_seed.sql` in order and tracks them): `npm run db:migrate:remote`
+      (equivalently `npx wrangler d1 migrations apply gchp --remote`).
+- [ ] Set secrets (never commit them). Generate a fresh 64-hex CSRF secret with
+      `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`, then:
+      `npx wrangler pages secret put CSRF_SECRET --project-name gchp-site` (paste the value), and
+      `npx wrangler pages secret put RESEND_API_KEY --project-name gchp-site` (paste your Resend key).
 
 ## 4. Load the migrated data
-- [ ] `wrangler d1 execute <DB_NAME> --file=import.sql --remote`
-- [ ] Spot-check counts: `wrangler d1 execute <DB_NAME> --command "SELECT (SELECT COUNT(*) FROM donors) AS donors, (SELECT COUNT(*) FROM applications) AS apps, (SELECT COUNT(*) FROM household_members) AS members, (SELECT COUNT(*) FROM employers) AS employers" --remote` and compare to the migration report.
+- [ ] `npx wrangler d1 execute gchp --file=import.sql --remote`
+- [ ] Spot-check counts: `npx wrangler d1 execute gchp --command "SELECT (SELECT COUNT(*) FROM donors) AS donors, (SELECT COUNT(*) FROM applications) AS apps, (SELECT COUNT(*) FROM household_members) AS members, (SELECT COUNT(*) FROM employers) AS employers" --remote` and compare to the migration report.
 
 ## 5. Deploy the app (not yet the live domain)
 - [ ] Connect the GitHub repo to Cloudflare Pages; set the production branch to `main` and
