@@ -648,3 +648,62 @@ export async function updateEmployer(db: D1Database, id: number, applicationId: 
 export async function deleteEmployer(db: D1Database, id: number, applicationId: number): Promise<void> {
   await db.prepare('DELETE FROM employers WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
 }
+
+export type AdminDonor = {
+  id: number; name: string; contact_person: string; address: string;
+  city: string; state: string; zip: string; phone: string; email: string;
+};
+export type DonorEdit = Omit<AdminDonor, 'id'>;
+
+export async function listDonors(db: D1Database, search: string): Promise<AdminDonor[]> {
+  const like = `%${escapeLike(search.trim().toLowerCase())}%`;
+  const { results } = await db
+    .prepare(
+      `SELECT id, name, contact_person, address, city, state, zip, phone, email
+       FROM donors
+       WHERE deleted_at IS NULL AND (? = '%%' OR lower(name) LIKE ? ESCAPE '\\')
+       ORDER BY name COLLATE NOCASE, id`,
+    )
+    .bind(like, like)
+    .all<AdminDonor>();
+  return results;
+}
+
+export async function getDonor(db: D1Database, id: number): Promise<AdminDonor | null> {
+  return await db
+    .prepare(
+      `SELECT id, name, contact_person, address, city, state, zip, phone, email
+       FROM donors WHERE id = ? AND deleted_at IS NULL`,
+    )
+    .bind(id)
+    .first<AdminDonor>();
+}
+
+export async function createDonor(db: D1Database, f: DonorEdit): Promise<number> {
+  const res = await db
+    .prepare(
+      `INSERT INTO donors (name, contact_person, address, city, state, zip, phone, email)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(f.name, f.contact_person, f.address, f.city, f.state, f.zip, f.phone, f.email)
+    .run();
+  return res.meta.last_row_id as number;
+}
+
+export async function updateDonor(db: D1Database, id: number, f: DonorEdit): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE donors SET name = ?, contact_person = ?, address = ?, city = ?, state = ?, zip = ?, phone = ?, email = ?
+       WHERE id = ?`,
+    )
+    .bind(f.name, f.contact_person, f.address, f.city, f.state, f.zip, f.phone, f.email, id)
+    .run();
+}
+
+export async function softDeleteDonor(db: D1Database, id: number, iso: string): Promise<void> {
+  await db.prepare('UPDATE donors SET deleted_at = ? WHERE id = ?').bind(iso, id).run();
+}
+
+export async function restoreDonor(db: D1Database, id: number): Promise<void> {
+  await db.prepare('UPDATE donors SET deleted_at = NULL WHERE id = ?').bind(id).run();
+}
