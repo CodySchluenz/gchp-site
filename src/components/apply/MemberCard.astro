@@ -1,5 +1,6 @@
 ---
 import FieldError from './FieldError.astro';
+import { RELATIONSHIP_OPTIONS } from '../../lib/relationships';
 interface Props { index: number | string; values: Record<string, string>; errors: Record<string, string> }
 const { index: i, values, errors } = Astro.props;
 const v = (n: string) => values[n] ?? '';
@@ -11,6 +12,8 @@ const sizes = [
   { field: `member_shirt_${i}`, label: 'Shirt/top size' },
   { field: `member_underwear_${i}`, label: 'Underwear size' },
   { field: `member_socks_${i}`, label: 'Socks size' },
+  { field: `member_shoe_${i}`, label: 'Shoe size' },
+  { field: `member_coat_${i}`, label: 'Coat size' },
   { field: `member_diapers_${i}`, label: 'Diapers size' },
 ];
 ---
@@ -24,12 +27,19 @@ const sizes = [
       <FieldError id={`member_name_${i}`} errors={errors} />
     </div>
     <div>
-      <label for={`member_relationship_${i}`} class="block font-semibold">
-        How are they related to you? <span class="font-normal">(write "self" for yourself)</span>
-      </label>
-      <input type="text" id={`member_relationship_${i}`} name={`member_relationship_${i}`} value={v(`member_relationship_${i}`)}
-        aria-invalid={inv(`member_relationship_${i}`)} aria-describedby={desc(`member_relationship_${i}`)} class={input} />
+      <label for={`member_relationship_${i}`} class="block font-semibold">How are they related to you?</label>
+      <select id={`member_relationship_${i}`} name={`member_relationship_${i}`}
+        aria-invalid={inv(`member_relationship_${i}`)} aria-describedby={desc(`member_relationship_${i}`)} class={input}>
+        <option value="">— Choose one —</option>
+        {RELATIONSHIP_OPTIONS.map((o) => (
+          <option value={o.value} selected={v(`member_relationship_${i}`) === o.value}>{o.label}</option>
+        ))}
+      </select>
       <FieldError id={`member_relationship_${i}`} errors={errors} />
+      <label for={`member_relationship_other_${i}`} class="mt-2 block text-base">If you chose "Other," describe it here</label>
+      <input type="text" id={`member_relationship_other_${i}`} name={`member_relationship_other_${i}`} value={v(`member_relationship_other_${i}`)}
+        aria-invalid={inv(`member_relationship_other_${i}`)} aria-describedby={desc(`member_relationship_other_${i}`)} class={input} />
+      <FieldError id={`member_relationship_other_${i}`} errors={errors} />
     </div>
     <fieldset id={`member_sex_${i}`} tabindex="-1">
       <legend class="font-semibold">Sex</legend>
@@ -46,6 +56,16 @@ const sizes = [
       <FieldError id={`member_age_${i}`} errors={errors} />
     </div>
   </div>
+  <div class="mt-4 space-y-3">
+    <label class="flex items-start gap-3">
+      <input type="checkbox" name={`member_disabled_${i}`} checked={v(`member_disabled_${i}`) === 'on'} class="mt-1 h-6 w-6" />
+      <span>This person is permanently disabled</span>
+    </label>
+    <label class="flex items-start gap-3">
+      <input type="checkbox" name={`member_part_time_${i}`} checked={v(`member_part_time_${i}`) === 'on'} class="mt-1 h-6 w-6" />
+      <span>This person lives in my home only part of the time</span>
+    </label>
+  </div>
   <p class="mt-4 font-semibold">Clothing sizes <span class="font-normal">(leave blank anything they don't need)</span></p>
   <div class="mt-1 grid gap-4 sm:grid-cols-3">
     {sizes.map((s) => (
@@ -58,5 +78,6 @@ const sizes = [
   <div class="mt-4">
     <label for={`member_gifts_${i}`} class="block font-semibold">Gifts or toys they'd like</label>
     <textarea id={`member_gifts_${i}`} name={`member_gifts_${i}`} rows="3" class={input}>{v(`member_gifts_${i}`)}</textarea>
+    <p class="mt-1 text-base text-stone-600">We can't provide expensive items like iPods, laptops, games, or TVs.</p>
   </div>
 </fieldset>

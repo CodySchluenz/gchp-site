@@ -130,7 +130,7 @@ const errorEntries = Object.entries(errors);
           <li>
             <strong>On paper:</strong>
             <a href="/application.pdf" class="font-semibold text-berry-700 underline">print the paper application</a>
-            and mail it to 245 W. Elm St., Lancaster WI 53813.
+            and mail it back to the address printed on the form.
           </li>
         </ul>
       </div>
@@ -149,7 +149,7 @@ const errorEntries = Object.entries(errors);
         <p><strong>Rather not do this online?</strong> That's just fine:</p>
         <ul class="mt-2 list-disc space-y-1 pl-6">
           <li>Call our message line at <strong>608-723-2136 ext 1194</strong> and we'll mail you a paper application.</li>
-          <li>Or <a href="/application.pdf" class="font-semibold text-berry-700 underline">print the paper application</a> and mail it to 245 W. Elm St., Lancaster WI 53813.</li>
+          <li>Or <a href="/application.pdf" class="font-semibold text-berry-700 underline">print the paper application</a> and mail it back to the address printed on the form.</li>
         </ul>
       </div>
 
@@ -157,6 +157,11 @@ const errorEntries = Object.entries(errors);
         A note on who this program serves: it's for Grant County households with children, and for
         adults who are over 65 or permanently disabled. If you're not sure whether that's you,
         apply anyway — a volunteer will look at your application with care.
+      </p>
+
+      <p class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4 text-base">
+        Please apply to only one holiday project in Grant County. Applicant names are shared among the
+        county's projects, so applying in more than one place can hold up your gifts.
       </p>
 
       {retryNote !== '' && (
@@ -245,14 +250,6 @@ const errorEntries = Object.entries(errors);
               <input type="checkbox" name="diabetic" checked={(values.diabetic ?? '') === 'on'} class="mt-1 h-6 w-6" />
               <span>Someone in my household is diabetic</span>
             </label>
-            <fieldset id="permanently_disabled" tabindex="-1">
-              <legend class="font-semibold">Is anyone in your household permanently disabled?</legend>
-              <div class="mt-1 flex gap-6">
-                <label class="flex items-center gap-2"><input type="radio" name="permanently_disabled" value="yes" checked={(values.permanently_disabled ?? '') === 'yes'} aria-invalid={errors.permanently_disabled ? 'true' : undefined} aria-describedby={errors.permanently_disabled ? 'permanently_disabled-error' : undefined} class="h-6 w-6" /> Yes</label>
-                <label class="flex items-center gap-2"><input type="radio" name="permanently_disabled" value="no" checked={(values.permanently_disabled ?? '') === 'no'} aria-invalid={errors.permanently_disabled ? 'true' : undefined} aria-describedby={errors.permanently_disabled ? 'permanently_disabled-error' : undefined} class="h-6 w-6" /> No</label>
-              </div>
-              <FieldError id="permanently_disabled" errors={errors} />
-            </fieldset>
             <label class="flex items-start gap-3">
               <input type="checkbox" name="share_with_sponsor" checked={(values.share_with_sponsor ?? '') === 'on'} class="mt-1 h-6 w-6" />
               <span>
@@ -263,7 +260,7 @@ const errorEntries = Object.entries(errors);
             <label class="flex items-start gap-3">
               <input type="checkbox" id="full_time_residence" name="full_time_residence" checked={(values.full_time_residence ?? '') === 'on'}
                 aria-invalid={errors.full_time_residence ? 'true' : undefined} aria-describedby={errors.full_time_residence ? 'full_time_residence-error' : undefined} class="mt-1 h-6 w-6" />
-              <span>Everyone I list on this application lives at my address full-time</span>
+              <span>Everyone I have listed lives in my home (children live here at least half of the time)</span>
             </label>
             <FieldError id="full_time_residence" errors={errors} />
             <div>
@@ -352,7 +349,11 @@ const errorEntries = Object.entries(errors);
 
         <section aria-labelledby="s-household">
           <h2 id="s-household" class="text-2xl font-bold text-holly-800">Your household</h2>
-          <p class="mt-2">Tell us about each person living with you, including yourself — you're Person 1. Clothing sizes help us pick things that fit; leave blank anything they don't need.</p>
+          <p class="mt-2">
+            Tell us about each person living with you, including yourself — you're Person 1. Children
+            must live in your home at least half of the time to be listed. Clothing sizes help us pick
+            things that fit; leave blank anything they don't need.
+          </p>
           <div id="member-list">
             {Array.from({ length: memberCount }, (_, idx) => (
               <MemberCard index={idx + 1} values={values} errors={errors} />
@@ -362,6 +363,20 @@ const errorEntries = Object.entries(errors);
             class="mt-3 rounded-lg border-2 border-holly-700 bg-white px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">
             + Add another person
           </button>
+          <div class="mt-6">
+            <label for="parentage_note" class="block font-semibold">
+              Blended families <span class="font-normal">(optional)</span>
+            </label>
+            <p class="text-base text-stone-600">
+              If a partner or another adult in your home is a parent of only some of your children,
+              tell us which children are theirs. Leave blank if this does not apply.
+            </p>
+            <textarea id="parentage_note" name="parentage_note" rows="3"
+              aria-invalid={errors.parentage_note ? 'true' : undefined}
+              aria-describedby={errors.parentage_note ? 'parentage_note-error' : undefined}
+              class={input}>{values.parentage_note ?? ''}</textarea>
+            <FieldError id="parentage_note" errors={errors} />
+          </div>
         </section>
 
         <section aria-labelledby="s-deed">
