@@ -8,9 +8,14 @@ type Env = { DB: D1Database };
 export async function getTestDb(): Promise<{ db: D1Database; dispose: () => Promise<void> }> {
   const proxy = await getPlatformProxy<Env>({ persist: false });
   const db = proxy.env.DB;
-  const sql = readFileSync('migrations/0001_init.sql', 'utf8');
-  for (const stmt of sql.split(';').map((s: string) => s.trim()).filter(Boolean)) {
-    await db.prepare(stmt).run();
+  for (const file of ['migrations/0001_init.sql', 'migrations/0003_relationships.sql']) {
+    const sql = readFileSync(file, 'utf8')
+      .split('\n')
+      .filter((l: string) => !l.trim().startsWith('--'))
+      .join('\n');
+    for (const stmt of sql.split(';').map((s: string) => s.trim()).filter(Boolean)) {
+      await db.prepare(stmt).run();
+    }
   }
   await db.prepare("INSERT INTO cities (id, name, zip) VALUES (13, 'Lancaster', '53813')").run();
   await db.prepare('INSERT INTO settings (id, applications_open) VALUES (1, 1)').run();

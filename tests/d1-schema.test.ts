@@ -54,4 +54,28 @@ describe('D1 schema integrity', () => {
       .run();
     expect(res.meta.last_row_id).toBeGreaterThan(0);
   });
+
+  it('accepts a member row using the new relationship/disability/size columns', async () => {
+    const app = await db
+      .prepare(
+        `INSERT INTO applications (season_year, submitted_at, first_name, last_name, address, city_id, phone, email)
+         VALUES (2026, '2026-10-01T00:00:00Z', 'A', 'B', '1 Elm', 13, '555', 'a@b.co')`,
+      )
+      .run();
+    const appId = app.meta.last_row_id;
+    const res = await db
+      .prepare(
+        `INSERT INTO household_members
+           (application_id, position, name, relationship, relationship_other, sex, age, disabled, part_time, shoe, coat)
+         VALUES (?, 1, 'Kid', 'not_related', '', 'M', 30, 1, 1, '10', 'L')`,
+      )
+      .bind(appId)
+      .run();
+    expect(res.meta.last_row_id).toBeGreaterThan(0);
+    const back = await db
+      .prepare('SELECT disabled, part_time, shoe, coat, relationship FROM household_members WHERE application_id = ?')
+      .bind(appId)
+      .first<{ disabled: number; part_time: number; shoe: string; coat: string; relationship: string }>();
+    expect(back).toMatchObject({ disabled: 1, part_time: 1, shoe: '10', coat: 'L', relationship: 'not_related' });
+  });
 });
