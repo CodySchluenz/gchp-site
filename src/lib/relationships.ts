@@ -11,7 +11,7 @@ export const RELATIONSHIP_OPTIONS = [
   { value: 'other', label: 'Other' },
 ] as const;
 
-export const RELATIONSHIP_VALUES = new Set(RELATIONSHIP_OPTIONS.map((o) => o.value));
+export const RELATIONSHIP_VALUES: Set<string> = new Set(RELATIONSHIP_OPTIONS.map((o) => o.value));
 
 // Adults who are not part of the eligible immediate family. Drives the admin
 // "please verify" review tag only — it never blocks or denies anything.

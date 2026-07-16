@@ -72,7 +72,7 @@ export function validateAbout(input: ApplicationInput, errors: Errors): AboutCle
 
   if (!isOn(input, 'full_time_residence')) {
     errors.full_time_residence =
-      'Please check this box to confirm everyone you list lives at your address full-time.';
+      'Please check this box to confirm everyone you listed lives in your home (children at least half of the time).';
   }
 
   const years = parseIntInRange(get(input, 'years_received_help'), 0, 99);
@@ -340,8 +340,7 @@ export function validateMembers(input: ApplicationInput, errors: Errors): Member
     if (allBlank && i > 1) continue; // blank extra card: skip
 
     if (name === '') errors[`member_name_${i}`] = "Please give this person's first and last name.";
-    // RELATIONSHIP_VALUES is a Set of literal option codes; cast to check an arbitrary input string.
-    if (!(RELATIONSHIP_VALUES as Set<string>).has(relationship)) {
+    if (!RELATIONSHIP_VALUES.has(relationship)) {
       errors[`member_relationship_${i}`] = 'Please choose how this person is related to you.';
     } else if (relationship === 'other' && relationshipOther === '') {
       errors[`member_relationship_other_${i}`] = 'Please describe how this person is related to you.';

@@ -178,7 +178,7 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
         <p class="text-lg text-stone-600">Private notes for your eligibility decisions — for example, "boyfriend excluded, gave gift card." Families never see this.</p>
         <form method="post" class="mt-2">
           <input type="hidden" name="csrf_token" value={csrfToken} />
-          <textarea name="admin_notes" rows="3" class="w-full rounded border-2 border-stone-400 p-3 text-lg">{a.admin_notes ?? ''}</textarea>
+          <textarea name="admin_notes" rows="3" maxlength={5000} class="w-full rounded border-2 border-stone-400 p-3 text-lg">{a.admin_notes ?? ''}</textarea>
           <button type="submit" name="act" value="set_notes" class="mt-2 rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save notes</button>
         </form>
       </section>

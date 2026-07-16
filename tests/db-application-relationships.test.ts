@@ -15,7 +15,7 @@ const base: NewApplication = {
     { name: 'Jim', relationship: 'not_related', relationshipOther: '', sex: 'M', age: 38, disabled: true, partTime: false, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', shoe: '11', coat: 'XL', gifts: '' },
   ],
   goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', mayNotBeEligible: false, householdType: 'family',
-  parentageNote: 'Jim is nobody’s parent.',
+  parentageNote: 'Jim is nobody\'s parent.',
 };
 
 describe('application relationships persistence', () => {
@@ -26,7 +26,7 @@ describe('application relationships persistence', () => {
   it('round-trips new member fields and the parentage note', async () => {
     const id = await insertApplication(db, base);
     const detail = await getApplicationDetail(db, id);
-    expect(detail!.app.parentage_note).toBe('Jim is nobody’s parent.');
+    expect(detail!.app.parentage_note).toBe('Jim is nobody\'s parent.');
     const jim = detail!.members[1];
     expect(jim.relationship).toBe('not_related');
     expect(jim.disabled).toBe(1);

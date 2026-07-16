@@ -4,6 +4,7 @@ import {
   validateBenefits,
   validateMembers,
   validateApplication,
+  validateParentageNote,
   MAX_MEMBERS,
   MAX_EMPLOYERS,
   type Errors,
@@ -228,5 +229,16 @@ describe('validateApplication', () => {
   it('permanentlyDisabled is false when no member is marked disabled', () => {
     const r = validateApplication(fullValid);
     if (r.ok && !r.spam) expect(r.clean.permanentlyDisabled).toBe(false);
+  });
+});
+
+describe('validateParentageNote', () => {
+  it('accepts a normal note and caps extreme length at 2000', () => {
+    const e1: Errors = {};
+    expect(validateParentageNote({ parentage_note: 'John is Emma\'s dad; the others are mine.' }, e1)).toBe('John is Emma\'s dad; the others are mine.');
+    expect(e1).toEqual({});
+    const e2: Errors = {};
+    expect(validateParentageNote({ parentage_note: 'x'.repeat(2001) }, e2)).toBeNull();
+    expect(e2.parentage_note).toBeTruthy();
   });
 });
