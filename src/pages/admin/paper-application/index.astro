@@ -49,11 +49,15 @@ const uploaded = settings.pdf_uploaded_at ? settings.pdf_uploaded_at.slice(0, 10
       : <>No paper application has been uploaded yet.</>}
   </p>
 
-  <form method="post" enctype="multipart/form-data" class="mt-6 rounded-lg border-2 border-holly-700 bg-white p-5">
+  <form method="post" enctype="multipart/form-data" data-upload-form class="mt-6 rounded-lg border-2 border-holly-700 bg-white p-5">
     <input type="hidden" name="csrf_token" value={csrfToken} />
-    <label class="block text-lg font-semibold">Choose a PDF file
-      <input type="file" name="file" accept="application/pdf,.pdf" class="mt-2 block w-full text-lg" />
-    </label>
-    <button type="submit" class="mt-4 rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Upload and publish</button>
+    <div data-file-row>
+      <label class="block text-lg font-semibold">Step 1: Choose the PDF file on your computer
+        <input type="file" name="file" required accept="application/pdf,.pdf" class="mt-2 block w-full text-lg" />
+      </label>
+      <p class="mt-2 text-lg text-stone-600">Step 2: press the button below to publish it.</p>
+    </div>
+    <button type="submit" data-upload-button class="mt-4 rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Upload and publish</button>
   </form>
+  <script src="/scripts/upload-pdf.js" defer></script>
 </Admin>
