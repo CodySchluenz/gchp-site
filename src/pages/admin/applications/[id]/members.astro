@@ -4,6 +4,7 @@ import Admin from '../../../../layouts/Admin.astro';
 import { getApplicationDetail, insertMember, updateMember, deleteMember, type MemberEdit } from '../../../../lib/db';
 import { parseIntInRange, MAX_MEMBERS } from '../../../../lib/validation/application';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../../lib/csrf';
+import { RELATIONSHIP_OPTIONS } from '../../../../lib/relationships';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -28,8 +29,10 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   const name = g('name');
   if (name === '' || age === null) return Astro.redirect(`${base}?error=fields`, 303);
   const m: MemberEdit = {
-    name, relationship: g('relationship'), sex: g('sex'), age,
-    pants: g('pants'), shirtTop: g('shirt_top'), underwear: g('underwear'), socks: g('socks'), diapers: g('diapers'), gifts: g('gifts'),
+    name, relationship: g('relationship'), relationshipOther: g('relationship_other'), sex: g('sex'), age,
+    disabled: g('disabled') === 'on', partTime: g('part_time') === 'on',
+    pants: g('pants'), shirtTop: g('shirt_top'), underwear: g('underwear'), socks: g('socks'),
+    diapers: g('diapers'), shoe: g('shoe'), coat: g('coat'), gifts: g('gifts'),
   };
   if (act === 'create') {
     if (detail.members.length >= MAX_MEMBERS) return Astro.redirect(`${base}?error=full`, 303);
@@ -70,7 +73,13 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
             <input type="hidden" name="member_id" value={String(m.id)} />
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block font-semibold">Name<input class={input} type="text" name="name" value={m.name} /></label>
-              <label class="block font-semibold">Relationship<input class={input} type="text" name="relationship" value={m.relationship} /></label>
+              <label class="block font-semibold">Relationship
+                <select class={input} name="relationship">
+                  <option value="">— Choose one —</option>
+                  {RELATIONSHIP_OPTIONS.map((o) => <option value={o.value} selected={m.relationship === o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label class="block font-semibold">If "Other," describe<input class={input} type="text" name="relationship_other" value={m.relationship_other ?? ''} /></label>
               <label class="block font-semibold">Sex<input class={input} type="text" name="sex" value={m.sex} /></label>
               <label class="block font-semibold">Age<input class={input} type="text" inputmode="numeric" name="age" value={m.age} /></label>
               <label class="block font-semibold">Pants size<input class={input} type="text" name="pants" value={m.pants} /></label>
@@ -78,7 +87,13 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
               <label class="block font-semibold">Underwear size<input class={input} type="text" name="underwear" value={m.underwear} /></label>
               <label class="block font-semibold">Socks size<input class={input} type="text" name="socks" value={m.socks} /></label>
               <label class="block font-semibold">Diapers size<input class={input} type="text" name="diapers" value={m.diapers} /></label>
+              <label class="block font-semibold">Shoe size<input class={input} type="text" name="shoe" value={m.shoe ?? ''} /></label>
+              <label class="block font-semibold">Coat size<input class={input} type="text" name="coat" value={m.coat ?? ''} /></label>
               <label class="block font-semibold">Gifts / toys wanted<input class={input} type="text" name="gifts" value={m.gifts} /></label>
+            </div>
+            <div class="flex flex-wrap gap-6">
+              <label class="flex items-center gap-2"><input type="checkbox" name="disabled" checked={m.disabled === 1} class="h-6 w-6" /> Permanently disabled</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="part_time" checked={m.part_time === 1} class="h-6 w-6" /> Lives here part-time</label>
             </div>
             <div class="flex flex-wrap gap-2">
               <button type="submit" name="act" value="update" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save</button>
@@ -95,7 +110,13 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
             <input type="hidden" name="csrf_token" value={csrfToken} />
             <div class="grid gap-4 sm:grid-cols-2">
               <label class="block font-semibold">Name<input class={input} type="text" name="name" /></label>
-              <label class="block font-semibold">Relationship<input class={input} type="text" name="relationship" /></label>
+              <label class="block font-semibold">Relationship
+                <select class={input} name="relationship">
+                  <option value="">— Choose one —</option>
+                  {RELATIONSHIP_OPTIONS.map((o) => <option value={o.value}>{o.label}</option>)}
+                </select>
+              </label>
+              <label class="block font-semibold">If "Other," describe<input class={input} type="text" name="relationship_other" /></label>
               <label class="block font-semibold">Sex<input class={input} type="text" name="sex" /></label>
               <label class="block font-semibold">Age<input class={input} type="text" inputmode="numeric" name="age" /></label>
               <label class="block font-semibold">Pants size<input class={input} type="text" name="pants" /></label>
@@ -103,7 +124,13 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
               <label class="block font-semibold">Underwear size<input class={input} type="text" name="underwear" /></label>
               <label class="block font-semibold">Socks size<input class={input} type="text" name="socks" /></label>
               <label class="block font-semibold">Diapers size<input class={input} type="text" name="diapers" /></label>
+              <label class="block font-semibold">Shoe size<input class={input} type="text" name="shoe" /></label>
+              <label class="block font-semibold">Coat size<input class={input} type="text" name="coat" /></label>
               <label class="block font-semibold">Gifts / toys wanted<input class={input} type="text" name="gifts" /></label>
+            </div>
+            <div class="flex flex-wrap gap-6">
+              <label class="flex items-center gap-2"><input type="checkbox" name="disabled" class="h-6 w-6" /> Permanently disabled</label>
+              <label class="flex items-center gap-2"><input type="checkbox" name="part_time" class="h-6 w-6" /> Lives here part-time</label>
             </div>
             <button type="submit" name="act" value="create" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">Add this person</button>
           </form>
