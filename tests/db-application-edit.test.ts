@@ -30,7 +30,7 @@ describe('updateApplicationFull', () => {
       foodShareAmount: 250, socialSecurityAmount: 800, socialSecurityFor: 'self',
       ssiAmount: null, ssiFor: '', childSupportAmount: 120.5, childSupportFor: 'kids',
       unemploymentWeeklyAmount: null, unemploymentFor: '', otherIncomeAmount: null, otherIncomeFor: '',
-      goodDeed: 'second', mayNotBeEligible: true,
+      goodDeed: 'second', parentageNote: 'note', mayNotBeEligible: true,
     };
     await updateApplicationFull(db, id, edit);
     const a = (await getApplicationDetail(db, id))!.app;

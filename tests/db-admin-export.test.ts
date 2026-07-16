@@ -25,8 +25,8 @@ describe('listApplicationsForExport binds both branches', () => {
     const rows = await listApplicationsForExport(db, 2026, 'all', '');
     expect(rows).toHaveLength(1);
     expect(rows[0].city_name).toBe('Lancaster');
-    expect(rows[0].member_summary).toContain('Sue Smith (40)');
-    expect(rows[0].member_summary).toContain('Tim Smith (7)');
+    expect(rows[0].member_summary).toContain('Sue Smith (self, age 40)');
+    expect(rows[0].member_summary).toContain('Tim Smith (son, age 7)');
   });
 
   it("runs a specific-status branch (binds ?1 and ?2)", async () => {

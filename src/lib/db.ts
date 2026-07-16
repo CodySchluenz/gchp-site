@@ -78,8 +78,8 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
          child_support_amount, child_support_for,
          unemployment_weekly_amount, unemployment_for,
          other_income_amount, other_income_for,
-         good_deed, may_not_be_eligible
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         good_deed, may_not_be_eligible, parentage_note
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       app.seasonYear, app.submittedAt, app.firstName, app.lastName, app.address, app.cityId,
@@ -95,7 +95,7 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
       app.benefits.childSupportAmount, app.benefits.childSupportFor,
       app.benefits.unemploymentWeeklyAmount, app.benefits.unemploymentFor,
       app.benefits.otherIncomeAmount, app.benefits.otherIncomeFor,
-      app.goodDeed, app.mayNotBeEligible ? 1 : 0,
+      app.goodDeed, app.mayNotBeEligible ? 1 : 0, app.parentageNote ?? '',
     )
     .run();
 
@@ -106,10 +106,15 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
       db
         .prepare(
           `INSERT INTO household_members
-             (application_id, position, name, relationship, sex, age, pants, shirt_top, underwear, socks, diapers, gifts)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+             (application_id, position, name, relationship, relationship_other, sex, age,
+              disabled, part_time, pants, shirt_top, underwear, socks, diapers, shoe, coat, gifts)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(appId, i + 1, m.name, m.relationship, m.sex, m.age, m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.gifts),
+        .bind(
+          appId, i + 1, m.name, m.relationship, m.relationshipOther ?? '', m.sex, m.age,
+          m.disabled ? 1 : 0, m.partTime ? 1 : 0,
+          m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.shoe ?? '', m.coat ?? '', m.gifts,
+        ),
     ),
     ...app.employers.map((e) =>
       db
@@ -256,6 +261,10 @@ export async function setBagsCount(db: D1Database, id: number, bags: number | nu
   await db.prepare('UPDATE applications SET bags_count = ? WHERE id = ?').bind(bags, id).run();
 }
 
+export async function setApplicationNotes(db: D1Database, id: number, notes: string): Promise<void> {
+  await db.prepare('UPDATE applications SET admin_notes = ? WHERE id = ?').bind(notes, id).run();
+}
+
 export async function softDeleteApplication(db: D1Database, id: number, nowIso: string): Promise<void> {
   await db.prepare('UPDATE applications SET deleted_at = ? WHERE id = ?').bind(nowIso, id).run();
 }
@@ -293,6 +302,7 @@ export type ApplicationFullEdit = {
   otherIncomeAmount: number | null;
   otherIncomeFor: string;
   goodDeed: string;
+  parentageNote: string;
   mayNotBeEligible: boolean;
 };
 
@@ -310,7 +320,7 @@ export async function updateApplicationFull(db: D1Database, id: number, f: Appli
          child_support_amount = ?, child_support_for = ?,
          unemployment_weekly_amount = ?, unemployment_for = ?,
          other_income_amount = ?, other_income_for = ?,
-         good_deed = ?, may_not_be_eligible = ?
+         good_deed = ?, parentage_note = ?, may_not_be_eligible = ?
        WHERE id = ?`,
     )
     .bind(
@@ -324,7 +334,7 @@ export async function updateApplicationFull(db: D1Database, id: number, f: Appli
       f.childSupportAmount, f.childSupportFor,
       f.unemploymentWeeklyAmount, f.unemploymentFor,
       f.otherIncomeAmount, f.otherIncomeFor,
-      f.goodDeed, f.mayNotBeEligible ? 1 : 0,
+      f.goodDeed, f.parentageNote, f.mayNotBeEligible ? 1 : 0,
       id,
     )
     .run();
@@ -343,6 +353,8 @@ export type ExportRow = {
   household_type: string;
   may_not_be_eligible: number;
   bags_count: number | null;
+  parentage_note: string;
+  admin_notes: string;
   years_received_help: number;
   adopted_last_year: number;
   bed_choice: string;
@@ -371,11 +383,28 @@ export async function listApplicationsForExport(
   const sql = `
     SELECT a.pu_number, a.status, a.submitted_at, a.first_name, a.last_name, a.address,
            c.name AS city_name, a.phone, a.email, a.household_type, a.may_not_be_eligible, a.bags_count,
+           a.parentage_note, a.admin_notes,
            a.years_received_help, a.adopted_last_year, a.bed_choice, a.bed_size,
            a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
            a.unemployment_weekly_amount, a.other_income_amount,
            COUNT(DISTINCT m.id) AS member_count,
-           COALESCE(GROUP_CONCAT(m.name || ' (' || m.age || ')', '; '), '') AS member_summary,
+           COALESCE(GROUP_CONCAT(
+             m.name || ' (' ||
+             CASE m.relationship
+               WHEN 'self' THEN 'self'
+               WHEN 'other_parent' THEN 'parent'
+               WHEN 'son' THEN 'son'
+               WHEN 'daughter' THEN 'daughter'
+               WHEN 'grandchild' THEN 'grandchild'
+               WHEN 'court' THEN 'court-appointed'
+               WHEN 'not_related' THEN 'not related'
+               WHEN 'other' THEN COALESCE(NULLIF(m.relationship_other, ''), 'other')
+               ELSE COALESCE(NULLIF(m.relationship, ''), '?')
+             END
+             || ', age ' || m.age ||
+             CASE WHEN m.disabled = 1 THEN ', disabled' ELSE '' END ||
+             CASE WHEN m.part_time = 1 THEN ', part-time' ELSE '' END ||
+             ')', '; '), '') AS member_summary,
            (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
               FROM employers e WHERE e.application_id = a.id) AS employment_summary
     FROM applications a
@@ -581,8 +610,9 @@ export async function movePickupDay(db: D1Database, id: number, dir: 'up' | 'dow
 }
 
 export type MemberEdit = {
-  name: string; relationship: string; sex: string; age: number;
-  pants: string; shirtTop: string; underwear: string; socks: string; diapers: string; gifts: string;
+  name: string; relationship: string; relationshipOther?: string; sex: string; age: number;
+  disabled?: boolean; partTime?: boolean;
+  pants: string; shirtTop: string; underwear: string; socks: string; diapers: string; shoe?: string; coat?: string; gifts: string;
 };
 
 export async function insertMember(db: D1Database, applicationId: number, m: MemberEdit): Promise<number> {
@@ -593,10 +623,15 @@ export async function insertMember(db: D1Database, applicationId: number, m: Mem
   const res = await db
     .prepare(
       `INSERT INTO household_members
-         (application_id, position, name, relationship, sex, age, pants, shirt_top, underwear, socks, diapers, gifts)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (application_id, position, name, relationship, relationship_other, sex, age,
+          disabled, part_time, pants, shirt_top, underwear, socks, diapers, shoe, coat, gifts)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(applicationId, (max?.m ?? 0) + 1, m.name, m.relationship, m.sex, m.age, m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.gifts)
+    .bind(
+      applicationId, (max?.m ?? 0) + 1, m.name, m.relationship, m.relationshipOther ?? '', m.sex, m.age,
+      m.disabled ? 1 : 0, m.partTime ? 1 : 0,
+      m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.shoe ?? '', m.coat ?? '', m.gifts,
+    )
     .run();
   return res.meta.last_row_id as number;
 }
@@ -605,11 +640,16 @@ export async function updateMember(db: D1Database, id: number, applicationId: nu
   await db
     .prepare(
       `UPDATE household_members SET
-         name = ?, relationship = ?, sex = ?, age = ?,
-         pants = ?, shirt_top = ?, underwear = ?, socks = ?, diapers = ?, gifts = ?
+         name = ?, relationship = ?, relationship_other = ?, sex = ?, age = ?,
+         disabled = ?, part_time = ?,
+         pants = ?, shirt_top = ?, underwear = ?, socks = ?, diapers = ?, shoe = ?, coat = ?, gifts = ?
        WHERE id = ? AND application_id = ?`,
     )
-    .bind(m.name, m.relationship, m.sex, m.age, m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.gifts, id, applicationId)
+    .bind(
+      m.name, m.relationship, m.relationshipOther ?? '', m.sex, m.age,
+      m.disabled ? 1 : 0, m.partTime ? 1 : 0,
+      m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.shoe ?? '', m.coat ?? '', m.gifts, id, applicationId,
+    )
     .run();
 }
 
