@@ -2,11 +2,12 @@
 import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
 import {
-  getApplicationDetail, assignPuNumber, setApplicationStatus, setBagsCount, softDeleteApplication,
+  getApplicationDetail, assignPuNumber, setApplicationStatus, setBagsCount, softDeleteApplication, setApplicationNotes,
 } from '../../../lib/db';
 import { renderApprovedEmail, renderDeniedEmail } from '../../../lib/email/render';
 import { sendEmail } from '../../../lib/email/send';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+import { relationshipLabel, NON_FAMILY_RELATIONSHIPS } from '../../../lib/relationships';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -42,6 +43,9 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
       const raw = String(form.get('bags_count') ?? '').trim();
       await setBagsCount(env.DB, id, raw === '' ? null : Math.max(0, Math.floor(Number(raw)) || 0));
       return Astro.redirect(`${detailUrl}?done=bags`, 303);
+    } else if (act === 'set_notes') {
+      await setApplicationNotes(env.DB, id, String(form.get('admin_notes') ?? '').slice(0, 5000));
+      return Astro.redirect(`${detailUrl}?done=notes`, 303);
     } else if (act === 'delete') {
       await softDeleteApplication(env.DB, id, new Date().toISOString());
       return Astro.redirect(`/admin/applications?undo=${id}`, 303);
@@ -61,7 +65,7 @@ const flags = new URL(Astro.request.url).searchParams;
 const done = flags.get('done');
 const mail = flags.get('mail');
 const mailNote = mail === 'ok' ? ' The email was sent.' : mail === 'fail' ? ' The email could not be sent right now — the application is still saved.' : '';
-const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'bags' ? 'Bag count saved.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
+const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'bags' ? 'Bag count saved.' : done === 'notes' ? 'Your notes were saved.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
 
 const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
@@ -99,16 +103,30 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
             {detail.members.map((m) => (
               <tr>
                 <td class="border-b p-2">{m.name}</td>
-                <td class="border-b p-2">{m.relationship}</td>
+                <td class="border-b p-2">
+                  {relationshipLabel(String(m.relationship ?? ''), String(m.relationship_other ?? ''))}
+                  {NON_FAMILY_RELATIONSHIPS.has(String(m.relationship ?? '')) && (
+                    <span class="mt-1 block rounded bg-gold-500 px-2 py-1 text-base font-bold text-stone-900">Not immediate family — please verify eligibility</span>
+                  )}
+                  {m.disabled === 1 && <span class="mt-1 block text-base font-semibold text-berry-800">Disabled</span>}
+                  {m.part_time === 1 && <span class="mt-1 block text-base text-stone-600">Lives here part-time</span>}
+                </td>
                 <td class="border-b p-2">{m.sex}</td>
                 <td class="border-b p-2">{m.age}</td>
-                <td class="border-b p-2">{[['Pants', m.pants], ['Shirt', m.shirt_top], ['Underwear', m.underwear], ['Socks', m.socks], ['Diapers', m.diapers]].filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ') || '—'}</td>
+                <td class="border-b p-2">{[['Pants', m.pants], ['Shirt', m.shirt_top], ['Underwear', m.underwear], ['Socks', m.socks], ['Shoe', m.shoe], ['Coat', m.coat], ['Diapers', m.diapers]].filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ') || '—'}</td>
                 <td class="border-b p-2">{m.gifts || '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </section>
+
+      {a.parentage_note ? (
+        <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+          <h2 class="text-2xl font-bold text-holly-800">Which children belong to whom</h2>
+          <p class="mt-2 whitespace-pre-wrap">{a.parentage_note}</p>
+        </section>
+      ) : null}
 
       <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
         <h2 class="text-2xl font-bold text-holly-800">Income</h2>
@@ -152,6 +170,16 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
             <input type="text" inputmode="numeric" name="bags_count" value={a.bags_count ?? ''} class="ml-2 w-24 rounded border-2 border-stone-400 p-2" />
           </label>
           <button type="submit" name="act" value="set_bags" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save bags</button>
+        </form>
+      </section>
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Notes (only you see this)</h2>
+        <p class="text-lg text-stone-600">Private notes for your eligibility decisions — for example, "boyfriend excluded, gave gift card." Families never see this.</p>
+        <form method="post" class="mt-2">
+          <input type="hidden" name="csrf_token" value={csrfToken} />
+          <textarea name="admin_notes" rows="3" class="w-full rounded border-2 border-stone-400 p-3 text-lg">{a.admin_notes ?? ''}</textarea>
+          <button type="submit" name="act" value="set_notes" class="mt-2 rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save notes</button>
         </form>
       </section>
 
