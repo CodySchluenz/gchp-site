@@ -62,7 +62,6 @@ describe('validateAbout', () => {
       phone: '608-555-0100',
       email: 'sue@example.com',
       diabetic: true,
-      permanentlyDisabled: false,
       shareWithSponsor: false,
       fullTimeResidenceConfirmed: true,
       yearsReceivedHelp: 0,
@@ -75,7 +74,7 @@ describe('validateAbout', () => {
     expect(validateAbout({}, errors)).toBeNull();
     for (const k of [
       'first_name', 'last_name', 'address', 'city_id', 'phone', 'email',
-      'permanently_disabled', 'full_time_residence', 'years_received_help', 'adopted_last_year',
+      'full_time_residence', 'years_received_help', 'adopted_last_year',
     ]) {
       expect(errors[k], `missing error for ${k}`).toBeTruthy();
     }

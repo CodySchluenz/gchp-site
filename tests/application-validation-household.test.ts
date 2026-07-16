@@ -153,6 +153,29 @@ describe('validateMembers', () => {
     validateMembers({ ...fullValid, member_age_2: '190' }, errors);
     expect(errors.member_age_2).toBeTruthy();
   });
+
+  it('captures disabled, part-time, shoe, coat and requires a valid relationship code', () => {
+    const errors: Errors = {};
+    const r = validateMembers({
+      ...fullValid,
+      member_disabled_2: 'on', member_part_time_2: 'on', member_shoe_2: '2', member_coat_2: '10',
+    }, errors);
+    expect(errors).toEqual({});
+    expect(r?.[1]).toMatchObject({ disabled: true, partTime: true, shoe: '2', coat: '10' });
+  });
+
+  it('rejects an unknown relationship and requires text when relationship is other', () => {
+    const e1: Errors = {};
+    validateMembers({ ...fullValid, member_relationship_2: 'banana' }, e1);
+    expect(e1.member_relationship_2).toBeTruthy();
+    const e2: Errors = {};
+    validateMembers({ ...fullValid, member_relationship_2: 'other', member_relationship_other_2: '' }, e2);
+    expect(e2.member_relationship_other_2).toBeTruthy();
+    const e3: Errors = {};
+    const r = validateMembers({ ...fullValid, member_relationship_2: 'other', member_relationship_other_2: 'Niece' }, e3);
+    expect(e3).toEqual({});
+    expect(r?.[1]).toMatchObject({ relationship: 'other', relationshipOther: 'Niece' });
+  });
 });
 
 describe('validateApplication', () => {
@@ -191,5 +214,19 @@ describe('validateApplication', () => {
     expect(r.ok).toBe(true);
     expect(MAX_MEMBERS).toBe(15);
     expect(MAX_EMPLOYERS).toBe(10);
+  });
+
+  it('derives permanentlyDisabled from members and carries the parentage note', () => {
+    const r = validateApplication({ ...fullValid, member_disabled_1: 'on', parentage_note: 'Tim is my son only.' });
+    expect(r.ok).toBe(true);
+    if (r.ok && !r.spam) {
+      expect(r.clean.permanentlyDisabled).toBe(true);
+      expect(r.clean.parentageNote).toBe('Tim is my son only.');
+    }
+  });
+
+  it('permanentlyDisabled is false when no member is marked disabled', () => {
+    const r = validateApplication(fullValid);
+    if (r.ok && !r.spam) expect(r.clean.permanentlyDisabled).toBe(false);
   });
 });

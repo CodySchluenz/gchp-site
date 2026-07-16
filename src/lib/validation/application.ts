@@ -3,6 +3,8 @@
 // Error messages are warm and specific: the audience is stressed,
 // possibly elderly, non-technical applicants.
 
+import { RELATIONSHIP_VALUES } from '../relationships';
+
 export type ApplicationInput = Record<string, string>;
 export type Errors = Record<string, string>;
 
@@ -32,7 +34,6 @@ export type AboutClean = {
   phone: string;
   email: string;
   diabetic: boolean;
-  permanentlyDisabled: boolean;
   shareWithSponsor: boolean;
   fullTimeResidenceConfirmed: boolean;
   yearsReceivedHelp: number;
@@ -69,11 +70,6 @@ export function validateAbout(input: ApplicationInput, errors: Errors): AboutCle
     }
   }
 
-  const disabled = get(input, 'permanently_disabled');
-  if (disabled !== 'yes' && disabled !== 'no') {
-    errors.permanently_disabled = 'Please answer yes or no.';
-  }
-
   if (!isOn(input, 'full_time_residence')) {
     errors.full_time_residence =
       'Please check this box to confirm everyone you list lives at your address full-time.';
@@ -92,7 +88,7 @@ export function validateAbout(input: ApplicationInput, errors: Errors): AboutCle
 
   const mine = [
     'first_name', 'last_name', 'address', 'city_id', 'phone', 'email', 'email_confirm',
-    'permanently_disabled', 'full_time_residence', 'years_received_help', 'adopted_last_year',
+    'full_time_residence', 'years_received_help', 'adopted_last_year',
   ];
   if (mine.some((k) => errors[k] !== undefined)) return null;
 
@@ -104,7 +100,6 @@ export function validateAbout(input: ApplicationInput, errors: Errors): AboutCle
     phone,
     email,
     diabetic: isOn(input, 'diabetic'),
-    permanentlyDisabled: disabled === 'yes',
     shareWithSponsor: isOn(input, 'share_with_sponsor'),
     fullTimeResidenceConfirmed: true,
     yearsReceivedHelp: years as number,
@@ -143,6 +138,15 @@ export function validateGoodDeed(input: ApplicationInput, errors: Errors): strin
     return null;
   }
   return deed;
+}
+
+export function validateParentageNote(input: ApplicationInput, errors: Errors): string | null {
+  const note = get(input, 'parentage_note');
+  if (note.length > 2000) {
+    errors.parentage_note = "That's a little long — please shorten it to the key details.";
+    return null;
+  }
+  return note;
 }
 
 export const MAX_MEMBERS = 15;
@@ -291,13 +295,18 @@ export function validateBenefits(input: ApplicationInput, errors: Errors): Benef
 export type MemberClean = {
   name: string;
   relationship: string;
+  relationshipOther?: string;
   sex: 'M' | 'F';
   age: number;
+  disabled?: boolean;
+  partTime?: boolean;
   pants: string;
   shirtTop: string;
   underwear: string;
   socks: string;
   diapers: string;
+  shoe?: string;
+  coat?: string;
   gifts: string;
 };
 
@@ -309,37 +318,49 @@ export function validateMembers(input: ApplicationInput, errors: Errors): Member
   for (let i = 1; i <= count; i++) {
     const name = get(input, `member_name_${i}`);
     const relationship = get(input, `member_relationship_${i}`);
+    const relationshipOther = get(input, `member_relationship_other_${i}`);
     const sex = get(input, `member_sex_${i}`);
     const ageRaw = get(input, `member_age_${i}`);
+    const disabled = isOn(input, `member_disabled_${i}`);
+    const partTime = isOn(input, `member_part_time_${i}`);
     const sizes = {
       pants: get(input, `member_pants_${i}`),
       shirtTop: get(input, `member_shirt_${i}`),
       underwear: get(input, `member_underwear_${i}`),
       socks: get(input, `member_socks_${i}`),
       diapers: get(input, `member_diapers_${i}`),
+      shoe: get(input, `member_shoe_${i}`),
+      coat: get(input, `member_coat_${i}`),
     };
     const gifts = get(input, `member_gifts_${i}`);
 
     const allBlank =
-      name === '' && relationship === '' && sex === '' && ageRaw === '' &&
+      name === '' && relationship === '' && relationshipOther === '' && sex === '' && ageRaw === '' &&
       Object.values(sizes).every((s) => s === '') && gifts === '';
     if (allBlank && i > 1) continue; // blank extra card: skip
 
     if (name === '') errors[`member_name_${i}`] = "Please give this person's first and last name.";
-    if (relationship === '')
-      errors[`member_relationship_${i}`] = "Please tell us how they're related to you (write \"self\" for yourself).";
+    // RELATIONSHIP_VALUES is a Set of literal option codes; cast to check an arbitrary input string.
+    if (!(RELATIONSHIP_VALUES as Set<string>).has(relationship)) {
+      errors[`member_relationship_${i}`] = 'Please choose how this person is related to you.';
+    } else if (relationship === 'other' && relationshipOther === '') {
+      errors[`member_relationship_other_${i}`] = 'Please describe how this person is related to you.';
+    }
     if (sex !== 'M' && sex !== 'F') errors[`member_sex_${i}`] = 'Please pick one.';
     const age = parseIntInRange(ageRaw, 0, 110);
     if (age === null) errors[`member_age_${i}`] = 'Please enter their age as a number.';
 
     if (
-      errors[`member_name_${i}`] || errors[`member_relationship_${i}`] ||
+      errors[`member_name_${i}`] || errors[`member_relationship_${i}`] || errors[`member_relationship_other_${i}`] ||
       errors[`member_sex_${i}`] || errors[`member_age_${i}`]
     ) {
       failed = true;
       continue;
     }
-    members.push({ name, relationship, sex: sex as 'M' | 'F', age: age as number, ...sizes, gifts });
+    members.push({
+      name, relationship, relationshipOther, sex: sex as 'M' | 'F', age: age as number,
+      disabled, partTime, ...sizes, gifts,
+    });
   }
 
   if (failed) return null;
@@ -353,6 +374,8 @@ export type CleanApplication = AboutClean &
     benefits: BenefitsClean;
     members: MemberClean[];
     goodDeed: string;
+    permanentlyDisabled: boolean;
+    parentageNote?: string;
   };
 
 export type ApplicationResult =
@@ -370,13 +393,18 @@ export function validateApplication(input: ApplicationInput): ApplicationResult 
   const benefits = validateBenefits(input, errors);
   const members = validateMembers(input, errors);
   const goodDeed = validateGoodDeed(input, errors);
+  const parentageNote = validateParentageNote(input, errors);
 
-  if (!about || !bedding || !employment || !benefits || !members || goodDeed === null) {
+  if (!about || !bedding || !employment || !benefits || !members || goodDeed === null || parentageNote === null) {
     return { ok: false, errors };
   }
   return {
     ok: true,
     spam: false,
-    clean: { ...about, ...bedding, ...employment, benefits, members, goodDeed },
+    clean: {
+      ...about, ...bedding, ...employment, benefits, members, goodDeed,
+      permanentlyDisabled: members.some((m) => m.disabled === true),
+      parentageNote,
+    },
   };
 }
