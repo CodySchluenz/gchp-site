@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { insertApplication, setApplicationStatus, listApplicationsForExport, type NewApplication } from '../src/lib/db';
+import { insertApplication, setApplicationStatus, setApplicationNotes, listApplicationsForExport, type NewApplication } from '../src/lib/db';
 
 const base: NewApplication = {
   firstName: 'Sue', lastName: 'Smith', address: '1 Elm', cityId: 13, phone: '608', email: 'a@b.co',
@@ -70,6 +70,35 @@ describe('listApplicationsForExport binds both branches', () => {
       const rows = await listApplicationsForExport(db, 2026, 'all', 'findme');
       expect(rows.length).toBe(1);
       expect(rows[0].last_name).toBe('Findme');
+    } finally { await dispose(); }
+  });
+
+  it('summarizes every relationship CASE arm and carries parentage/admin notes', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, {
+        ...base, firstName: 'Notes', lastName: 'Coverage',
+        parentageNote: 'Dad has the kids Mon-Wed.',
+        members: [
+          { name: 'Parent A', relationship: 'other_parent', sex: 'F', age: 35, disabled: true, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
+          { name: 'Court B', relationship: 'court', sex: 'M', age: 10, partTime: true, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
+          { name: 'NotRel C', relationship: 'not_related', sex: 'M', age: 30, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
+          { name: 'Friend D', relationship: 'other', relationshipOther: 'family friend', sex: 'F', age: 45, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
+        ],
+      });
+      await setApplicationNotes(db, id, 'Verified income 2026-10-02.');
+
+      const rows = await listApplicationsForExport(db, 2026, 'all', '');
+      const r = rows.find((x) => x.last_name === 'Coverage')!;
+
+      expect(r.member_summary).toContain('parent');
+      expect(r.member_summary).toContain('court-appointed');
+      expect(r.member_summary).toContain('not related');
+      expect(r.member_summary).toContain('family friend');
+      expect(r.member_summary).toContain(', disabled');
+      expect(r.member_summary).toContain(', part-time');
+      expect(r.parentage_note).toBe('Dad has the kids Mon-Wed.');
+      expect(r.admin_notes).toBe('Verified income 2026-10-02.');
     } finally { await dispose(); }
   });
 });

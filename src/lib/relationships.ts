@@ -19,6 +19,7 @@ export const NON_FAMILY_RELATIONSHIPS = new Set(['not_related']);
 
 // Human label for a stored relationship value. Falls back to the raw value so
 // legacy/imported rows (blank or free-text) still render sensibly.
+// The export CASE in listApplicationsForExport (src/lib/db.ts) duplicates this mapping with export-specific wording.
 export function relationshipLabel(value: string, other = ''): string {
   if (value === 'other') return other.trim() || 'Other';
   const found = RELATIONSHIP_OPTIONS.find((o) => o.value === value);

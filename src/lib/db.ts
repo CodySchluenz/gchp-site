@@ -390,6 +390,8 @@ export async function listApplicationsForExport(
            COUNT(DISTINCT m.id) AS member_count,
            COALESCE(GROUP_CONCAT(
              m.name || ' (' ||
+             -- Duplicates the relationship->label mapping in relationshipLabel() (src/lib/relationships.ts),
+             -- intentionally with export-specific wording. Update both when adding a 9th relationship value.
              CASE m.relationship
                WHEN 'self' THEN 'self'
                WHEN 'other_parent' THEN 'parent'

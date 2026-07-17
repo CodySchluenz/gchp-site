@@ -28,7 +28,7 @@ const fullValid = {
   member_name_1: 'Sue Smith', member_relationship_1: 'self', member_sex_1: 'F', member_age_1: '34',
   member_name_2: 'Tim Smith', member_relationship_2: 'son', member_sex_2: 'M', member_age_2: '7',
   member_pants_2: '8', member_gifts_2: 'legos',
-  good_deed: "I shoveled my neighbor’s snow all winter.",
+  good_deed: "I shoveled my neighbor's snow all winter.",
 };
 
 describe('validateEmployment', () => {
