@@ -100,3 +100,55 @@ yours to fill in; never paste secrets into this file or any commit.
       prints a stale 2014 admin username/password and is publicly downloadable).
 - [ ] Once the new site is confirmed stable, decommission the old PHP site.
 - [ ] Delete the local `dump.sql` and `import.sql` (they hold real PII).
+
+---
+
+## Shipping a code update after go-live (e.g. Plan 5, and any future change)
+
+Use this short checklist whenever you have new code on `main` that you want live.
+It is much shorter than the full go-live above — the site, data, DNS, and secrets
+already exist. **Do the steps in order.** The golden rule: **migrate the live
+database BEFORE you deploy the new code.** New code that reads new columns will
+error on the live site until the matching migration is applied.
+
+- [ ] **0. Log in to Wrangler.** From the project folder: `npx wrangler login`
+      (opens a browser), then `npx wrangler whoami` to confirm.
+      - If a command later fails with **`code: 7403` "account is not valid or is
+        not authorized"**, your session expired or the wrong Cloudflare account is
+        selected — re-run `npx wrangler login` and confirm `whoami` shows the
+        account that owns the `gchp` D1 / `gchp-site` Pages project.
+- [ ] **1. Get the latest code** (only if deploying from a different machine than
+      the one that has it): `git pull`.
+- [ ] **2. Confirm it's healthy locally:** `npm run test` (expect all green) and
+      `npm run build`.
+- [ ] **3. Apply any new database migration to the LIVE database FIRST:**
+      `npm run db:migrate:remote`. Wrangler only applies migrations not yet run, so
+      this is safe to run every time — if there's nothing new it's a no-op.
+      - Plan 5 adds **`migrations/0003_relationships.sql`** (per-person relationship,
+        disabled/part-time, shoe/coat sizes, plus a parentage note and admin-only
+        notes). Every statement is `ALTER TABLE ... ADD COLUMN ... NOT NULL DEFAULT ''`
+        / `DEFAULT 0` — **additive and non-destructive**; existing rows keep working.
+- [ ] **4. Build and deploy:** `npm run build` then
+      `npx wrangler pages deploy dist --project-name gchp-site`.
+- [ ] **5. Verify on the live site** (`grantcountyholidayproject.org`):
+      - Sign in to `/admin`, open an existing application detail — it should load
+        (this is the path Plan 5 touched most).
+      - Download the Excel list (**Applications → Download list for Excel**) and
+        confirm the new columns are present (relationship labels, parentage note,
+        your-notes).
+      - If applications are open, submit one test application through `/apply` to
+        confirm the new per-person questions save; delete it afterward.
+- [ ] **Note — settings are not affected by a deploy.** Whether applications are
+      **open or closed** lives in the database, not the code, so deploying does not
+      change it. Apps stay closed until you toggle them in the admin home screen
+      (open them on/after **October 1**).
+- [ ] **Rollback if needed:** Cloudflare Pages keeps every prior deployment — in
+      the dashboard (**Workers & Pages → gchp-site → Deployments**) you can roll back
+      to the previous one instantly. The migration is additive, so it does not need
+      to be undone.
+
+### Still-pending operational task (not code)
+- [ ] The downloadable **paper application** (`/application.pdf`) still needs the
+      current application uploaded — do it in the admin at **`/admin/paper-application`**
+      (the new one-button upload), or put the file in R2 as `application.pdf`. Until
+      then that download link 404s.
