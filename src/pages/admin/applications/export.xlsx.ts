@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { listApplicationsForExport, getIncomeLimits } from '../../../lib/db';
 import { buildXlsx } from '../../../lib/xlsx';
-import { quickIncomeCheck, type BenefitAmounts } from '../../../lib/income-check';
+import { quickIncomeCheck, incomeFlagLabel, type BenefitAmounts } from '../../../lib/income-check';
 
 export const prerender = false;
 
@@ -24,7 +24,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
       unemploymentWeeklyAmount: r.unemployment_weekly_amount, otherIncomeAmount: r.other_income_amount,
     };
     const q = quickIncomeCheck(r.employment_yearly, benefits, r.member_count, limits);
-    return q.overLimit === null ? 'no limits set' : q.overLimit ? 'over limit' : '';
+    return incomeFlagLabel(q.overLimit);
   };
   const headers = [
     'Pickup #', 'Status', 'Applied', 'First name', 'Last name', 'Address', 'Town',

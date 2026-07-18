@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  limitForSize, checkIncome, quickIncomeCheck,
+  limitForSize, checkIncome, quickIncomeCheck, incomeFlagLabel,
   type IncomeLimits, type BenefitAmounts,
 } from '../src/lib/income-check';
 
@@ -123,5 +123,13 @@ describe('quickIncomeCheck', () => {
   });
   it('handles missing limits', () => {
     expect(quickIncomeCheck(50000, NO_BENEFITS, 2, null).overLimit).toBeNull();
+  });
+});
+
+describe('incomeFlagLabel', () => {
+  it('pins the exact export strings', () => {
+    expect(incomeFlagLabel(true)).toBe('over limit');
+    expect(incomeFlagLabel(false)).toBe('');
+    expect(incomeFlagLabel(null)).toBe('no limits set');
   });
 });

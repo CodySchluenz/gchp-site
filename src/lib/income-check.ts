@@ -113,3 +113,9 @@ export function quickIncomeCheck(
   const limit = limitForSize(householdSize, limits);
   return { totalYearly, limit, overLimit: limit === null ? null : totalYearly > limit };
 }
+
+// The exact strings the Excel export shows in its "Income check" column.
+// Pinned by tests — the operator's export must never silently change meaning.
+export function incomeFlagLabel(overLimit: boolean | null): string {
+  return overLimit === null ? 'no limits set' : overLimit ? 'over limit' : '';
+}
