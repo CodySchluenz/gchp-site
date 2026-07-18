@@ -70,8 +70,9 @@ const rows: { name: string; label: string }[] = [
           <span class="text-lg">$</span>
           <input type="text" inputmode="numeric" name={r.name} value={values[r.name] ?? ''}
             aria-invalid={errors[r.name] ? 'true' : undefined}
+            aria-describedby={errors[r.name] ? `${r.name}-error` : undefined}
             class="w-40 rounded border-2 border-stone-400 bg-white p-3 text-lg" />
-          {errors[r.name] && <span class="w-full font-semibold text-berry-800">{errors[r.name]}</span>}
+          {errors[r.name] && <span id={`${r.name}-error`} class="w-full font-semibold text-berry-800">{errors[r.name]}</span>}
         </label>
       ))}
       <button type="submit" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">

@@ -38,6 +38,11 @@ describe('validateIncomeLimits', () => {
     const r = validateIncomeLimits({ ...good, size_1: '0' });
     expect(r.ok).toBe(false);
   });
+  it('rejects an impossibly huge number with an error on that field', () => {
+    const r = validateIncomeLimits({ ...good, size_2: '99999999999' });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.size_2).toBeTruthy();
+  });
   it('flags a limit lower than the size before it (typo guard)', () => {
     const r = validateIncomeLimits({ ...good, size_4: '5000' });
     expect(r.ok).toBe(false);
