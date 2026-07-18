@@ -147,8 +147,7 @@ error on the live site until the matching migration is applied.
       to the previous one instantly. The migration is additive, so it does not need
       to be undone.
 
-### Still-pending operational task (not code)
-- [ ] The downloadable **paper application** (`/application.pdf`) still needs the
-      current application uploaded — do it in the admin at **`/admin/paper-application`**
-      (the new one-button upload), or put the file in R2 as `application.pdf`. Until
-      then that download link 404s.
+### Operational status (verified 2026-07-18)
+- [x] The downloadable **paper application** (`/application.pdf`) is live (uploaded
+      2026-07-15). Replacements go through the admin **`/admin/paper-application`**
+      screen (one-button upload).
