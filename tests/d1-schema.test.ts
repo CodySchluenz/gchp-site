@@ -78,4 +78,13 @@ describe('D1 schema integrity', () => {
       .first<{ disabled: number; part_time: number; shoe: string; coat: string; relationship: string }>();
     expect(back).toMatchObject({ disabled: 1, part_time: 1, shoe: '10', coat: 'L', relationship: 'not_related' });
   });
+
+  it('income_limits table exists with the 2026 seed row', async () => {
+    const row = await db
+      .prepare('SELECT size_1, size_8, extra_person FROM income_limits WHERE season_year = 2026')
+      .first<{ size_1: number; size_8: number; extra_person: number }>();
+    expect(row?.size_1).toBe(31920);
+    expect(row?.size_8).toBe(111440);
+    expect(row?.extra_person).toBe(11360);
+  });
 });

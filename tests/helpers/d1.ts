@@ -8,7 +8,7 @@ type Env = { DB: D1Database };
 export async function getTestDb(): Promise<{ db: D1Database; dispose: () => Promise<void> }> {
   const proxy = await getPlatformProxy<Env>({ persist: false });
   const db = proxy.env.DB;
-  for (const file of ['migrations/0001_init.sql', 'migrations/0003_relationships.sql']) {
+  for (const file of ['migrations/0001_init.sql', 'migrations/0003_relationships.sql', 'migrations/0004_income_limits.sql']) {
     const sql = readFileSync(file, 'utf8')
       .split('\n')
       .filter((l: string) => !l.trim().startsWith('--'))
