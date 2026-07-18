@@ -87,4 +87,13 @@ describe('D1 schema integrity', () => {
     expect(row?.size_8).toBe(111440);
     expect(row?.extra_person).toBe(11360);
   });
+
+  it('0005 adds cities.block_base and applications.straggler', async () => {
+    const city = await db
+      .prepare('SELECT block_base FROM cities WHERE id = 13')
+      .first<{ block_base: number }>();
+    expect(city?.block_base).toBe(800); // harness seeds Lancaster with its base
+    const cols = await db.prepare("SELECT name FROM pragma_table_info('applications')").all<{ name: string }>();
+    expect(cols.results.map((c) => c.name)).toContain('straggler');
+  });
 });

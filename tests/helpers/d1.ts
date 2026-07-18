@@ -8,7 +8,7 @@ type Env = { DB: D1Database };
 export async function getTestDb(): Promise<{ db: D1Database; dispose: () => Promise<void> }> {
   const proxy = await getPlatformProxy<Env>({ persist: false });
   const db = proxy.env.DB;
-  for (const file of ['migrations/0001_init.sql', 'migrations/0003_relationships.sql', 'migrations/0004_income_limits.sql']) {
+  for (const file of ['migrations/0001_init.sql', 'migrations/0003_relationships.sql', 'migrations/0004_income_limits.sql', 'migrations/0005_town_blocks.sql']) {
     const sql = readFileSync(file, 'utf8')
       .split('\n')
       .filter((l: string) => !l.trim().startsWith('--'))
@@ -17,7 +17,7 @@ export async function getTestDb(): Promise<{ db: D1Database; dispose: () => Prom
       await db.prepare(stmt).run();
     }
   }
-  await db.prepare("INSERT INTO cities (id, name, zip) VALUES (13, 'Lancaster', '53813')").run();
+  await db.prepare("INSERT INTO cities (id, name, zip, block_base) VALUES (13, 'Lancaster', '53813', 800)").run();
   await db.prepare('INSERT INTO settings (id, applications_open) VALUES (1, 1)').run();
   return { db, dispose: () => proxy.dispose() };
 }
