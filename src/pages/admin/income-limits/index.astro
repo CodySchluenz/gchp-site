@@ -1,0 +1,87 @@
+---
+import '../../../styles/global.css';
+import Admin from '../../../layouts/Admin.astro';
+import { getIncomeLimits, saveIncomeLimits } from '../../../lib/db';
+import { validateIncomeLimits, LIMIT_FIELDS } from '../../../lib/validation/income-limits';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+const season = new Date().getFullYear();
+
+let values: Record<string, string> = {};
+let errors: Record<string, string> = {};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
+  if (!okCsrf) return Astro.redirect('/admin/income-limits?error=csrf', 303);
+  for (const f of LIMIT_FIELDS) values[f] = String(form.get(f) ?? '');
+  const result = validateIncomeLimits(values);
+  if (result.ok) {
+    await saveIncomeLimits(env.DB, season, result.limits);
+    return Astro.redirect('/admin/income-limits?saved=1', 303);
+  }
+  errors = result.errors;
+} else {
+  const existing = await getIncomeLimits(env.DB, season);
+  if (existing) {
+    existing.sizes.forEach((n, i) => { values[`size_${i + 1}`] = String(n); });
+    values.extra_person = String(existing.extraPerson);
+  }
+}
+
+const url = new URL(Astro.request.url);
+const banner = url.searchParams.get('saved') === '1' ? 'Income limits saved.'
+  : url.searchParams.get('error') === 'csrf' ? "That didn't save — please try again." : '';
+
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+
+const rows: { name: string; label: string }[] = [
+  { name: 'size_1', label: 'Household of 1' },
+  { name: 'size_2', label: 'Household of 2' },
+  { name: 'size_3', label: 'Household of 3' },
+  { name: 'size_4', label: 'Household of 4' },
+  { name: 'size_5', label: 'Household of 5' },
+  { name: 'size_6', label: 'Household of 6' },
+  { name: 'size_7', label: 'Household of 7' },
+  { name: 'size_8', label: 'Household of 8' },
+  { name: 'extra_person', label: 'Each extra person, add' },
+];
+---
+<Admin title="Income limits" heading={`Income limits for ${season}`} back={{ href: '/admin', label: 'Back to admin home' }}>
+  <p class="mt-1 text-lg text-stone-600">
+    Help: copy these from the 200% column of the poverty chart you use. This never denies anyone
+    automatically — these numbers only help you spot applications to double-check. Update them once
+    a year when the new chart comes out.
+  </p>
+
+  {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+
+  <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
+    <form method="post" class="space-y-3">
+      <input type="hidden" name="csrf_token" value={csrfToken} />
+      {rows.map((r) => (
+        <label class="flex flex-wrap items-center gap-3 font-semibold">
+          <span class="w-56">{r.label}</span>
+          <span class="text-lg">$</span>
+          <input type="text" inputmode="numeric" name={r.name} value={values[r.name] ?? ''}
+            aria-invalid={errors[r.name] ? 'true' : undefined}
+            class="w-40 rounded border-2 border-stone-400 bg-white p-3 text-lg" />
+          {errors[r.name] && <span class="w-full font-semibold text-berry-800">{errors[r.name]}</span>}
+        </label>
+      ))}
+      <button type="submit" class="rounded-lg bg-holly-700 px-5 py-3 text-lg font-bold text-white hover:bg-holly-900">
+        Save income limits
+      </button>
+    </form>
+  </section>
+
+  <p class="mt-4 text-lg text-stone-600">
+    Yearly amounts, before taxes. The official chart is published each January
+    (search for "poverty guidelines" on aspe.hhs.gov).
+  </p>
+</Admin>
