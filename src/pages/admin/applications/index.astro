@@ -1,8 +1,9 @@
 ---
 import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
-import { listApplications, listSeasons, type ApplicationListRow } from '../../../lib/db';
+import { listApplications, listSeasons, getIncomeLimits, type ApplicationListRow } from '../../../lib/db';
 import { newCsrfCookieValue, csrfTokenFor } from '../../../lib/csrf';
+import { quickIncomeCheck, type BenefitAmounts } from '../../../lib/income-check';
 export const prerender = false;
 
 const db = Astro.locals.runtime.env.DB;
@@ -22,6 +23,17 @@ Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: 
 const csrfToken = await csrfTokenFor(Astro.locals.runtime.env.CSRF_SECRET, cookieValue);
 
 const rows = await listApplications(db, season, status, search);
+const incomeLimits = await getIncomeLimits(db, season);
+const rowBenefits = (r: ApplicationListRow): BenefitAmounts => ({
+  foodShareAmount: r.food_share_amount,
+  socialSecurityAmount: r.social_security_amount,
+  ssiAmount: r.ssi_amount,
+  childSupportAmount: r.child_support_amount,
+  unemploymentWeeklyAmount: r.unemployment_weekly_amount,
+  otherIncomeAmount: r.other_income_amount,
+});
+const overLimit = (r: ApplicationListRow): boolean =>
+  quickIncomeCheck(r.employment_yearly, rowBenefits(r), r.member_count, incomeLimits).overLimit === true;
 const seasons = await listSeasons(db);
 const yearsToShow = seasons.length > 0 ? seasons : [currentYear];
 
@@ -56,6 +68,14 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
   )}
   {new URL(Astro.request.url).searchParams.get('error') === 'csrf' && (
     <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert"><p class="font-bold text-berry-800">That didn't save — please try again.</p></div>
+  )}
+
+  {incomeLimits === null && (
+    <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="status">
+      <p class="text-lg">No income limits entered for {season} yet.
+        <a href="/admin/income-limits" class="font-semibold text-berry-700 underline">Enter this year's income limits</a>
+        to see income flags here.</p>
+    </div>
   )}
 
   <div class="mt-6 flex flex-wrap items-end gap-4">
@@ -103,11 +123,12 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
         <th scope="col" class="border-b-2 border-holly-700 p-3">Applied</th>
         <th scope="col" class="border-b-2 border-holly-700 p-3">Status</th>
         <th scope="col" class="border-b-2 border-holly-700 p-3">PU #</th>
+        <th scope="col" class="border-b-2 border-holly-700 p-3">Income check</th>
       </tr>
     </thead>
     <tbody>
       {rows.length === 0 && (
-        <tr><td colspan="5" class="p-4">No applications here yet.</td></tr>
+        <tr><td colspan="6" class="p-4">No applications here yet.</td></tr>
       )}
       {rows.map((r: ApplicationListRow) => (
         <tr>
@@ -119,6 +140,7 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
           <td class="border-b border-stone-200 p-3 whitespace-nowrap">{fmtDate(r.submitted_at)}</td>
           <td class="border-b border-stone-200 p-3">{statusWord(r.status)}</td>
           <td class="border-b border-stone-200 p-3">{r.pu_number ?? ''}</td>
+          <td class="border-b border-stone-200 p-3 font-semibold text-berry-800">{overLimit(r) ? 'Check income' : ''}</td>
         </tr>
       ))}
     </tbody>
