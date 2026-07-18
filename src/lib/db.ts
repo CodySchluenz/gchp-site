@@ -1,4 +1,5 @@
 import type { CleanApplication } from './validation/application';
+import type { IncomeLimits } from './income-check';
 
 export type ContentBlock = { id: number; title: string; subtitle: string; body: string };
 
@@ -27,6 +28,42 @@ export async function getSettings(db: D1Database): Promise<Settings> {
     .first<Settings>();
   if (!row) throw new Error('settings row missing — run migrations');
   return row;
+}
+
+// Yearly income limits (200% of poverty), one row per season. Null = the
+// operator has not entered limits for that season yet — callers show a
+// "no limits entered" state, never a guess.
+export async function getIncomeLimits(db: D1Database, seasonYear: number): Promise<IncomeLimits | null> {
+  const row = await db
+    .prepare(
+      'SELECT size_1, size_2, size_3, size_4, size_5, size_6, size_7, size_8, extra_person FROM income_limits WHERE season_year = ?',
+    )
+    .bind(seasonYear)
+    .first<{
+      size_1: number; size_2: number; size_3: number; size_4: number;
+      size_5: number; size_6: number; size_7: number; size_8: number;
+      extra_person: number;
+    }>();
+  if (!row) return null;
+  return {
+    sizes: [row.size_1, row.size_2, row.size_3, row.size_4, row.size_5, row.size_6, row.size_7, row.size_8],
+    extraPerson: row.extra_person,
+  };
+}
+
+export async function saveIncomeLimits(db: D1Database, seasonYear: number, limits: IncomeLimits): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO income_limits (season_year, size_1, size_2, size_3, size_4, size_5, size_6, size_7, size_8, extra_person, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(season_year) DO UPDATE SET
+         size_1 = excluded.size_1, size_2 = excluded.size_2, size_3 = excluded.size_3,
+         size_4 = excluded.size_4, size_5 = excluded.size_5, size_6 = excluded.size_6,
+         size_7 = excluded.size_7, size_8 = excluded.size_8,
+         extra_person = excluded.extra_person, updated_at = excluded.updated_at`,
+    )
+    .bind(seasonYear, ...limits.sizes, limits.extraPerson, new Date().toISOString())
+    .run();
 }
 
 export type PickupDay = { id: number; date_text: string; description: string };
@@ -148,6 +185,14 @@ export type ApplicationListRow = {
   status: string;
   may_not_be_eligible: number;
   pu_number: number | null;
+  member_count: number;
+  employment_yearly: number;
+  food_share_amount: number | null;
+  social_security_amount: number | null;
+  ssi_amount: number | null;
+  child_support_amount: number | null;
+  unemployment_weekly_amount: number | null;
+  other_income_amount: number | null;
 };
 
 // Escape LIKE metacharacters so operator-typed % or _ match literally.
@@ -163,7 +208,12 @@ export async function listApplications(
 ): Promise<ApplicationListRow[]> {
   const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const cols = `a.id, a.first_name, a.last_name, c.name AS city_name, a.submitted_at,
-                a.status, a.may_not_be_eligible, a.pu_number`;
+                a.status, a.may_not_be_eligible, a.pu_number,
+                a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
+                a.unemployment_weekly_amount, a.other_income_amount,
+                (SELECT COUNT(*) FROM household_members m WHERE m.application_id = a.id) AS member_count,
+                (SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
+                   FROM employers e WHERE e.application_id = a.id) AS employment_yearly`;
   // The name filter is a no-op when the search box is empty (like === '%%').
   const nameFilter = `(? = '%%' OR lower(a.first_name) LIKE ? ESCAPE '\\' OR lower(a.last_name) LIKE ? ESCAPE '\\')`;
   const order = `ORDER BY a.submitted_at DESC, a.id DESC`;
@@ -368,6 +418,7 @@ export type ExportRow = {
   member_count: number;
   member_summary: string;
   employment_summary: string;
+  employment_yearly: number;
 };
 
 export async function listApplicationsForExport(
@@ -408,7 +459,9 @@ export async function listApplicationsForExport(
              CASE WHEN m.part_time = 1 THEN ', part-time' ELSE '' END ||
              ')', '; '), '') AS member_summary,
            (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
-              FROM employers e WHERE e.application_id = a.id) AS employment_summary
+              FROM employers e WHERE e.application_id = a.id) AS employment_summary,
+           (SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
+              FROM employers e WHERE e.application_id = a.id) AS employment_yearly
     FROM applications a
     JOIN cities c ON c.id = a.city_id
     LEFT JOIN household_members m ON m.application_id = a.id

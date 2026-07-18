@@ -58,6 +58,7 @@ describe('listApplicationsForExport binds both branches', () => {
       expect(r.bed_choice).toBe('blanket');
       expect(r.ssi_amount).toBe(520);
       expect(r.employment_summary).toContain('Acme');
+      expect(r.employment_yearly).toBe(15 * 40 * 52);
       expect(id).toBeGreaterThan(0);
     } finally { await dispose(); }
   });

@@ -41,6 +41,11 @@ describe('listApplications / listSeasons', () => {
     const rows = await listApplications(db, 2026, 'all', '');
     expect(rows.map((r) => r.first_name)).toEqual(['Bob', 'Cy', 'Anna']); // newest submitted first
     expect(rows.every((r) => r.city_name === 'Lancaster')).toBe(true);
+
+    const row = rows[0];
+    expect(row.member_count).toBeGreaterThan(0);
+    expect(typeof row.employment_yearly).toBe('number');
+    expect('ssi_amount' in row).toBe(true);
   });
 
   it('filters by status', async () => {
