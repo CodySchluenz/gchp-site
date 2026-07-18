@@ -124,6 +124,18 @@ describe('quickIncomeCheck', () => {
   it('handles missing limits', () => {
     expect(quickIncomeCheck(50000, NO_BENEFITS, 2, null).overLimit).toBeNull();
   });
+  it('agrees with checkIncome on fractional multi-job totals (sum-then-round)', () => {
+    const employers = [
+      { employerName: 'A', workerName: 'P', hourlyWage: 12.35, hoursPerWeek: 37.5 },
+      { employerName: 'B', workerName: 'Q', hourlyWage: 12.35, hoursPerWeek: 37.5 },
+    ];
+    const full = checkIncome({ employers, benefits: NO_BENEFITS, householdSize: 2 }, LIMITS_2026);
+    const raw = employers.reduce((s, e) => s + e.hourlyWage * e.hoursPerWeek * 52, 0);
+    const quick = quickIncomeCheck(raw, NO_BENEFITS, 2, LIMITS_2026);
+    expect(full.totalYearly).toBe(quick.totalYearly); // 48165, not 48166
+    expect(full.totalYearly).toBe(48165);
+    expect(full.overLimit).toBe(quick.overLimit);
+  });
 });
 
 describe('incomeFlagLabel', () => {

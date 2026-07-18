@@ -9,6 +9,10 @@
 //      not-counted line so she always sees it.
 //   2. Household size counts every listed member, including part-time children.
 //   3. Wages annualize x52 weeks; monthly benefits x12; weekly unemployment x52.
+//
+// The x52 wage annualization is duplicated in two SQL subqueries in src/lib/db.ts
+// (listApplications and listApplicationsForExport) — keep them in sync if this
+// annualization ever changes.
 
 export type IncomeLimits = {
   sizes: number[]; // index 0 = household of 1 ... index 7 = household of 8
@@ -84,11 +88,18 @@ export function checkIncome(
 ): IncomeCheck {
   const jobLines: IncomeLine[] = app.employers.map((e) => ({
     label: `Job — ${e.employerName} (${e.workerName}): $${e.hourlyWage.toFixed(2)} x ${e.hoursPerWeek} hrs x 52 = ${money(e.hourlyWage * e.hoursPerWeek * 52)}`,
-    yearly: Math.round(e.hourlyWage * e.hoursPerWeek * 52),
+    yearly: Math.round(e.hourlyWage * e.hoursPerWeek * 52), // display only — per-line rounding
   }));
   const b = benefitLines(app.benefits);
   const counted = [...jobLines, ...b.counted];
-  const totalYearly = counted.reduce((sum, l) => sum + l.yearly, 0);
+  // Employment's contribution to the total is the RAW sum rounded once (not the
+  // sum of each already-rounded job line), matching quickIncomeCheck's SQL input
+  // (SUM(hourly_wage * hours_per_week * 52)) exactly. With >=1 jobs and fractional
+  // annualized values, round-then-sum can differ from sum-then-round by $1, which
+  // would make the list badge disagree with this detail box for the same
+  // application — see tests/income-check.test.ts for a worked example.
+  const rawEmployment = app.employers.reduce((s, e) => s + e.hourlyWage * e.hoursPerWeek * 52, 0);
+  const totalYearly = Math.round(rawEmployment) + b.counted.reduce((sum, l) => sum + l.yearly, 0);
   const limit = limitForSize(app.householdSize, limits);
   return {
     counted,

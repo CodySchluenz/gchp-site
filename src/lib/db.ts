@@ -212,7 +212,9 @@ export async function listApplications(
                 a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
                 a.unemployment_weekly_amount, a.other_income_amount,
                 (SELECT COUNT(*) FROM household_members m WHERE m.application_id = a.id) AS member_count,
-                (SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
+                ` +
+    // x52 must match the annualization in src/lib/income-check.ts
+    `(SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
                    FROM employers e WHERE e.application_id = a.id) AS employment_yearly`;
   // The name filter is a no-op when the search box is empty (like === '%%').
   const nameFilter = `(? = '%%' OR lower(a.first_name) LIKE ? ESCAPE '\\' OR lower(a.last_name) LIKE ? ESCAPE '\\')`;
@@ -460,7 +462,9 @@ export async function listApplicationsForExport(
              ')', '; '), '') AS member_summary,
            (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
               FROM employers e WHERE e.application_id = a.id) AS employment_summary,
-           (SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
+           ` +
+    // x52 must match the annualization in src/lib/income-check.ts
+    `(SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
               FROM employers e WHERE e.application_id = a.id) AS employment_yearly
     FROM applications a
     JOIN cities c ON c.id = a.city_id
