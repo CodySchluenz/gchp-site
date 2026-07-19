@@ -270,6 +270,18 @@ export type ApplicationDetail = {
   pickup_day: { date_text: string; description: string } | null;
 };
 
+// The ONE pickup-day resolution rule, shared by the bulk slips path
+// (listApprovedForSlips) and single-slip reprints (getApplicationDetail):
+// stragglers use the straggler day and NEVER fall back to their town's day;
+// everyone else uses their town's day. Null means "no date line on the slip".
+function pickupDayIdFor(
+  straggler: number,
+  stragglerDayId: number | null,
+  cityDayId: number | null,
+): number | null {
+  return straggler === 1 ? stragglerDayId : cityDayId;
+}
+
 export async function getApplicationDetail(db: D1Database, id: number): Promise<ApplicationDetail | null> {
   const app = await db
     .prepare('SELECT * FROM applications WHERE id = ? AND deleted_at IS NULL')
@@ -277,9 +289,9 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
     .first<Record<string, unknown>>();
   if (!app) return null;
   const city = await db
-    .prepare('SELECT name FROM cities WHERE id = ?')
+    .prepare('SELECT name, pickup_day_id FROM cities WHERE id = ?')
     .bind(app.city_id as number)
-    .first<{ name: string }>();
+    .first<{ name: string; pickup_day_id: number | null }>();
   const members = await db
     .prepare('SELECT * FROM household_members WHERE application_id = ? ORDER BY position')
     .bind(id)
@@ -288,14 +300,28 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
     .prepare('SELECT * FROM employers WHERE application_id = ? ORDER BY id')
     .bind(id)
     .all<Record<string, unknown>>();
+  // Resolve the pickup day here too — single-slip reprints print through this
+  // view, so it must agree with the bulk slips path (see pickupDayIdFor).
+  const settings = await db
+    .prepare('SELECT straggler_pickup_day_id FROM settings WHERE id = 1')
+    .first<{ straggler_pickup_day_id: number | null }>();
+  const dayId = pickupDayIdFor(
+    app.straggler as number,
+    settings?.straggler_pickup_day_id ?? null,
+    city?.pickup_day_id ?? null,
+  );
+  const pickupDay = dayId != null
+    ? await db
+        .prepare('SELECT date_text, description FROM pickup_days WHERE deleted_at IS NULL AND id = ?')
+        .bind(dayId)
+        .first<{ date_text: string; description: string }>()
+    : null;
   return {
     app,
     city_name: city?.name ?? '',
     members: members.results,
     employers: employers.results,
-    // Not resolved here — this view is a single application lookup, not a
-    // slips run. Only listApprovedForSlips resolves town/straggler pickup days.
-    pickup_day: null,
+    pickup_day: pickupDay ?? null, // missing/deleted/unset day -> null (no date line)
   };
 }
 
@@ -612,7 +638,7 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
 
   return apps.results.map((app) => {
     const city = cityById.get(app.city_id as number);
-    const dayId = app.straggler === 1 ? stragglerDayId : (city?.pickup_day_id ?? null);
+    const dayId = pickupDayIdFor(app.straggler as number, stragglerDayId, city?.pickup_day_id ?? null);
     return {
       app,
       city_name: city?.name ?? '',

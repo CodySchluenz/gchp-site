@@ -3,6 +3,7 @@ import { getTestDb } from './helpers/d1';
 import {
   insertApplication, setApplicationStatus, setStraggler, createPickupDay, softDeletePickupDay,
   setCityPickupDay, setStragglerPickupDay, getSettings, listCities, listApprovedForSlips,
+  getApplicationDetail,
   type NewApplication,
 } from '../src/lib/db';
 
@@ -52,6 +53,39 @@ describe('town pickup-day links', () => {
       await setCityPickupDay(db, 13, null);
       await setStragglerPickupDay(db, null);
       expect((await getSettings(db)).straggler_pickup_day_id).toBeNull();
+    } finally { await dispose(); }
+  });
+
+  // Single-slip reprints go through getApplicationDetail, so it must resolve
+  // the pickup day by the SAME rule as the bulk slips path — otherwise a lone
+  // reprint would print without the date the bulk run shows.
+  it('getApplicationDetail resolves the same rule for one application', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      await createPickupDay(db, { date_text: 'Dec 9', description: 'Lancaster families, 10-2' });
+      const day = (await db.prepare("SELECT id FROM pickup_days WHERE date_text = 'Dec 9'").first<{ id: number }>())!.id;
+
+      const fam = await insertApplication(db, base);
+      const str = await insertApplication(db, { ...base, lastName: 'Late' });
+      await setStraggler(db, str, true);
+
+      // Unset: no date for anyone.
+      expect((await getApplicationDetail(db, fam))?.pickup_day).toBeNull();
+      expect((await getApplicationDetail(db, str))?.pickup_day).toBeNull();
+
+      // Town day only: the family resolves it; the straggler never falls back to it.
+      await setCityPickupDay(db, 13, day);
+      expect((await getApplicationDetail(db, fam))?.pickup_day?.date_text).toBe('Dec 9');
+      expect((await getApplicationDetail(db, str))?.pickup_day).toBeNull();
+
+      // Straggler day set: the straggler resolves that one.
+      await setStragglerPickupDay(db, day);
+      expect((await getApplicationDetail(db, str))?.pickup_day?.description).toContain('Lancaster');
+
+      // Deleted day: resolution vanishes for both.
+      await softDeletePickupDay(db, day, '2026-10-02T00:00:00Z');
+      expect((await getApplicationDetail(db, fam))?.pickup_day).toBeNull();
+      expect((await getApplicationDetail(db, str))?.pickup_day).toBeNull();
     } finally { await dispose(); }
   });
 });
