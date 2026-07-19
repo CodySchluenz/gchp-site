@@ -16,7 +16,7 @@ const mailed = detail ? detail.app.household_type === 'elderly' || detail.app.ho
       <>
         <div class="no-print">
           <h1 style="font-size:20px;margin:0 0 8px;">Box card</h1>
-          <p><a href={`/admin/applications/${id}`}>&larr; Back</a> · <button type="button" data-print>Print this card</button></p>
+          <p><a href={`/admin/applications/${id}`}>&larr; Back</a>{!mailed && <> · <button type="button" data-print>Print this card</button></>}</p>
         </div>
         {mailed ? (
           <p>Mailed household — no box card. They receive gift and food cards by mail.</p>
