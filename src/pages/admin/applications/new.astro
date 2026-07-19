@@ -6,6 +6,7 @@ import { validateApplicationAdmin } from '../../../lib/validation/application-ad
 import { MAX_MEMBERS, MAX_EMPLOYERS } from '../../../lib/validation/application';
 import { mayNotBeEligible } from '../../../lib/eligibility';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+import { centralToday } from '../../../lib/dates';
 import MemberCard from '../../../components/apply/MemberCard.astro';
 import EmployerRow from '../../../components/apply/EmployerRow.astro';
 import BenefitRow from '../../../components/apply/BenefitRow.astro';
@@ -14,8 +15,9 @@ export const prerender = false;
 
 const env = Astro.locals.runtime.env;
 
-// Today in Central as YYYY-MM-DD (en-CA gives ISO date order).
-const todayCentral = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date());
+// Today in Central as YYYY-MM-DD — same clock apply.astro's centralYear()
+// reads, via the shared centralToday() helper in lib/dates.ts.
+const todayCentral = centralToday();
 
 let values: Record<string, string> = { member_relationship_1: 'self', received_date: todayCentral };
 let errors: Record<string, string> = {};

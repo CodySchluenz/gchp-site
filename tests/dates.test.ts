@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { centralDate, centralDateTime } from '../src/lib/dates';
+import { centralDate, centralDateTime, centralYear } from '../src/lib/dates';
 
 describe('central-time formatting', () => {
   it('a UTC evening lands on the previous Central day (CST, UTC-6)', () => {
@@ -17,5 +17,13 @@ describe('central-time formatting', () => {
     expect(centralDateTime('')).toBe('');
     expect(centralDate('not-a-date')).toBe('');
     expect(centralDateTime('not-a-date')).toBe('');
+  });
+});
+
+describe('centralYear', () => {
+  it('reads the calendar year from the Central clock, not the server local zone', () => {
+    // Dec 31 11:30pm Central (CST, UTC-6) is already Jan 1 UTC — the exact
+    // window that made the old getFullYear() stamp online apps a year early.
+    expect(centralYear(new Date('2027-01-01T05:30:00Z'))).toBe(2026);
   });
 });

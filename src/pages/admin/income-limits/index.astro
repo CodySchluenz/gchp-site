@@ -7,6 +7,11 @@ import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf'
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
+// DELIBERATE NON-FIX: unlike the applications list, this stays on the plain
+// calendar year, not latestSeason(). Her January ritual is to enter the NEW
+// year's poverty chart ahead of the season that's about to open — the
+// calendar year is the correct target here, not whatever season she was
+// last reviewing applications for. Do not "fix" this to match applications/index.astro.
 const season = new Date().getFullYear();
 
 let values: Record<string, string> = {};

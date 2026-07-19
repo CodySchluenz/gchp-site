@@ -262,6 +262,16 @@ export async function listSeasons(db: D1Database): Promise<number[]> {
   return results.map((r) => r.season_year);
 }
 
+// The most recent season with any (non-deleted) applications. Used to pick
+// the season the operator lands on by default — see latestSeason's callers.
+// Null on a brand-new database with no applications at all.
+export async function latestSeason(db: D1Database): Promise<number | null> {
+  const row = await db
+    .prepare('SELECT MAX(season_year) AS max_year FROM applications WHERE deleted_at IS NULL')
+    .first<{ max_year: number | null }>();
+  return row?.max_year ?? null;
+}
+
 export type ApplicationDetail = {
   app: Record<string, unknown>;
   city_name: string;

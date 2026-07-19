@@ -1,7 +1,7 @@
 ---
 import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
-import { listApplications, listSeasons, getIncomeLimits, listCities, countBlockUsage, type ApplicationListRow } from '../../../lib/db';
+import { listApplications, listSeasons, latestSeason, getIncomeLimits, listCities, countBlockUsage, type ApplicationListRow } from '../../../lib/db';
 import { newCsrfCookieValue, csrfTokenFor } from '../../../lib/csrf';
 import { quickIncomeCheck, type BenefitAmounts } from '../../../lib/income-check';
 import { NEAR_FULL_AT, BLOCK_SIZE } from '../../../lib/pickup-numbers';
@@ -11,7 +11,12 @@ export const prerender = false;
 const db = Astro.locals.runtime.env.DB;
 const url = new URL(Astro.request.url);
 const currentYear = new Date().getFullYear();
-const season = Number(url.searchParams.get('season')) || currentYear;
+// Param wins; otherwise land on whatever season she's actually working —
+// the latest one with applications in it — falling back to the calendar
+// year only for a brand-new database with nothing in it yet. Without this,
+// Jan 1 would silently default to the new, empty year while she's still
+// wrapping up the season she's actually working.
+const season = Number(url.searchParams.get('season')) || (await latestSeason(db)) || currentYear;
 const statusParam = url.searchParams.get('status') ?? 'new';
 const status = (['all', 'new', 'approved', 'denied'].includes(statusParam) ? statusParam : 'new') as
   'all' | 'new' | 'approved' | 'denied';
@@ -39,7 +44,11 @@ const rowBenefits = (r: ApplicationListRow): BenefitAmounts => ({
 const overLimit = (r: ApplicationListRow): boolean =>
   quickIncomeCheck(r.employment_yearly, rowBenefits(r), r.member_count, incomeLimits).overLimit === true;
 const seasons = await listSeasons(db);
-const yearsToShow = seasons.length > 0 ? seasons : [currentYear];
+// The dropdown must always include the season actually shown on the page,
+// even if that season has no applications (or none of its own — e.g. a
+// fresh database defaulting to currentYear), so the select never displays
+// a value that isn't the page's real state.
+const yearsToShow = (seasons.includes(season) ? seasons : [...seasons, season].sort((a, b) => b - a));
 
 const cities = await listCities(db);
 const selectedCity = typeof town === 'number' ? cities.find((c) => c.id === town) ?? null : null;

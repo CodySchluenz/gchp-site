@@ -11,6 +11,7 @@ import { MAX_MEMBERS, MAX_EMPLOYERS } from '../lib/validation/application';
 import { validateApplication } from '../lib/validation/application';
 import { mayNotBeEligible, suggestHouseholdType } from '../lib/eligibility';
 import { insertApplication } from '../lib/db';
+import { centralYear } from '../lib/dates';
 import { renderApplicationReceivedEmail } from '../lib/email/render';
 import { sendEmail } from '../lib/email/send';
 import { verifyCsrf } from '../lib/csrf';
@@ -78,7 +79,12 @@ if (Astro.request.method === 'POST' && open) {
         const submittedAt = new Date().toISOString();
         const appRecord = {
           ...result.clean,
-          seasonYear: new Date().getFullYear(),
+          // Central calendar year, not the server's (UTC) one — same
+          // derivation the paper-entry admin page uses. Without this, an
+          // application submitted Dec 31 evening Central could get stamped
+          // into the wrong (next) season on a server clock that's already
+          // past midnight UTC.
+          seasonYear: centralYear(),
           submittedAt,
           mayNotBeEligible: mayNotBeEligible(result.clean),
           householdType: suggestHouseholdType(result.clean),

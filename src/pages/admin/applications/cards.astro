@@ -1,10 +1,13 @@
 ---
 import BoxCard from '../../../components/admin/BoxCard.astro';
-import { listApprovedForSlips, listCities } from '../../../lib/db';
+import { listApprovedForSlips, listCities, latestSeason } from '../../../lib/db';
 import { bandColorFor, bandLabelFor } from '../../../lib/box-cards';
 export const prerender = false;
 const url = new URL(Astro.request.url);
-const season = Number(url.searchParams.get('season')) || new Date().getFullYear();
+// Same fallback as the applications list: param wins, then the latest
+// season with data, then the calendar year. This page is normally reached
+// via a ?season= link from the list, so this only matters on a direct visit.
+const season = Number(url.searchParams.get('season')) || (await latestSeason(Astro.locals.runtime.env.DB)) || new Date().getFullYear();
 // Same parsing as export.xlsx.ts: town id / 'mailed' / 'stragglers' / unset.
 const townRaw = url.searchParams.get('town') ?? '';
 const town: number | 'mailed' | 'stragglers' | null =
