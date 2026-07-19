@@ -128,6 +128,10 @@ error on the live site until the matching migration is applied.
         `decided_at` column the code writes on every Approve/Deny and reads in the
         Excel export — deploying the code before the migration breaks those
         actions with a "no such column" error until you migrate.
+      - Same for `0009` (soft-delete columns for members/jobs/messages, all
+        additive/nullable): the code reads `deleted_at` across the applications
+        list, detail, slips, cards, export, and messages — code-first would break
+        essentially the whole admin console until the migration runs.
       - Plan 5 adds **`migrations/0003_relationships.sql`** (per-person relationship,
         disabled/part-time, shoe/coat sizes, plus a parentage note and admin-only
         notes). Every statement is `ALTER TABLE ... ADD COLUMN ... NOT NULL DEFAULT ''`
