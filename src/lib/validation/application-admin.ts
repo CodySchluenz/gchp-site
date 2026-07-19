@@ -22,14 +22,7 @@ function rowCount(input: ApplicationInput, key: string, max: number): number {
   return Math.min(n, max);
 }
 
-const BENEFIT_KEYS = [
-  { key: 'food_share', hasFor: false },
-  { key: 'social_security', hasFor: true },
-  { key: 'ssi', hasFor: true },
-  { key: 'child_support', hasFor: true },
-  { key: 'unemployment', hasFor: true },
-  { key: 'other_income', hasFor: true },
-] as const;
+const BENEFIT_KEYS = ['food_share', 'social_security', 'ssi', 'child_support', 'unemployment', 'other_income'] as const;
 
 export function validateApplicationAdmin(
   input: ApplicationInput,
@@ -51,6 +44,12 @@ export function validateApplicationAdmin(
   const years = yearsRaw === '' ? 0 : parseIntInRange(yearsRaw, 0, 99);
   if (years === null) errors.years_received_help = 'Please enter the years as a number, or leave it blank.';
 
+  // DELIBERATE (confirmed 2026-07-18): enum-like fields (bed_choice/bed_size
+  // here; relationship/sex in the members loop) coerce any non-matching value
+  // to their blank default instead of erring. On this admin-only route they
+  // arrive from radios/selects, so a mismatch means a tampered POST, not an
+  // operator typo — and safe defaults beat losing her typing. If a future
+  // caller ever feeds free text into these fields, revisit this.
   // Bedding — blank means none; a choice without a size keeps the choice.
   const bedRaw = get(input, 'bed_choice');
   const bedChoice = bedRaw === 'sheets' || bedRaw === 'blanket' ? bedRaw : 'none';
@@ -86,7 +85,7 @@ export function validateApplicationAdmin(
 
   // Benefits — blank amount is simply null; no _none checkbox needed; forWhom optional.
   const b: Record<string, number | null | string> = {};
-  for (const { key } of BENEFIT_KEYS) {
+  for (const key of BENEFIT_KEYS) {
     const amountRaw = get(input, `${key}_amount`);
     const none = isOn(input, `${key}_none`);
     let amount: number | null = null;
