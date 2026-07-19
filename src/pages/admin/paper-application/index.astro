@@ -3,6 +3,7 @@ import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
 import { getSettings, setPdfUploadedAt } from '../../../lib/db';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+import { centralDate } from '../../../lib/dates';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -35,7 +36,9 @@ const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
 const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
 Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
 const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
-const uploaded = settings.pdf_uploaded_at ? settings.pdf_uploaded_at.slice(0, 10) : null;
+// centralDate returns '' for empty/invalid input; `|| null` keeps `uploaded`
+// falsy in that case so the "not uploaded yet" branch below still renders.
+const uploaded = centralDate(settings.pdf_uploaded_at ?? '') || null;
 ---
 <Admin title="Paper application" heading="Paper application (PDF)" back={{ href: '/admin', label: 'Back to admin home' }}>
   <p class="mt-1 text-lg text-stone-600">Help: this is the printable application families download. Upload a new PDF here to replace it.</p>
