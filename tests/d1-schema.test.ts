@@ -101,4 +101,9 @@ describe('D1 schema integrity', () => {
     const cols = await db.prepare("SELECT name FROM pragma_table_info('applications')").all<{ name: string }>();
     expect(cols.results.map((c) => c.name)).toContain('decided_at');
   });
+
+  it('0007 adds applications.source with empty default', async () => {
+    const cols = await db.prepare("SELECT name FROM pragma_table_info('applications')").all<{ name: string }>();
+    expect(cols.results.map((c) => c.name)).toContain('source');
+  });
 });

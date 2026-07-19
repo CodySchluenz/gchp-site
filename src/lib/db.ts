@@ -100,6 +100,7 @@ export type NewApplication = CleanApplication & {
   submittedAt: string;
   mayNotBeEligible: boolean;
   householdType: 'family' | 'elderly' | 'disabled';
+  source?: 'online' | 'paper';
 };
 
 export async function insertApplication(db: D1Database, app: NewApplication): Promise<number> {
@@ -116,8 +117,8 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
          child_support_amount, child_support_for,
          unemployment_weekly_amount, unemployment_for,
          other_income_amount, other_income_for,
-         good_deed, may_not_be_eligible, parentage_note
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         good_deed, may_not_be_eligible, parentage_note, source
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       app.seasonYear, app.submittedAt, app.firstName, app.lastName, app.address, app.cityId,
@@ -133,7 +134,7 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
       app.benefits.childSupportAmount, app.benefits.childSupportFor,
       app.benefits.unemploymentWeeklyAmount, app.benefits.unemploymentFor,
       app.benefits.otherIncomeAmount, app.benefits.otherIncomeFor,
-      app.goodDeed, app.mayNotBeEligible ? 1 : 0, app.parentageNote ?? '',
+      app.goodDeed, app.mayNotBeEligible ? 1 : 0, app.parentageNote ?? '', app.source ?? 'online',
     )
     .run();
 
@@ -462,6 +463,7 @@ export type ExportRow = {
   member_summary: string;
   employment_summary: string;
   employment_yearly: number;
+  source: string;
 };
 
 export async function listApplicationsForExport(
@@ -481,7 +483,7 @@ export async function listApplicationsForExport(
     ? 'ORDER BY a.pu_number IS NULL, a.pu_number, a.id'
     : 'ORDER BY a.submitted_at DESC, a.id DESC';
   const sql = `
-    SELECT a.pu_number, a.status, a.submitted_at, a.decided_at, a.first_name, a.last_name, a.address,
+    SELECT a.pu_number, a.status, a.submitted_at, a.decided_at, a.source, a.first_name, a.last_name, a.address,
            c.name AS city_name, a.phone, a.email, a.household_type, a.may_not_be_eligible, a.bags_count,
            a.parentage_note, a.admin_notes,
            a.years_received_help, a.adopted_last_year, a.bed_choice, a.bed_size,
