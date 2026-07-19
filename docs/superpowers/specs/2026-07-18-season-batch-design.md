@@ -119,6 +119,41 @@ tests keep passing); 360px layout unchanged.
 - Apply: existing validation tests unchanged and passing; build verifies the
   page; autofocus/banner/CSS are markup-only.
 
+## Addendum (2026-07-19, owner-approved): print granularity
+
+Owner scenario: cards get printed in bulk before packing, then stragglers
+arrive — the button only reprints everything. Root gap: the slips and cards
+buttons ignore the Show-town dropdown entirely (always whole-season).
+
+1. **Print buttons respect the current view.** The "Print all approved slips"
+   and "Print box cards" links carry the list's `town` selection; the slips
+   and cards pages parse it (same values as the list: town id / 'mailed' /
+   'stragglers' / unset) and filter the already-fetched slips set in-page:
+   town id → geographic (`city_id` match — a town's stragglers appear with
+   their self-identifying black band and are easily set aside), 'stragglers'
+   → `straggler = 1`, unset → everyone (today's behavior). Page headings name
+   the view ("Box cards — Platteville — 2026 (12)") so printed stacks are
+   identifiable. 'mailed' → no cards/slips; a friendly note explains mailed
+   households receive by mail and points at the list view for the mail list.
+2. **Single-card route** `/admin/applications/[id]/card` (mirrors the
+   existing single-slip route) + a "Print box card" button beside "Print
+   pickup slip" on the application page — the one-off answer for a lone late
+   approval.
+3. **Shared card rendering**: the palette/rank/label logic moves from
+   `cards.astro` frontmatter into a pure `src/lib/box-cards.ts`
+   (TDD — this also closes the accepted follow-up "no regression test for
+   card colors": distinct color per town incl. ids 1 vs 24, straggler black)
+   plus a `BoxCard.astro` component used by both the bulk and single pages.
+4. **Mailed households**: the "Print pickup slip" and "Print box card"
+   buttons are hidden on elderly/disabled applications (a short note shows
+   instead — they receive by mail); visiting the routes directly shows the
+   same note. Closes the earlier accepted follow-up about the slip button on
+   mailed households.
+5. Deliberately NOT built: print-history tracking ("only new since last
+   print") — site-remembered print state drifts from the physical table the
+   first time a printer jams; per-town / per-straggler / per-application
+   buttons give exact control with no state.
+
 ## Out of scope
 
 - Any change to WHICH families get slips/cards (mailed households stay
