@@ -4,6 +4,7 @@ import { getApplicationDetail } from '../../../../lib/db';
 export const prerender = false;
 const id = Number(Astro.params.id);
 const detail = Number.isInteger(id) ? await getApplicationDetail(Astro.locals.runtime.env.DB, id) : null;
+const mailed = detail ? detail.app.household_type === 'elderly' || detail.app.household_type === 'disabled' : false;
 ---
 <!doctype html>
 <html lang="en">
@@ -15,7 +16,11 @@ const detail = Number.isInteger(id) ? await getApplicationDetail(Astro.locals.ru
           <h1 style="font-size:20px;margin:0 0 8px;">Pickup slip</h1>
           <p><a href={`/admin/applications/${id}`}>&larr; Back</a> · <button type="button" data-print>Print this slip</button></p>
         </div>
-        <SlipCard detail={detail} />
+        {mailed ? (
+          <p>Mailed household — no pickup slip. They receive gift and food cards by mail.</p>
+        ) : (
+          <SlipCard detail={detail} />
+        )}
       </>
     ) : <p>That application could not be found.</p>}
     <style>@media print { .no-print { display: none; } }</style>

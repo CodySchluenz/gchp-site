@@ -1,0 +1,36 @@
+---
+import BoxCard from '../../../../components/admin/BoxCard.astro';
+import { getApplicationDetail, listCities } from '../../../../lib/db';
+import { bandColorFor, bandLabelFor } from '../../../../lib/box-cards';
+export const prerender = false;
+const id = Number(Astro.params.id);
+const detail = Number.isInteger(id) ? await getApplicationDetail(Astro.locals.runtime.env.DB, id) : null;
+const cities = detail ? await listCities(Astro.locals.runtime.env.DB) : [];
+const mailed = detail ? detail.app.household_type === 'elderly' || detail.app.household_type === 'disabled' : false;
+---
+<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Box card</title></head>
+  <body style="margin:16px;font-family:Georgia,serif;">
+    {detail ? (
+      <>
+        <div class="no-print">
+          <h1 style="font-size:20px;margin:0 0 8px;">Box card</h1>
+          <p><a href={`/admin/applications/${id}`}>&larr; Back</a> · <button type="button" data-print>Print this card</button></p>
+        </div>
+        {mailed ? (
+          <p>Mailed household — no box card. They receive gift and food cards by mail.</p>
+        ) : (
+          <BoxCard
+            band={bandColorFor(cities, Number(detail.app.city_id), detail.app.straggler === 1)}
+            label={bandLabelFor(detail.city_name, detail.app.straggler === 1)}
+            puNumber={detail.app.pu_number as number | null}
+            bags={detail.app.bags_count as number | null}
+          />
+        )}
+      </>
+    ) : <p>That application could not be found.</p>}
+    <style>@media print { .no-print { display: none; } }</style>
+    <script src="/scripts/print-button.js" defer></script>
+  </body>
+</html>

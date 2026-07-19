@@ -222,7 +222,14 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
       </section>
 
       <section class="mt-6 flex flex-wrap gap-3">
-        <a href={`/admin/applications/${id}/slip`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Print pickup slip</a>
+        {a.household_type === 'elderly' || a.household_type === 'disabled' ? (
+          <span class="px-4 py-3 text-lg text-stone-600">Mailed household — no slip or box card; cards go by mail.</span>
+        ) : (
+          <>
+            <a href={`/admin/applications/${id}/slip`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Print pickup slip</a>
+            <a href={`/admin/applications/${id}/card`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Print box card</a>
+          </>
+        )}
         <a href={`/admin/applications/${id}/edit`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Edit details</a>
         <a href={`/admin/applications/${id}/members`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Edit household members</a>
         <a href={`/admin/applications/${id}/employers`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Edit jobs</a>
