@@ -9,3 +9,4 @@ dev.log
 /dump.sql
 /import.sql
 *.dump.sql
+*.pdf
