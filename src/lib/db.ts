@@ -1,5 +1,6 @@
 import type { CleanApplication } from './validation/application';
 import type { IncomeLimits } from './income-check';
+import { blockBaseFor, blockRange, BLOCK_SIZE } from './pickup-numbers';
 
 export type ContentBlock = { id: number; title: string; subtitle: string; body: string };
 
@@ -87,10 +88,10 @@ export async function insertContactMessage(
     .run();
 }
 
-export type City = { id: number; name: string };
+export type City = { id: number; name: string; block_base: number };
 
 export async function listCities(db: D1Database): Promise<City[]> {
-  const { results } = await db.prepare('SELECT id, name FROM cities ORDER BY name').all<City>();
+  const { results } = await db.prepare('SELECT id, name, block_base FROM cities ORDER BY name').all<City>();
   return results;
 }
 
@@ -180,11 +181,14 @@ export type ApplicationListRow = {
   id: number;
   first_name: string;
   last_name: string;
+  address: string;
   city_name: string;
   submitted_at: string;
   status: string;
   may_not_be_eligible: number;
   pu_number: number | null;
+  straggler: number;
+  household_type: string;
   member_count: number;
   employment_yearly: number;
   food_share_amount: number | null;
@@ -205,37 +209,31 @@ export async function listApplications(
   seasonYear: number,
   status: 'all' | 'new' | 'approved' | 'denied',
   search: string,
+  town: number | 'mailed' | null = null,
 ): Promise<ApplicationListRow[]> {
   const like = `%${escapeLike(search.trim().toLowerCase())}%`;
-  const cols = `a.id, a.first_name, a.last_name, c.name AS city_name, a.submitted_at,
-                a.status, a.may_not_be_eligible, a.pu_number,
+  const cols = `a.id, a.first_name, a.last_name, a.address, c.name AS city_name, a.submitted_at,
+                a.status, a.may_not_be_eligible, a.pu_number, a.straggler, a.household_type,
                 a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
                 a.unemployment_weekly_amount, a.other_income_amount,
                 (SELECT COUNT(*) FROM household_members m WHERE m.application_id = a.id) AS member_count,
-                ` +
-    // x52 must match the annualization in src/lib/income-check.ts
-    `(SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
+                (SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
                    FROM employers e WHERE e.application_id = a.id) AS employment_yearly`;
-  // The name filter is a no-op when the search box is empty (like === '%%').
-  const nameFilter = `(? = '%%' OR lower(a.first_name) LIKE ? ESCAPE '\\' OR lower(a.last_name) LIKE ? ESCAPE '\\')`;
-  const order = `ORDER BY a.submitted_at DESC, a.id DESC`;
-
-  const stmt =
-    status === 'all'
-      ? db
-          .prepare(
-            `SELECT ${cols} FROM applications a JOIN cities c ON c.id = a.city_id
-             WHERE a.deleted_at IS NULL AND a.season_year = ? AND ${nameFilter} ${order}`,
-          )
-          .bind(seasonYear, like, like, like)
-      : db
-          .prepare(
-            `SELECT ${cols} FROM applications a JOIN cities c ON c.id = a.city_id
-             WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = ? AND ${nameFilter} ${order}`,
-          )
-          .bind(seasonYear, status, like, like, like);
-
-  const { results } = await stmt.all<ApplicationListRow>();
+  const order = town !== null
+    ? 'ORDER BY a.pu_number IS NULL, a.pu_number, a.id'
+    : 'ORDER BY a.submitted_at DESC, a.id DESC';
+  const { results } = await db
+    .prepare(
+      `SELECT ${cols} FROM applications a JOIN cities c ON c.id = a.city_id
+       WHERE a.deleted_at IS NULL AND a.season_year = ?1
+         AND (?2 = '' OR a.status = ?2)
+         AND (?3 = '%%' OR lower(a.first_name) LIKE ?3 ESCAPE '\\' OR lower(a.last_name) LIKE ?3 ESCAPE '\\')
+         AND (?4 = 0 OR a.city_id = ?4)
+         AND (?5 = 0 OR a.household_type IN ('elderly', 'disabled'))
+       ${order}`,
+    )
+    .bind(seasonYear, status === 'all' ? '' : status, like, typeof town === 'number' ? town : 0, town === 'mailed' ? 1 : 0)
+    .all<ApplicationListRow>();
   return results;
 }
 
@@ -279,26 +277,65 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
   };
 }
 
-export async function assignPuNumber(db: D1Database, id: number, seasonYear: number): Promise<number> {
-  // Single-statement assign: only fills a NULL pu_number, so it is idempotent and
-  // closes the read-then-write gap of the previous version. The subquery counts
-  // all rows in the season, including soft-deleted ones, so a restored application
-  // never collides with a number handed out while it was deleted; gaps in the
-  // numbering are harmless, duplicates are not.
+export async function assignPuNumber(db: D1Database, id: number, seasonYear: number): Promise<number | null> {
+  const info = await db
+    .prepare(
+      `SELECT a.household_type, a.straggler, a.pu_number, c.block_base
+       FROM applications a JOIN cities c ON c.id = a.city_id WHERE a.id = ?`,
+    )
+    .bind(id)
+    .first<{ household_type: 'family' | 'elderly' | 'disabled'; straggler: number; pu_number: number | null; block_base: number }>();
+  if (!info) return null;
+  if (info.pu_number != null) return info.pu_number; // idempotent
+  const base = blockBaseFor({ householdType: info.household_type, straggler: info.straggler === 1, cityBlockBase: info.block_base });
+  if (base <= 0) return null; // unseeded city: operator assigns by hand
+  const { min, max } = blockRange(base);
+  // Single guarded UPDATE: only fills a NULL pu_number, and only while the
+  // next number still fits the block (fail-soft otherwise). The MAX scan has
+  // no deleted_at filter on purpose — numbers are never reused, even after a
+  // delete + restore (existing invariant, now per block).
   await db
     .prepare(
       `UPDATE applications
-         SET pu_number = (SELECT COALESCE(MAX(pu_number), 0) + 1 FROM applications
-                          WHERE season_year = ?1)
-       WHERE id = ?2 AND season_year = ?1 AND pu_number IS NULL`,
+         SET pu_number = (SELECT COALESCE(MAX(pu_number) + 1, ?3) FROM applications
+                          WHERE season_year = ?1 AND pu_number BETWEEN ?3 AND ?4)
+       WHERE id = ?2 AND season_year = ?1 AND pu_number IS NULL
+         AND (SELECT COALESCE(MAX(pu_number) + 1, ?3) FROM applications
+              WHERE season_year = ?1 AND pu_number BETWEEN ?3 AND ?4) <= ?4`,
     )
-    .bind(seasonYear, id)
+    .bind(seasonYear, id, min, max)
     .run();
+  const row = await db.prepare('SELECT pu_number FROM applications WHERE id = ?').bind(id).first<{ pu_number: number | null }>();
+  return row?.pu_number ?? null;
+}
+
+// Manual set (or clear, n = null) for the paper hybrid and odd cases like the
+// 2600 numbers. Duplicate check includes soft-deleted rows — never reuse.
+export async function setPuNumber(
+  db: D1Database, id: number, seasonYear: number, n: number | null,
+): Promise<{ ok: true } | { ok: false; takenBy: number }> {
+  if (n != null) {
+    const clash = await db
+      .prepare('SELECT id FROM applications WHERE season_year = ? AND pu_number = ? AND id != ?')
+      .bind(seasonYear, n, id)
+      .first<{ id: number }>();
+    if (clash) return { ok: false, takenBy: clash.id };
+  }
+  await db.prepare('UPDATE applications SET pu_number = ? WHERE id = ?').bind(n, id).run();
+  return { ok: true };
+}
+
+export async function setStraggler(db: D1Database, id: number, on: boolean): Promise<void> {
+  await db.prepare('UPDATE applications SET straggler = ? WHERE id = ?').bind(on ? 1 : 0, id).run();
+}
+
+// How many numbers a block has used this season (soft-deleted rows count).
+export async function countBlockUsage(db: D1Database, seasonYear: number, base: number): Promise<number> {
   const row = await db
-    .prepare('SELECT pu_number FROM applications WHERE id = ?')
-    .bind(id)
-    .first<{ pu_number: number | null }>();
-  return row?.pu_number ?? 0;
+    .prepare('SELECT COUNT(*) AS n FROM applications WHERE season_year = ? AND pu_number BETWEEN ? AND ?')
+    .bind(seasonYear, base, base + BLOCK_SIZE - 1)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
 }
 
 export async function setApplicationStatus(
@@ -428,11 +465,17 @@ export async function listApplicationsForExport(
   seasonYear: number,
   status: 'all' | 'new' | 'approved' | 'denied',
   search: string,
+  town: number | 'mailed' | null = null,
 ): Promise<ExportRow[]> {
   const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const statusFilter = status === 'all' ? '' : 'AND a.status = ?2';
   // Name filter is a no-op when the search box is empty (like === '%%').
   const nameFilter = `AND (?3 = '%%' OR lower(a.first_name) LIKE ?3 ESCAPE '\\' OR lower(a.last_name) LIKE ?3 ESCAPE '\\')`;
+  const townFilter = `AND (?4 = 0 OR a.city_id = ?4)`;
+  const mailedFilter = `AND (?5 = 0 OR a.household_type IN ('elderly', 'disabled'))`;
+  const order = town !== null
+    ? 'ORDER BY a.pu_number IS NULL, a.pu_number, a.id'
+    : 'ORDER BY a.submitted_at DESC, a.id DESC';
   const sql = `
     SELECT a.pu_number, a.status, a.submitted_at, a.first_name, a.last_name, a.address,
            c.name AS city_name, a.phone, a.email, a.household_type, a.may_not_be_eligible, a.bags_count,
@@ -469,10 +512,12 @@ export async function listApplicationsForExport(
     FROM applications a
     JOIN cities c ON c.id = a.city_id
     LEFT JOIN household_members m ON m.application_id = a.id
-    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter} ${nameFilter}
+    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter} ${nameFilter} ${townFilter} ${mailedFilter}
     GROUP BY a.id
-    ORDER BY a.submitted_at DESC, a.id DESC`;
-  const stmt = db.prepare(sql).bind(seasonYear, status === 'all' ? '' : status, like);
+    ${order}`;
+  const stmt = db
+    .prepare(sql)
+    .bind(seasonYear, status === 'all' ? '' : status, like, typeof town === 'number' ? town : 0, town === 'mailed' ? 1 : 0);
   const { results } = await stmt.all<ExportRow>();
   return results;
 }
@@ -482,6 +527,7 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
     .prepare(
       `SELECT * FROM applications
        WHERE deleted_at IS NULL AND season_year = ? AND status = 'approved'
+         AND household_type NOT IN ('elderly', 'disabled')
        ORDER BY pu_number IS NULL, pu_number, id`,
     )
     .bind(seasonYear)
@@ -496,7 +542,8 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
       .prepare(
         `SELECT DISTINCT c.id, c.name FROM cities c
          JOIN applications a ON a.city_id = c.id
-         WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'`,
+         WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
+           AND a.household_type NOT IN ('elderly', 'disabled')`,
       )
       .bind(seasonYear)
       .all<{ id: number; name: string }>(),
@@ -505,6 +552,7 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
         `SELECT hm.* FROM household_members hm
          JOIN applications a ON a.id = hm.application_id
          WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
+           AND a.household_type NOT IN ('elderly', 'disabled')
          ORDER BY hm.application_id, hm.position`,
       )
       .bind(seasonYear)

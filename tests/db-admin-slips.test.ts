@@ -23,8 +23,8 @@ describe('listApprovedForSlips', () => {
     await insertApplication(db, { ...base, firstName: 'NotApproved' }); // stays 'new'
     await setApplicationStatus(db, a, 'approved');
     await setApplicationStatus(db, b, 'approved');
-    await assignPuNumber(db, a, 2026); // PU 1
-    await assignPuNumber(db, b, 2026); // PU 2
+    await assignPuNumber(db, a, 2026); // PU 800
+    await assignPuNumber(db, b, 2026); // PU 801
     const slips = await listApprovedForSlips(db, 2026);
     expect(slips.map((s) => s.app.first_name)).toEqual(['Second', 'First']); // by PU asc
     expect(slips.every((s) => s.members.length === 1)).toBe(true);

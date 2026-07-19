@@ -23,11 +23,11 @@ describe('admin actions', () => {
   it('assigns sequential PU numbers per season and is idempotent', async () => {
     const a = await insertApplication(db, base);
     const b = await insertApplication(db, base);
-    expect(await assignPuNumber(db, a, 2026)).toBe(1);
-    expect(await assignPuNumber(db, b, 2026)).toBe(2);
-    expect(await assignPuNumber(db, a, 2026)).toBe(1); // idempotent
+    expect(await assignPuNumber(db, a, 2026)).toBe(800);
+    expect(await assignPuNumber(db, b, 2026)).toBe(801);
+    expect(await assignPuNumber(db, a, 2026)).toBe(800); // idempotent
     const other = await insertApplication(db, { ...base, seasonYear: 2025, submittedAt: '2025-10-01T00:00:00Z' });
-    expect(await assignPuNumber(db, other, 2025)).toBe(1); // per-season sequence
+    expect(await assignPuNumber(db, other, 2025)).toBe(800); // per-season sequence
   });
 
   it('sets status and bags', async () => {
