@@ -96,4 +96,9 @@ describe('D1 schema integrity', () => {
     const cols = await db.prepare("SELECT name FROM pragma_table_info('applications')").all<{ name: string }>();
     expect(cols.results.map((c) => c.name)).toContain('straggler');
   });
+
+  it('0006 adds applications.decided_at', async () => {
+    const cols = await db.prepare("SELECT name FROM pragma_table_info('applications')").all<{ name: string }>();
+    expect(cols.results.map((c) => c.name)).toContain('decided_at');
+  });
 });

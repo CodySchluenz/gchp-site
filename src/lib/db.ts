@@ -343,7 +343,10 @@ export async function setApplicationStatus(
   id: number,
   status: 'approved' | 'denied',
 ): Promise<void> {
-  await db.prepare('UPDATE applications SET status = ? WHERE id = ?').bind(status, id).run();
+  await db
+    .prepare('UPDATE applications SET status = ?, decided_at = ? WHERE id = ?')
+    .bind(status, new Date().toISOString(), id)
+    .run();
 }
 
 export async function setBagsCount(db: D1Database, id: number, bags: number | null): Promise<void> {
