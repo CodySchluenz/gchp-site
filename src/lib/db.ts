@@ -230,9 +230,9 @@ export async function listApplications(
                 a.status, a.may_not_be_eligible, a.pu_number, a.straggler, a.household_type,
                 a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
                 a.unemployment_weekly_amount, a.other_income_amount,
-                (SELECT COUNT(*) FROM household_members m WHERE m.application_id = a.id) AS member_count,
+                (SELECT COUNT(*) FROM household_members m WHERE m.application_id = a.id AND m.deleted_at IS NULL) AS member_count,
                 (SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
-                   FROM employers e WHERE e.application_id = a.id) AS employment_yearly`;
+                   FROM employers e WHERE e.application_id = a.id AND e.deleted_at IS NULL) AS employment_yearly`;
   const order = town !== null
     ? 'ORDER BY a.pu_number IS NULL, a.pu_number, a.id'
     : 'ORDER BY a.submitted_at DESC, a.id DESC';
@@ -293,11 +293,11 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
     .bind(app.city_id as number)
     .first<{ name: string; pickup_day_id: number | null }>();
   const members = await db
-    .prepare('SELECT * FROM household_members WHERE application_id = ? ORDER BY position')
+    .prepare('SELECT * FROM household_members WHERE application_id = ? AND deleted_at IS NULL ORDER BY position')
     .bind(id)
     .all<Record<string, unknown>>();
   const employers = await db
-    .prepare('SELECT * FROM employers WHERE application_id = ? ORDER BY id')
+    .prepare('SELECT * FROM employers WHERE application_id = ? AND deleted_at IS NULL ORDER BY id')
     .bind(id)
     .all<Record<string, unknown>>();
   // Resolve the pickup day here too — single-slip reprints print through this
@@ -564,14 +564,14 @@ export async function listApplicationsForExport(
              ')', '; '), '') AS member_summary,
            COALESCE(GROUP_CONCAT(CASE WHEN m.gifts != '' THEN m.name || ': ' || m.gifts END, '; '), '') AS gifts_summary,
            (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
-              FROM employers e WHERE e.application_id = a.id) AS employment_summary,
+              FROM employers e WHERE e.application_id = a.id AND e.deleted_at IS NULL) AS employment_summary,
            ` +
     // x52 must match the annualization in src/lib/income-check.ts
     `(SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
-              FROM employers e WHERE e.application_id = a.id) AS employment_yearly
+              FROM employers e WHERE e.application_id = a.id AND e.deleted_at IS NULL) AS employment_yearly
     FROM applications a
     JOIN cities c ON c.id = a.city_id
-    LEFT JOIN household_members m ON m.application_id = a.id
+    LEFT JOIN household_members m ON m.application_id = a.id AND m.deleted_at IS NULL
     WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter} ${nameFilter} ${townFilter} ${mailedFilter} ${stragglerFilter}
     GROUP BY a.id
     ${order}`;
@@ -616,7 +616,7 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
       .prepare(
         `SELECT hm.* FROM household_members hm
          JOIN applications a ON a.id = hm.application_id
-         WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
+         WHERE a.deleted_at IS NULL AND hm.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
            AND a.household_type NOT IN ('elderly', 'disabled')
          ORDER BY hm.application_id, hm.position`,
       )
@@ -801,6 +801,9 @@ export type MemberEdit = {
 };
 
 export async function insertMember(db: D1Database, applicationId: number, m: MemberEdit): Promise<number> {
+  // MAX(position) has no deleted_at filter, so it keeps counting soft-deleted
+  // rows — harmless: position is just display order within this application,
+  // not a stable identity, so a gap or a reused-looking number costs nothing.
   const max = await db
     .prepare('SELECT COALESCE(MAX(position), 0) AS m FROM household_members WHERE application_id = ?')
     .bind(applicationId)
@@ -838,11 +841,11 @@ export async function updateMember(db: D1Database, id: number, applicationId: nu
     .run();
 }
 
-export async function deleteMember(db: D1Database, id: number, applicationId: number): Promise<void> {
-  await db.prepare('DELETE FROM household_members WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
-  // Renumber the survivors 1..n by ascending position so gaps do not accumulate.
+export async function softDeleteMember(db: D1Database, id: number, applicationId: number, nowIso: string): Promise<void> {
+  await db.prepare('UPDATE household_members SET deleted_at = ? WHERE id = ? AND application_id = ?').bind(nowIso, id, applicationId).run();
+  // Renumber the surviving (non-deleted) members 1..n by ascending position so gaps do not accumulate.
   const { results } = await db
-    .prepare('SELECT id FROM household_members WHERE application_id = ? ORDER BY position, id')
+    .prepare('SELECT id FROM household_members WHERE application_id = ? AND deleted_at IS NULL ORDER BY position, id')
     .bind(applicationId)
     .all<{ id: number }>();
   if (results.length > 0) {
@@ -851,6 +854,10 @@ export async function deleteMember(db: D1Database, id: number, applicationId: nu
         db.prepare('UPDATE household_members SET position = ? WHERE id = ?').bind(i + 1, r.id)),
     );
   }
+}
+
+export async function restoreMember(db: D1Database, id: number, applicationId: number): Promise<void> {
+  await db.prepare('UPDATE household_members SET deleted_at = NULL WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
 }
 
 export type EmployerEdit = { employerName: string; workerName: string; hourlyWage: number; hoursPerWeek: number };
@@ -870,8 +877,12 @@ export async function updateEmployer(db: D1Database, id: number, applicationId: 
     .run();
 }
 
-export async function deleteEmployer(db: D1Database, id: number, applicationId: number): Promise<void> {
-  await db.prepare('DELETE FROM employers WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
+export async function softDeleteEmployer(db: D1Database, id: number, applicationId: number, nowIso: string): Promise<void> {
+  await db.prepare('UPDATE employers SET deleted_at = ? WHERE id = ? AND application_id = ?').bind(nowIso, id, applicationId).run();
+}
+
+export async function restoreEmployer(db: D1Database, id: number, applicationId: number): Promise<void> {
+  await db.prepare('UPDATE employers SET deleted_at = NULL WHERE id = ? AND application_id = ?').bind(id, applicationId).run();
 }
 
 export type AdminDonor = {
@@ -996,7 +1007,7 @@ export type AdminMessage = { id: number; received_at: string; name: string; emai
 
 export async function listContactMessages(db: D1Database): Promise<AdminMessage[]> {
   const { results } = await db
-    .prepare('SELECT id, received_at, name, email, message, read_at FROM contact_messages ORDER BY received_at DESC, id DESC')
+    .prepare('SELECT id, received_at, name, email, message, read_at FROM contact_messages WHERE deleted_at IS NULL ORDER BY received_at DESC, id DESC')
     .all<AdminMessage>();
   return results;
 }
@@ -1005,11 +1016,15 @@ export async function setMessageRead(db: D1Database, id: number, read: boolean, 
   await db.prepare('UPDATE contact_messages SET read_at = ? WHERE id = ?').bind(read ? iso : null, id).run();
 }
 
-export async function deleteContactMessage(db: D1Database, id: number): Promise<void> {
-  await db.prepare('DELETE FROM contact_messages WHERE id = ?').bind(id).run();
+export async function softDeleteContactMessage(db: D1Database, id: number, nowIso: string): Promise<void> {
+  await db.prepare('UPDATE contact_messages SET deleted_at = ? WHERE id = ?').bind(nowIso, id).run();
+}
+
+export async function restoreContactMessage(db: D1Database, id: number): Promise<void> {
+  await db.prepare('UPDATE contact_messages SET deleted_at = NULL WHERE id = ?').bind(id).run();
 }
 
 export async function unreadMessageCount(db: D1Database): Promise<number> {
-  const row = await db.prepare('SELECT COUNT(*) AS c FROM contact_messages WHERE read_at IS NULL').first<{ c: number }>();
+  const row = await db.prepare('SELECT COUNT(*) AS c FROM contact_messages WHERE read_at IS NULL AND deleted_at IS NULL').first<{ c: number }>();
   return row?.c ?? 0;
 }

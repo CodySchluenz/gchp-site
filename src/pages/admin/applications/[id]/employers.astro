@@ -1,7 +1,7 @@
 ---
 import '../../../../styles/global.css';
 import Admin from '../../../../layouts/Admin.astro';
-import { getApplicationDetail, insertEmployer, updateEmployer, deleteEmployer, type EmployerEdit } from '../../../../lib/db';
+import { getApplicationDetail, insertEmployer, updateEmployer, softDeleteEmployer, type EmployerEdit } from '../../../../lib/db';
 import { parseMoney, MAX_EMPLOYERS } from '../../../../lib/validation/application';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../../lib/csrf';
 export const prerender = false;
@@ -21,8 +21,8 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   if (!detail) return Astro.redirect(base, 303);
 
   if (act === 'delete' && Number.isInteger(employerId)) {
-    await deleteEmployer(env.DB, employerId, id);
-    return Astro.redirect(`${base}?removed=1`, 303);
+    await softDeleteEmployer(env.DB, employerId, id, new Date().toISOString());
+    return Astro.redirect(`${base}?undo=${employerId}`, 303);
   }
   const wage = parseMoney(g('hourly_wage'));
   const hours = parseMoney(g('hours_per_week'));
@@ -49,7 +49,10 @@ Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: 
 const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
 const a = detail?.app ?? {} as Record<string, unknown>;
 const flags = new URL(Astro.request.url).searchParams;
-const banner = flags.get('added') ? 'Job added.' : flags.get('saved') ? 'Saved.' : flags.get('removed') ? 'Job removed.'
+const undoRaw = flags.get('undo');
+const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
+const banner = flags.get('added') ? 'Job added.' : flags.get('saved') ? 'Saved.'
+  : flags.get('restored') === '1' ? 'It\'s back in your list.'
   : flags.get('error') === 'fields' ? 'Please fill in the employer, worker, wage, and hours (numbers for wage and hours).'
   : flags.get('error') === 'full' ? 'That is the most jobs we can list for one household.'
   : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
@@ -66,6 +69,15 @@ const full = detail ? detail.employers.length >= MAX_EMPLOYERS : false;
       ) : (
         <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>
       ))}
+      {undoId && (
+        <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
+          <form method="post" action={`${base}/${undoId}/restore`} class="flex flex-wrap items-center gap-3">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <span class="font-semibold">That job was removed.</span>
+            <button type="submit" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Undo delete</button>
+          </form>
+        </div>
+      )}
 
       {detail.employers.map((e) => (
         <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
@@ -78,10 +90,12 @@ const full = detail ? detail.employers.length >= MAX_EMPLOYERS : false;
               <label class="block font-semibold">Hourly wage ($)<input class={input} type="text" inputmode="decimal" name="hourly_wage" value={e.hourly_wage} /></label>
               <label class="block font-semibold">Hours per week<input class={input} type="text" inputmode="decimal" name="hours_per_week" value={e.hours_per_week} /></label>
             </div>
-            <div class="flex flex-wrap gap-2">
-              <button type="submit" name="act" value="update" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save</button>
-              <button type="submit" name="act" value="delete" data-confirm="Remove this job from the application? This cannot be undone." class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800 hover:bg-berry-100">Remove</button>
-            </div>
+            <button type="submit" name="act" value="update" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save</button>
+          </form>
+          <form method="post" class="mt-3" data-confirm="Remove this job from the application? You'll see an Undo button right after.">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <input type="hidden" name="employer_id" value={String(e.id)} />
+            <button type="submit" name="act" value="delete" class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800 hover:bg-berry-100">Remove</button>
           </form>
         </section>
       ))}

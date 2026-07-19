@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { listContactMessages, setMessageRead, deleteContactMessage, unreadMessageCount } from '../src/lib/db';
+import { listContactMessages, setMessageRead, softDeleteContactMessage, unreadMessageCount } from '../src/lib/db';
 
 // Insert directly so we control received_at ordering and read state.
 async function seed(db: D1Database, receivedAt: string, name: string, readAt: string | null) {
@@ -31,7 +31,7 @@ describe('contact message admin helpers', () => {
     expect(await unreadMessageCount(db)).toBe(2);
 
     const oldMsg = all.find((m) => m.name === 'Old')!;
-    await deleteContactMessage(db, oldMsg.id);
+    await softDeleteContactMessage(db, oldMsg.id, '2026-11-03T12:00:00Z');
     all = await listContactMessages(db);
     expect(all.map((m) => m.name)).toEqual(['New', 'Mid']);
   });

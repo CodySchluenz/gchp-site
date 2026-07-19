@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
 import {
-  insertApplication, getApplicationDetail, insertMember, updateMember, deleteMember,
+  insertApplication, getApplicationDetail, insertMember, updateMember, softDeleteMember,
   type NewApplication, type MemberEdit,
 } from '../src/lib/db';
 
@@ -37,7 +37,7 @@ describe('household member admin helpers', () => {
     const id = await insertApplication(db, app);          // Parent @ pos 1
     const a = await insertMember(db, id, kid('A'));        // pos 2
     await insertMember(db, id, kid('B'));                  // pos 3
-    await deleteMember(db, a, id);                         // remove pos 2
+    await softDeleteMember(db, a, id, '2026-11-01T00:00:00Z'); // remove pos 2
     const detail = await getApplicationDetail(db, id);
     expect(detail!.members.map((m) => m.name)).toEqual(['Parent', 'B']);
     expect(detail!.members.map((m) => m.position)).toEqual([1, 2]);
@@ -48,7 +48,7 @@ describe('household member admin helpers', () => {
     const two = await insertApplication(db, app);
     const mid = await insertMember(db, one, kid('Keep'));
     await updateMember(db, mid, two, { ...kid('Hacked'), age: 99 }); // wrong app id: no-op
-    await deleteMember(db, mid, two);                                 // wrong app id: no-op
+    await softDeleteMember(db, mid, two, '2026-11-01T00:00:00Z');      // wrong app id: no-op
     const detail = await getApplicationDetail(db, one);
     expect(detail!.members.some((m) => m.name === 'Keep')).toBe(true);
     expect(detail!.members.some((m) => m.name === 'Hacked')).toBe(false);

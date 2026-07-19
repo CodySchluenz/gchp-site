@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
 import {
-  insertApplication, getApplicationDetail, insertEmployer, updateEmployer, deleteEmployer,
+  insertApplication, getApplicationDetail, insertEmployer, updateEmployer, softDeleteEmployer,
   type NewApplication, type EmployerEdit,
 } from '../src/lib/db';
 
@@ -30,7 +30,7 @@ describe('employer admin helpers', () => {
     detail = await getApplicationDetail(db, id);
     expect(detail!.employers[0].hourly_wage).toBe(18.5);
     expect(detail!.employers[0].hours_per_week).toBe(32);
-    await deleteEmployer(db, eid, id);
+    await softDeleteEmployer(db, eid, id, '2026-11-01T00:00:00Z');
     detail = await getApplicationDetail(db, id);
     expect(detail!.employers.length).toBe(0);
   });
@@ -40,7 +40,7 @@ describe('employer admin helpers', () => {
     const two = await insertApplication(db, app);
     const eid = await insertEmployer(db, one, job('Keep'));
     await updateEmployer(db, eid, two, { ...job('Hacked'), hourlyWage: 1, hoursPerWeek: 1 });
-    await deleteEmployer(db, eid, two);
+    await softDeleteEmployer(db, eid, two, '2026-11-01T00:00:00Z');
     const detail = await getApplicationDetail(db, one);
     expect(detail!.employers.map((e) => e.employer_name)).toEqual(['Keep']);
   });

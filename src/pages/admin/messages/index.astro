@@ -1,7 +1,7 @@
 ---
 import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
-import { listContactMessages, setMessageRead, deleteContactMessage } from '../../../lib/db';
+import { listContactMessages, setMessageRead, softDeleteContactMessage } from '../../../lib/db';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
 import { centralDate } from '../../../lib/dates';
 export const prerender = false;
@@ -22,8 +22,8 @@ if (Astro.request.method === 'POST') {
       await setMessageRead(env.DB, id, false, new Date().toISOString());
       return Astro.redirect('/admin/messages?saved=unread', 303);
     } else if (act === 'delete') {
-      await deleteContactMessage(env.DB, id);
-      return Astro.redirect('/admin/messages?saved=deleted', 303);
+      await softDeleteContactMessage(env.DB, id, new Date().toISOString());
+      return Astro.redirect(`/admin/messages?undo=${id}`, 303);
     }
   }
   return Astro.redirect('/admin/messages', 303);
@@ -31,8 +31,10 @@ if (Astro.request.method === 'POST') {
 
 const url = new URL(Astro.request.url);
 const saved = url.searchParams.get('saved');
+const undoRaw = url.searchParams.get('undo');
+const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
 const banner = saved === 'read' ? 'Marked as read.' : saved === 'unread' ? 'Marked as unread.'
-  : saved === 'deleted' ? 'Message deleted.'
+  : url.searchParams.get('restored') === '1' ? 'It\'s back in your list.'
   : url.searchParams.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
 const isErrorBanner = url.searchParams.get('error') === 'csrf';
 
@@ -51,6 +53,15 @@ const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
   ) : (
     <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>
   ))}
+  {undoId && (
+    <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
+      <form method="post" action={`/admin/messages/${undoId}/restore`} class="flex flex-wrap items-center gap-3">
+        <input type="hidden" name="csrf_token" value={csrfToken} />
+        <span class="font-semibold">That message was deleted.</span>
+        <button type="submit" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Undo delete</button>
+      </form>
+    </div>
+  )}
 
   {messages.length === 0 ? <p class="mt-6 text-lg">No messages yet.</p> : (
     <ul class="mt-6 space-y-3">
@@ -69,7 +80,7 @@ const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
               <input type="hidden" name="id" value={String(m.id)} />
               <button type="submit" name="act" value={m.read_at ? 'mark_unread' : 'mark_read'} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">{m.read_at ? 'Mark unread' : 'Mark read'}</button>
             </form>
-            <form method="post" data-confirm="Delete this message? This can't be undone.">
+            <form method="post" data-confirm="Delete this message? You'll see an Undo button right after.">
               <input type="hidden" name="csrf_token" value={csrfToken} />
               <input type="hidden" name="id" value={String(m.id)} />
               <button type="submit" name="act" value="delete" class="rounded border-2 border-berry-700 px-4 py-2 font-bold text-berry-800 hover:bg-berry-100">Delete</button>
