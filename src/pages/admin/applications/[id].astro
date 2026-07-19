@@ -2,7 +2,7 @@
 import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
 import {
-  getApplicationDetail, assignPuNumber, setApplicationStatus, setBagsCount, softDeleteApplication, setApplicationNotes, getIncomeLimits,
+  getApplicationDetail, assignPuNumber, setApplicationStatus, setBagsCount, softDeleteApplication, setApplicationNotes, getIncomeLimits, setPuNumber, setStraggler,
 } from '../../../lib/db';
 import { renderApprovedEmail, renderDeniedEmail } from '../../../lib/email/render';
 import { sendEmail } from '../../../lib/email/send';
@@ -26,13 +26,14 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
     const firstName = detail.app.first_name as string;
     const email = detail.app.email as string;
     if (act === 'approve_email' || act === 'approve_silent') {
-      await assignPuNumber(env.DB, id, season);
+      const assigned = await assignPuNumber(env.DB, id, season);
       await setApplicationStatus(env.DB, id, 'approved');
+      const puFlag = assigned === null ? '&pu=none' : '';
       if (act === 'approve_email') {
         const r = await sendEmail(env, email, renderApprovedEmail(firstName));
-        return Astro.redirect(`${detailUrl}?done=approved&mail=${r.sent ? 'ok' : 'fail'}`, 303);
+        return Astro.redirect(`${detailUrl}?done=approved&mail=${r.sent ? 'ok' : 'fail'}${puFlag}`, 303);
       }
-      return Astro.redirect(`${detailUrl}?done=approved`, 303);
+      return Astro.redirect(`${detailUrl}?done=approved${puFlag}`, 303);
     } else if (act === 'deny_email' || act === 'deny_silent') {
       await setApplicationStatus(env.DB, id, 'denied');
       if (act === 'deny_email') {
@@ -47,6 +48,18 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
     } else if (act === 'set_notes') {
       await setApplicationNotes(env.DB, id, String(form.get('admin_notes') ?? '').slice(0, 5000));
       return Astro.redirect(`${detailUrl}?done=notes`, 303);
+    } else if (act === 'set_pu') {
+      const raw = String(form.get('pu_number') ?? '').trim();
+      if (raw === '') {
+        await setPuNumber(env.DB, id, season, null);
+        return Astro.redirect(`${detailUrl}?done=pu`, 303);
+      }
+      if (!/^\d+$/.test(raw)) return Astro.redirect(`${detailUrl}?error=pu_bad`, 303);
+      const r = await setPuNumber(env.DB, id, season, Number(raw));
+      return Astro.redirect(r.ok ? `${detailUrl}?done=pu` : `${detailUrl}?error=pu_taken&by=${r.takenBy}`, 303);
+    } else if (act === 'set_straggler') {
+      await setStraggler(env.DB, id, String(form.get('straggler') ?? '') === 'on');
+      return Astro.redirect(`${detailUrl}?done=straggler`, 303);
     } else if (act === 'delete') {
       await softDeleteApplication(env.DB, id, new Date().toISOString());
       return Astro.redirect(`/admin/applications?undo=${id}`, 303);
@@ -66,7 +79,7 @@ const flags = new URL(Astro.request.url).searchParams;
 const done = flags.get('done');
 const mail = flags.get('mail');
 const mailNote = mail === 'ok' ? ' The email was sent.' : mail === 'fail' ? ' The email could not be sent right now — the application is still saved.' : '';
-const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'bags' ? 'Bag count saved.' : done === 'notes' ? 'Your notes were saved.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
+const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'bags' ? 'Bag count saved.' : done === 'notes' ? 'Your notes were saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : '';
 
 const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
@@ -106,6 +119,11 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
   ) : (
     <>
       {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+      {new URL(Astro.request.url).searchParams.get('pu') === 'none' && (
+        <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="status">
+          <p class="text-lg font-semibold">No pickup number could be assigned — the town's numbers may be full. Type one in under Decision below.</p>
+        </div>
+      )}
       {a.may_not_be_eligible === 1 && (
         <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4">
           <p class="font-bold">Please check eligibility.</p>
@@ -209,7 +227,7 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
 
       <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
         <h2 class="text-2xl font-bold text-holly-800">Decision</h2>
-        <p class="text-lg text-stone-600">Approving assigns the next pickup number for {a.season_year}.</p>
+        <p class="text-lg text-stone-600">Approving assigns the next pickup number from this household's block for {a.season_year}.</p>
         <form method="post" class="mt-3 flex flex-wrap gap-3">
           <input type="hidden" name="csrf_token" value={csrfToken} />
           <button type="submit" name="act" value="approve_email" class="rounded bg-holly-700 px-4 py-3 font-bold text-white hover:bg-holly-900">Approve and email them</button>
@@ -217,6 +235,26 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
           <button type="submit" name="act" value="deny_email" class="rounded border-2 border-berry-700 px-4 py-3 font-bold text-berry-800 hover:bg-berry-100">Deny and email them</button>
           <button type="submit" name="act" value="deny_silent" class="rounded border-2 border-stone-400 px-4 py-3 font-semibold hover:bg-stone-100">Deny without email</button>
         </form>
+        <div class="mt-4 border-t-2 border-stone-200 pt-4">
+          <p class="text-lg font-semibold">Pickup number: {a.pu_number ?? 'none yet'}</p>
+          <form method="post" class="mt-2 flex flex-wrap items-end gap-3">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <label class="font-semibold">Change it
+              <input type="text" inputmode="numeric" name="pu_number" value={a.pu_number ?? ''}
+                class="ml-2 w-32 rounded border-2 border-stone-400 p-2 text-lg" />
+            </label>
+            <button type="submit" name="act" value="set_pu" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save number</button>
+          </form>
+          <p class="mt-1 text-stone-600">Leave the box empty and save to remove the number. Numbers follow the town blocks (Lancaster 800s, Platteville 1500s, stragglers 2400s, elderly &amp; disabled 2500s).</p>
+          <form method="post" class="mt-3">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
+            <label class="flex items-start gap-3 text-lg">
+              <input type="checkbox" name="straggler" checked={a.straggler === 1} class="mt-1 h-6 w-6" />
+              <span>Straggler — applied after their town was packed. Gets a 2400s number and gifts near the end.</span>
+            </label>
+            <button type="submit" name="act" value="set_straggler" class="mt-2 rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Save straggler setting</button>
+          </form>
+        </div>
       </section>
 
       <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
