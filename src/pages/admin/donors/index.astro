@@ -100,7 +100,7 @@ const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-l
         <li class="rounded-lg border-2 border-stone-300 bg-white p-4">
           <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <a href={`/admin/donors/${d.id}`} class="text-xl font-bold text-holly-800 underline">{d.name}</a>
+              <a href={`/admin/donors/${d.id}`} class="font-semibold text-berry-700 underline">{d.name}</a>
               <p class="text-stone-700">{[d.contact_person, d.city, d.phone].filter(Boolean).join(' · ') || '—'}</p>
             </div>
             <form method="post" data-confirm="Delete this donor? You'll see an Undo button right after.">

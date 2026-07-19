@@ -152,7 +152,8 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
       <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
         <h2 class="text-2xl font-bold text-holly-800">People ({detail.members.length})</h2>
         <table class="mt-2 w-full border-collapse text-left">
-          <thead><tr><th class="border-b p-2">Name</th><th class="border-b p-2">Relationship</th><th class="border-b p-2">Sex</th><th class="border-b p-2">Age</th><th class="border-b p-2">Sizes</th><th class="border-b p-2">Gifts wanted</th></tr></thead>
+          <caption class="sr-only">People in this household</caption>
+          <thead><tr><th scope="col" class="border-b p-2">Name</th><th scope="col" class="border-b p-2">Relationship</th><th scope="col" class="border-b p-2">Sex</th><th scope="col" class="border-b p-2">Age</th><th scope="col" class="border-b p-2">Sizes</th><th scope="col" class="border-b p-2">Gifts wanted</th></tr></thead>
           <tbody>
             {detail.members.map((m) => (
               <tr>
@@ -293,7 +294,9 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
         <p class="text-lg text-stone-600">Private notes for your eligibility decisions — for example, "boyfriend excluded, gave gift card." Families never see this.</p>
         <form method="post" class="mt-2">
           <input type="hidden" name="csrf_token" value={csrfToken} />
-          <textarea name="admin_notes" rows="3" maxlength={5000} class="w-full rounded border-2 border-stone-400 p-3 text-lg">{a.admin_notes ?? ''}</textarea>
+          <label class="block font-semibold">Your notes
+            <textarea name="admin_notes" rows="3" maxlength={5000} class="mt-1 w-full rounded border-2 border-stone-400 p-3 text-lg">{a.admin_notes ?? ''}</textarea>
+          </label>
           <button type="submit" name="act" value="set_notes" class="mt-2 rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save notes</button>
         </form>
       </section>
@@ -303,7 +306,7 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
         <p>This removes the application from your lists. You'll get an <strong>Undo</strong> link right after, so it's safe.</p>
         <form method="post" class="mt-2" data-confirm="Delete this application? You'll see an Undo button on the next screen.">
           <input type="hidden" name="csrf_token" value={csrfToken} />
-          <button type="submit" name="act" value="delete" class="rounded bg-berry-700 px-4 py-3 font-bold text-white hover:bg-berry-800">Delete this application</button>
+          <button type="submit" name="act" value="delete" class="rounded border-2 border-berry-700 px-4 py-3 font-bold text-berry-800 hover:bg-berry-100">Delete this application</button>
         </form>
       </section>
     </>

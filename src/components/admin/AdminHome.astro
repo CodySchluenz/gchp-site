@@ -15,12 +15,14 @@ const unread = await unreadMessageCount(Astro.locals.runtime.env.DB);
     <title>Home — GCHP Admin</title>
   </head>
   <body class="min-h-screen bg-cream text-stone-900 text-lg leading-relaxed">
+    <a href="#main" class="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:left-2 focus-visible:top-2 focus-visible:z-50 focus-visible:bg-white focus-visible:px-4 focus-visible:py-2 focus-visible:text-holly-900">Skip to main content</a>
     <header class="border-b-4 border-gold-500 bg-holly-800 text-white">
       <div class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-4">
         <p class="text-2xl font-bold">Holiday Project — Admin</p>
         <div class="flex flex-wrap items-center gap-3">
           <a href="/" class="rounded border-2 border-white px-4 py-2 font-semibold text-white hover:bg-holly-900">View the website</a>
           <form method="post" action="/admin/signout">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
             <button type="submit" class="rounded bg-white px-4 py-2 font-semibold text-holly-900 hover:bg-holly-100">Sign out</button>
           </form>
         </div>

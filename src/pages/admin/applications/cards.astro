@@ -56,6 +56,8 @@ const viewLabel =
     </div>
     <style>
       .sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+      button:hover, a:hover { text-decoration: underline; background: #eee; }
+      button:focus-visible, a:focus-visible { outline: 2px solid #14532d; outline-offset: 2px; }
       @media print { .no-print { display: none; } .sheet { gap: 12px; } }
     </style>
     <script src="/scripts/print-button.js" defer></script>

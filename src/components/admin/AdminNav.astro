@@ -11,11 +11,12 @@ const sections = [
   { href: '/admin/donors', label: 'Donors' },
   { href: '/admin/messages', label: 'Messages' },
 ];
+const path = Astro.url.pathname;
 ---
 <nav aria-label="Admin sections" class="bg-holly-700">
   <ul class="mx-auto flex max-w-5xl flex-wrap px-2">
     {sections.map((s) => (
-      <li><a href={s.href} class="block px-4 py-3 font-semibold text-white hover:bg-holly-900">{s.label}</a></li>
+      <li><a href={s.href} aria-current={(s.href === '/admin' ? path === '/admin' : path.startsWith(s.href)) ? 'page' : undefined} class="block px-4 py-3 font-semibold text-white hover:bg-holly-900 aria-[current=page]:bg-holly-900">{s.label}</a></li>
     ))}
   </ul>
 </nav>

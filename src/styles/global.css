@@ -34,3 +34,7 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
   outline-offset: 2px;
   box-shadow: 0 0 0 2px #ffffff;
 }
+
+/* Subtle, universal link hover feedback. */
+a { text-underline-offset: 2px; }
+a:hover { text-decoration-thickness: 2px; }

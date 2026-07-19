@@ -19,8 +19,12 @@ INSERT INTO admin_emails (email) VALUES
   ('codydps@gmail.com');
 
 INSERT INTO content_blocks (title, subtitle, body, sort_order) VALUES
+  -- Editing this APPLIED migration is intentional: wrangler tracks migrations
+  -- by filename, so production (already on 0002) never re-runs it. This fix
+  -- only affects FRESH databases (disaster recovery, local dev) — 235 was a
+  -- typo, the correct number is 245.
   ('2025 Info', 'Pickup times',
-   'Our site and mailing address is 235 W. Elm St., Lancaster WI 53813. Again this year there will be one-day pickup for all towns, except Boscobel and Platteville which have two days. Dates are listed on pickup slips. You must have your pickup slip to receive items. Pay It Forward is still required for program eligibility — you will receive a form to list your good deeds. Kindness is needed year-round.',
+   'Our site and mailing address is 245 W. Elm St., Lancaster WI 53813. Again this year there will be one-day pickup for all towns, except Boscobel and Platteville which have two days. Dates are listed on pickup slips. You must have your pickup slip to receive items. Pay It Forward is still required for program eligibility — you will receive a form to list your good deeds. Kindness is needed year-round.',
    1),
   ('Special Gifts List', 'No guarantee you will receive',
    'Silverware, hair dryer, drawing kit, smart watch, wireless speaker, turbo scrubber, 12-cup coffee maker, 30-pc marker set, frying pan set, baking pan set, 4-slice toaster, electric griddle, 2 red sofa pillows, bed pillows, fishing pole in carrier, crockpot, cookware set, screwdriver set, hand mixer, air fryer.',

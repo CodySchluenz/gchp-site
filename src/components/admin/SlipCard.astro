@@ -24,7 +24,8 @@ const sizes = (m: Record<string, unknown>) =>
     {a.share_with_sponsor === 1 && <span> · sponsor OK</span>}
   </p>
   <table>
-    <thead><tr><th>Name</th><th>Sex</th><th>Age</th><th>Sizes</th><th>Gifts</th></tr></thead>
+    <caption class="sr-only">Household members and sizes</caption>
+    <thead><tr><th scope="col">Name</th><th scope="col">Sex</th><th scope="col">Age</th><th scope="col">Sizes</th><th scope="col">Gifts</th></tr></thead>
     <tbody>
       {detail.members.map((m) => (
         <tr><td>{m.name}</td><td>{m.sex}</td><td>{m.age}</td><td>{sizes(m)}</td><td>{m.gifts || '—'}</td></tr>
@@ -41,4 +42,18 @@ const sizes = (m: Record<string, unknown>) =>
   th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
   .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }
   @media print { .slip { page-break-after: always; } }
+  /* This component's pages (slips.astro, [id]/slip.astro) intentionally
+     don't import global.css, so Tailwind's sr-only utility isn't loaded
+     here — define the same visually-hidden technique locally. */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
 </style>

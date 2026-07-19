@@ -10,7 +10,7 @@ const mailed = detail ? detail.app.household_type === 'elderly' || detail.app.ho
 ---
 <!doctype html>
 <html lang="en">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Box card</title></head>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{detail ? `Box card — ${detail.app.first_name} ${detail.app.last_name}` : 'Box card'}</title></head>
   <body style="margin:16px;font-family:Georgia,serif;">
     {detail ? (
       <>
@@ -30,7 +30,11 @@ const mailed = detail ? detail.app.household_type === 'elderly' || detail.app.ho
         )}
       </>
     ) : <p>That application could not be found.</p>}
-    <style>@media print { .no-print { display: none; } }</style>
+    <style>
+      button:hover, a:hover { text-decoration: underline; background: #eee; }
+      button:focus-visible, a:focus-visible { outline: 2px solid #14532d; outline-offset: 2px; }
+      @media print { .no-print { display: none; } }
+    </style>
     <script src="/scripts/print-button.js" defer></script>
   </body>
 </html>

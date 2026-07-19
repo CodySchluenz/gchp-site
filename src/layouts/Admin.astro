@@ -1,11 +1,21 @@
 ---
 import AdminNav from '../components/admin/AdminNav.astro';
+import { newCsrfCookieValue, csrfTokenFor } from '../lib/csrf';
 interface Props {
   title: string;
   heading: string;
   back?: { href: string; label: string };
 }
 const { title, heading, back } = Astro.props;
+
+// The sign-out form lives in this layout's own header, so it needs its own
+// csrfToken — same cookie-reuse pattern every admin page uses (reuse the
+// existing cookie if valid, otherwise mint one).
+const env = Astro.locals.runtime.env;
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
 ---
 <!doctype html>
 <html lang="en">
@@ -22,6 +32,7 @@ const { title, heading, back } = Astro.props;
         <div class="flex flex-wrap items-center gap-3">
           <a href="/" class="rounded border-2 border-white px-4 py-2 font-semibold text-white hover:bg-holly-900">View the website</a>
           <form method="post" action="/admin/signout">
+            <input type="hidden" name="csrf_token" value={csrfToken} />
             <button type="submit" class="rounded bg-white px-4 py-2 font-semibold text-holly-900 hover:bg-holly-100">Sign out</button>
           </form>
         </div>

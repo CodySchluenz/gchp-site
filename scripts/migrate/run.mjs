@@ -33,7 +33,11 @@ function printReport(report) {
   console.log(`  employers:    ${c.employers}`);
   if (report.donorFlags.length) {
     console.log(`\n  Likely-junk donors to review/delete in the admin (${report.donorFlags.length}):`);
-    for (const n of report.donorFlags) console.log(`    - ${n}`);
+    if (process.env.MIGRATE_SHOW_NAMES === '1') {
+      for (const n of report.donorFlags) console.log(`    - ${n}`);
+    } else {
+      console.log('    set MIGRATE_SHOW_NAMES=1 to list names');
+    }
   }
   const synth = report.appFlags.filter((f) => f.type === 'synth-member').map((f) => f.appID);
   const w2 = report.appFlags.filter((f) => f.type === 'w2-fold').map((f) => f.appID);

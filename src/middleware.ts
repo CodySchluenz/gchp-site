@@ -23,6 +23,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const res = context.url.pathname === '/_image' ? new Response('Not found', { status: 404 }) : await next();
   res.headers.set('X-Content-Type-Options', 'nosniff');
   res.headers.set('Referrer-Policy', 'same-origin');
+  res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.headers.set(
     'Content-Security-Policy',
     "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; form-action 'self' https://www.paypal.com; frame-ancestors 'none'; base-uri 'self'",
