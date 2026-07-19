@@ -161,6 +161,19 @@ export function blockRange(base: number): { min: number; max: number }; // base 
   mailed households.
 - Screens: `npm run build` + full suite green (house pattern).
 
+## Addendum (2026-07-18, owner-approved): Stragglers view
+
+Sherlyn: stragglers "go on a list by themselves." The Show-town dropdown gains
+one more option, **"Stragglers"**, after "Elderly & disabled (mailed)":
+
+- Filter = `straggler = 1` (the checkbox is the source of truth, NOT the
+  2400s number range — a hand-numbered straggler still appears).
+- Flows through exactly like the other options: list, Excel download, print,
+  pickup-number ordering, filter preserved across tabs/search/seasons.
+- No Address column (stragglers pick up); no near-full banner (not a town).
+- `town` param type widens to `number | 'mailed' | 'stragglers' | null` in
+  `listApplications` and `listApplicationsForExport`.
+
 ## Out of scope (deliberate)
 
 - Anything public or admin-facing for "Kids without toys" (Sherlyn: not on
