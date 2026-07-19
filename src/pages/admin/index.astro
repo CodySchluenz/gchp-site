@@ -32,7 +32,7 @@ if (!signedInEmail && Astro.request.method === 'POST') {
     const origin =
       requestOrigin === 'https://grantcountyholidayproject.org' ||
       requestOrigin.endsWith('.pages.dev') ||
-      requestOrigin.startsWith('http://localhost')
+      /^http:\/\/localhost(:\d+)?$/.test(requestOrigin)
         ? requestOrigin
         : 'https://grantcountyholidayproject.org';
     const link = `${origin}/admin/verify?token=${token}`;
