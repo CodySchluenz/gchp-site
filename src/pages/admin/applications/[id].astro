@@ -80,7 +80,7 @@ const flags = new URL(Astro.request.url).searchParams;
 const done = flags.get('done');
 const mail = flags.get('mail');
 const mailNote = mail === 'ok' ? ' The email was sent.' : mail === 'fail' ? ' The email could not be sent right now — the application is still saved.' : '';
-const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'bags' ? 'Bag count saved.' : done === 'notes' ? 'Your notes were saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : '';
+const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'bags' ? 'Bag count saved.' : done === 'notes' ? 'Your notes were saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'created' ? 'Paper application entered.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : '';
 
 const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
@@ -137,6 +137,7 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
       <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">
         <h2 class="text-2xl font-bold text-holly-800">Household</h2>
         <p class="mt-2 text-stone-700">Applied: {centralDateTime(String(a.submitted_at ?? ''))}</p>
+        {a.source === 'paper' && <p class="text-stone-700">Entered from a paper application.</p>}
         <p class="mt-2">{a.address}, {detail.city_name}</p>
         <p>Phone: {a.phone} · Email: {a.email}</p>
         <p>Household type: {a.household_type} · Diabetic in household: {yesno(a.diabetic)} · OK to share needs with a sponsor: {yesno(a.share_with_sponsor)}</p>

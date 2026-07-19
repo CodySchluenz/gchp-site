@@ -1,0 +1,243 @@
+---
+import '../../../styles/global.css';
+import Admin from '../../../layouts/Admin.astro';
+import { insertApplication, setApplicationNotes, setPuNumber, listCities } from '../../../lib/db';
+import { validateApplicationAdmin } from '../../../lib/validation/application-admin';
+import { MAX_MEMBERS, MAX_EMPLOYERS } from '../../../lib/validation/application';
+import { mayNotBeEligible } from '../../../lib/eligibility';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+import MemberCard from '../../../components/apply/MemberCard.astro';
+import EmployerRow from '../../../components/apply/EmployerRow.astro';
+import BenefitRow from '../../../components/apply/BenefitRow.astro';
+import FieldError from '../../../components/apply/FieldError.astro';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+
+// Today in Central as YYYY-MM-DD (en-CA gives ISO date order).
+const todayCentral = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago' }).format(new Date());
+
+let values: Record<string, string> = { member_relationship_1: 'self', received_date: todayCentral };
+let errors: Record<string, string> = {};
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  values = Object.fromEntries(
+    [...form.entries()].filter((e): e is [string, string] => typeof e[1] === 'string'),
+  );
+  const action = values.action ?? '';
+  if (action === 'add_member' || action === 'add_employer') {
+    // Grow the form, JS-free — same pattern as the public Apply page.
+    const key = action === 'add_member' ? 'member_count' : 'employer_count';
+    const max = action === 'add_member' ? MAX_MEMBERS : MAX_EMPLOYERS;
+    values[key] = String(Math.min((Number(values[key]) || 1) + 1, max));
+  } else {
+    const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', values.csrf_token ?? '');
+    if (!okCsrf) {
+      errors.csrf = "That didn't save — please press Save again.";
+    } else {
+      const result = validateApplicationAdmin(values);
+      // Received date: default today; reject garbage kindly.
+      const dateRaw = (values.received_date ?? '').trim() || todayCentral;
+      const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw);
+      if (!dateOk) errors.received_date = 'Please pick the date this application arrived.';
+      const puRaw = (values.pu_number ?? '').trim();
+      if (puRaw !== '' && !/^\d+$/.test(puRaw)) {
+        errors.pu_number = 'Please enter the pickup number as a whole number, like 803.';
+      }
+      const ht = values.household_type;
+      const householdType = ht === 'elderly' || ht === 'disabled' ? ht : 'family';
+      if (result.ok && dateOk && !errors.pu_number) {
+        const seasonYear = Number(dateRaw.slice(0, 4));
+        const id = await insertApplication(env.DB, {
+          ...result.clean,
+          seasonYear,
+          // Noon UTC is the same Central calendar day year-round.
+          submittedAt: `${dateRaw}T12:00:00Z`,
+          mayNotBeEligible: mayNotBeEligible(result.clean),
+          householdType,
+          source: 'paper',
+        });
+        const notes = (values.admin_notes ?? '').trim().slice(0, 5000);
+        if (notes !== '') await setApplicationNotes(env.DB, id, notes);
+        if (puRaw !== '') {
+          const r = await setPuNumber(env.DB, id, seasonYear, Number(puRaw));
+          // On a clash, carry ONLY the error flag: the detail page's banner
+          // chain shows the first matching case, and the duplicate-number
+          // warning must not be suppressed by a "created" banner. The saved
+          // application is self-evident — she lands on its page.
+          if (!r.ok) return Astro.redirect(`/admin/applications/${id}?error=pu_taken&by=${r.takenBy}`, 303);
+        }
+        return Astro.redirect(`/admin/applications/${id}?done=created`, 303);
+      }
+      if (!result.ok) errors = { ...result.errors, ...errors };
+    }
+  }
+}
+
+const memberCount = Math.min(Math.max(Number(values.member_count) || 1, 1), MAX_MEMBERS);
+const employerCount = Math.min(Math.max(Number(values.employer_count) || 1, 1), MAX_EMPLOYERS);
+const cities = await listCities(env.DB);
+
+const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-lg';
+const v = (n: string) => values[n] ?? '';
+---
+<Admin title="Enter a paper application" heading="Enter a paper application"
+  back={{ href: '/admin/applications', label: 'Back to applications' }}>
+  <p class="mt-1 text-lg text-stone-600">
+    Help: type in a mailed or handed-in application. Leave anything blank that is blank on the paper —
+    only the name and town are required. Nothing is emailed to the family.
+  </p>
+
+  {errors.csrf && <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert"><p class="font-bold text-berry-800">{errors.csrf}</p></div>}
+  {Object.keys(errors).length > 0 && !errors.csrf && (
+    <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert">
+      <p class="font-bold text-berry-800">A few things need a look — they are marked below. Nothing you typed is lost.</p>
+    </div>
+  )}
+
+  <form method="post" class="mt-6 space-y-8">
+    <input type="hidden" name="csrf_token" value={csrfToken} />
+
+    <section class="rounded-lg border-2 border-stone-300 bg-white p-5">
+      <h2 class="text-2xl font-bold text-holly-800">About this paper application</h2>
+      <div class="mt-3 grid gap-4 sm:grid-cols-2">
+        <label class="block font-semibold">Date received
+          <input class={input} type="date" name="received_date" value={v('received_date')}
+            aria-invalid={errors.received_date ? 'true' : undefined} aria-describedby={errors.received_date ? 'received_date-error' : undefined} />
+          <FieldError id="received_date" errors={errors} />
+        </label>
+        <label class="block font-semibold">Pickup number, if written on the paper
+          <input class={input} type="text" inputmode="numeric" name="pu_number" value={v('pu_number')}
+            aria-invalid={errors.pu_number ? 'true' : undefined} aria-describedby={errors.pu_number ? 'pu_number-error' : undefined} />
+          <FieldError id="pu_number" errors={errors} />
+        </label>
+      </div>
+      <fieldset class="mt-4">
+        <legend class="font-semibold">Type of household</legend>
+        <div class="mt-1 flex flex-wrap gap-4 text-lg">
+          <label class="flex items-center gap-2"><input type="radio" name="household_type" value="family" checked={v('household_type') !== 'elderly' && v('household_type') !== 'disabled'} class="h-6 w-6" /> Family</label>
+          <label class="flex items-center gap-2"><input type="radio" name="household_type" value="elderly" checked={v('household_type') === 'elderly'} class="h-6 w-6" /> Elderly</label>
+          <label class="flex items-center gap-2"><input type="radio" name="household_type" value="disabled" checked={v('household_type') === 'disabled'} class="h-6 w-6" /> Disabled</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="rounded-lg border-2 border-stone-300 bg-white p-5">
+      <h2 class="text-2xl font-bold text-holly-800">The applicant</h2>
+      <div class="mt-3 grid gap-4 sm:grid-cols-2">
+        <label class="block font-semibold">First name
+          <input class={input} type="text" name="first_name" value={v('first_name')}
+            aria-invalid={errors.first_name ? 'true' : undefined} aria-describedby={errors.first_name ? 'first_name-error' : undefined} />
+          <FieldError id="first_name" errors={errors} />
+        </label>
+        <label class="block font-semibold">Last name
+          <input class={input} type="text" name="last_name" value={v('last_name')}
+            aria-invalid={errors.last_name ? 'true' : undefined} aria-describedby={errors.last_name ? 'last_name-error' : undefined} />
+          <FieldError id="last_name" errors={errors} />
+        </label>
+        <label class="block font-semibold">Street address
+          <input class={input} type="text" name="address" value={v('address')} />
+        </label>
+        <label class="block font-semibold">Town
+          <select class={input} name="city_id" aria-invalid={errors.city_id ? 'true' : undefined} aria-describedby={errors.city_id ? 'city_id-error' : undefined}>
+            <option value="">Pick the town</option>
+            {cities.map((c) => <option value={String(c.id)} selected={v('city_id') === String(c.id)}>{c.name}</option>)}
+          </select>
+          <FieldError id="city_id" errors={errors} />
+        </label>
+        <label class="block font-semibold">Phone
+          <input class={input} type="text" name="phone" value={v('phone')} />
+        </label>
+        <label class="block font-semibold">Email
+          <input class={input} type="text" name="email" value={v('email')}
+            aria-invalid={errors.email ? 'true' : undefined} aria-describedby={errors.email ? 'email-error' : undefined} />
+          <FieldError id="email" errors={errors} />
+        </label>
+        <label class="block font-semibold">Years received help
+          <input class={input} type="text" inputmode="numeric" name="years_received_help" value={v('years_received_help')}
+            aria-invalid={errors.years_received_help ? 'true' : undefined} aria-describedby={errors.years_received_help ? 'years_received_help-error' : undefined} />
+          <FieldError id="years_received_help" errors={errors} />
+        </label>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-6 text-lg">
+        <label class="flex items-center gap-2"><input type="checkbox" name="share_with_sponsor" checked={v('share_with_sponsor') === 'on'} class="h-6 w-6" /> OK to adopt out (circled Yes)</label>
+        <label class="flex items-center gap-2"><input type="radio" name="adopted_last_year" value="yes" checked={v('adopted_last_year') === 'yes'} class="h-6 w-6" /> Adopted last year: yes</label>
+        <label class="flex items-center gap-2"><input type="radio" name="adopted_last_year" value="no" checked={v('adopted_last_year') === 'no'} class="h-6 w-6" /> no</label>
+        <label class="flex items-center gap-2"><input type="checkbox" name="full_time_residence" checked={v('full_time_residence') === 'on'} class="h-6 w-6" /> Residence rule met</label>
+        <label class="flex items-center gap-2"><input type="checkbox" name="diabetic" checked={v('diabetic') === 'on'} class="h-6 w-6" /> Diabetic in household</label>
+      </div>
+    </section>
+
+    <section class="rounded-lg border-2 border-stone-300 bg-white p-5">
+      <h2 class="text-2xl font-bold text-holly-800">People in the household</h2>
+      <p class="mt-1 text-lg text-stone-600">Skip rows that are blank on the paper. Enter 0 for an age that is not given.</p>
+      <input type="hidden" name="member_count" value={String(memberCount)} />
+      {Array.from({ length: memberCount }, (_, idx) => <MemberCard index={idx + 1} values={values} errors={errors} />)}
+      <button type="submit" name="action" value="add_member" formnovalidate
+        class="mt-3 rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">
+        + Add another person
+      </button>
+      <label class="mt-4 block font-semibold">Which children belong to whom (if noted)
+        <textarea class={input} name="parentage_note" rows="2" maxlength={2000}>{v('parentage_note')}</textarea>
+        <FieldError id="parentage_note" errors={errors} />
+      </label>
+    </section>
+
+    <section class="rounded-lg border-2 border-stone-300 bg-white p-5">
+      <h2 class="text-2xl font-bold text-holly-800">Bedding</h2>
+      <div class="mt-2 flex flex-wrap gap-4 text-lg">
+        <label class="flex items-center gap-2"><input type="radio" name="bed_choice" value="sheets" checked={v('bed_choice') === 'sheets'} class="h-6 w-6" /> Sheets</label>
+        <label class="flex items-center gap-2"><input type="radio" name="bed_choice" value="blanket" checked={v('bed_choice') === 'blanket'} class="h-6 w-6" /> Blanket</label>
+        <label class="flex items-center gap-2"><input type="radio" name="bed_choice" value="none" checked={v('bed_choice') === 'none' || v('bed_choice') === ''} class="h-6 w-6" /> Nothing marked</label>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-4 text-lg">
+        {['twin', 'full', 'queen', 'king'].map((s) => (
+          <label class="flex items-center gap-2"><input type="radio" name="bed_size" value={s} checked={v('bed_size') === s} class="h-6 w-6" /> {s}</label>
+        ))}
+      </div>
+    </section>
+
+    <section class="rounded-lg border-2 border-stone-300 bg-white p-5">
+      <h2 class="text-2xl font-bold text-holly-800">Work and income</h2>
+      <p class="mt-1 text-lg text-stone-600">Enter 0 for a wage or hours the paper leaves blank.</p>
+      <input type="hidden" name="employer_count" value={String(employerCount)} />
+      {Array.from({ length: employerCount }, (_, idx) => <EmployerRow index={idx + 1} values={values} errors={errors} />)}
+      <button type="submit" name="action" value="add_employer" formnovalidate
+        class="mt-3 rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">
+        + Add another job
+      </button>
+      <label class="mt-3 flex items-center gap-2 text-lg">
+        <input type="checkbox" name="no_employment" checked={v('no_employment') === 'on'} class="h-6 w-6" /> Paper says no one is employed
+      </label>
+      <BenefitRow benefitKey="food_share" label="Food Share" period="Monthly" hasFor={false} values={values} errors={errors} />
+      <BenefitRow benefitKey="social_security" label="Social Security" period="Monthly" hasFor={true} values={values} errors={errors} />
+      <BenefitRow benefitKey="ssi" label="SSI" period="Monthly" hasFor={true} values={values} errors={errors} />
+      <BenefitRow benefitKey="child_support" label="Child support" period="Monthly" hasFor={true} values={values} errors={errors} />
+      <BenefitRow benefitKey="unemployment" label="Unemployment" period="Weekly" hasFor={true} values={values} errors={errors} />
+      <BenefitRow benefitKey="other_income" label="Other income" period="Monthly" hasFor={true} values={values} errors={errors} />
+    </section>
+
+    <section class="rounded-lg border-2 border-stone-300 bg-white p-5">
+      <h2 class="text-2xl font-bold text-holly-800">Pay it forward</h2>
+      <label class="mt-2 block font-semibold">Good deeds from page 3 (blank if not filled in)
+        <textarea class={input} name="good_deed" rows="3" maxlength={5000}>{v('good_deed')}</textarea>
+        <FieldError id="good_deed" errors={errors} />
+      </label>
+    </section>
+
+    <section class="rounded-lg border-2 border-stone-300 bg-white p-5">
+      <h2 class="text-2xl font-bold text-holly-800">Notes (only you see this)</h2>
+      <p class="text-lg text-stone-600">Anything else on the paper with no field here — has a car, doll preference, Box number.</p>
+      <textarea class={input} name="admin_notes" rows="3" maxlength={5000}>{v('admin_notes')}</textarea>
+    </section>
+
+    <button type="submit" class="rounded-lg bg-holly-700 px-6 py-4 text-xl font-bold text-white hover:bg-holly-900">
+      Save this application
+    </button>
+  </form>
+</Admin>
