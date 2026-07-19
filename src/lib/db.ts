@@ -436,6 +436,7 @@ export type ExportRow = {
   pu_number: number | null;
   status: string;
   submitted_at: string;
+  decided_at: string | null;
   first_name: string;
   last_name: string;
   address: string;
@@ -480,7 +481,7 @@ export async function listApplicationsForExport(
     ? 'ORDER BY a.pu_number IS NULL, a.pu_number, a.id'
     : 'ORDER BY a.submitted_at DESC, a.id DESC';
   const sql = `
-    SELECT a.pu_number, a.status, a.submitted_at, a.first_name, a.last_name, a.address,
+    SELECT a.pu_number, a.status, a.submitted_at, a.decided_at, a.first_name, a.last_name, a.address,
            c.name AS city_name, a.phone, a.email, a.household_type, a.may_not_be_eligible, a.bags_count,
            a.parentage_note, a.admin_notes,
            a.years_received_help, a.adopted_last_year, a.bed_choice, a.bed_size,

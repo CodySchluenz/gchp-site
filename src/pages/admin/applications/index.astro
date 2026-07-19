@@ -5,6 +5,7 @@ import { listApplications, listSeasons, getIncomeLimits, listCities, countBlockU
 import { newCsrfCookieValue, csrfTokenFor } from '../../../lib/csrf';
 import { quickIncomeCheck, type BenefitAmounts } from '../../../lib/income-check';
 import { NEAR_FULL_AT, BLOCK_SIZE } from '../../../lib/pickup-numbers';
+import { centralDate } from '../../../lib/dates';
 export const prerender = false;
 
 const db = Astro.locals.runtime.env.DB;
@@ -56,7 +57,6 @@ const qs = (over: Record<string, string>) => {
   return `?${p.toString()}`;
 };
 const statusWord = (s: string) => (s === 'new' ? 'To review' : s === 'approved' ? 'Approved' : 'Denied');
-const fmtDate = (iso: string) => iso.slice(0, 10);
 const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${status}&q=${encodeURIComponent(search)}&town=${townRaw}`;
 ---
 <Admin title="Applications" heading={`Applications — ${season}`} back={{ href: '/admin', label: 'Back to admin home' }}>
@@ -169,7 +169,7 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
           </td>
           <td class="border-b border-stone-200 p-3">{r.city_name}</td>
           {town === 'mailed' && <td class="border-b border-stone-200 p-3">{r.address}</td>}
-          <td class="border-b border-stone-200 p-3 whitespace-nowrap">{fmtDate(r.submitted_at)}</td>
+          <td class="border-b border-stone-200 p-3 whitespace-nowrap">{centralDate(r.submitted_at)}</td>
           <td class="border-b border-stone-200 p-3">{statusWord(r.status)}</td>
           <td class="border-b border-stone-200 p-3">{r.pu_number ?? ''}</td>
           <td class="border-b border-stone-200 p-3 font-semibold text-berry-800">{overLimit(r) ? 'Check income' : ''}</td>

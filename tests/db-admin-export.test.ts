@@ -35,6 +35,7 @@ describe('listApplicationsForExport binds both branches', () => {
     const approved = await listApplicationsForExport(db, 2026, 'approved', '');
     expect(approved.every((r) => r.status === 'approved')).toBe(true);
     expect(approved.some((r) => r.first_name === 'Approved')).toBe(true);
+    expect(approved.find((r) => r.first_name === 'Approved')?.decided_at).toBeTruthy();
   });
 
   it('includes the new columns and per-application aggregates', async () => {

@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { listApplicationsForExport, getIncomeLimits } from '../../../lib/db';
 import { buildXlsx } from '../../../lib/xlsx';
 import { quickIncomeCheck, incomeFlagLabel, type BenefitAmounts } from '../../../lib/income-check';
+import { centralDateTime } from '../../../lib/dates';
 
 export const prerender = false;
 
@@ -29,12 +30,12 @@ export const GET: APIRoute = async ({ locals, url }) => {
     return incomeFlagLabel(q.overLimit);
   };
   const headers = [
-    'Pickup #', 'Status', 'Applied', 'First name', 'Last name', 'Address', 'Town',
+    'Pickup #', 'Status', 'Decided', 'Applied', 'First name', 'Last name', 'Address', 'Town',
     'Phone', 'Email', 'Household type', 'Check eligibility', 'Bags',
     'People count', 'People', 'Years received', 'Adopted last year', 'Bed', 'Bed size', 'Income', 'Jobs', 'Income check', 'Parentage note', 'Your notes',
   ];
   const data: (string | number | null)[][] = rows.map((r) => [
-    r.pu_number, r.status, r.submitted_at.slice(0, 10), r.first_name, r.last_name, r.address,
+    r.pu_number, r.status, centralDateTime(r.decided_at ?? ''), centralDateTime(r.submitted_at), r.first_name, r.last_name, r.address,
     r.city_name, r.phone, r.email, r.household_type, r.may_not_be_eligible === 1 ? 'yes' : '', r.bags_count,
     r.member_count, r.member_summary, r.years_received_help, r.adopted_last_year === 1 ? 'yes' : '',
     r.bed_choice, r.bed_size ?? '', incomeSummary(r), r.employment_summary, incomeFlag(r), r.parentage_note, r.admin_notes,

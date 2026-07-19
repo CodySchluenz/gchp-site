@@ -3,6 +3,7 @@ import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
 import { listContactMessages, setMessageRead, deleteContactMessage } from '../../../lib/db';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
+import { centralDate } from '../../../lib/dates';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -40,7 +41,6 @@ const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
 const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
 Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
 const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
-const fmtDate = (iso: string) => iso.slice(0, 10);
 ---
 <Admin title="Messages" heading="Messages" back={{ href: '/admin', label: 'Back to admin home' }}>
   <p class="mt-1 text-lg text-stone-600">Help: these are messages sent through the Contact form. They also come to your email. Reply opens your email program.</p>
@@ -53,7 +53,7 @@ const fmtDate = (iso: string) => iso.slice(0, 10);
         <li class={`rounded-lg border-2 p-5 ${m.read_at ? 'border-stone-300 bg-white' : 'border-holly-700 bg-holly-100'}`}>
           <div class="flex flex-wrap items-center justify-between gap-2">
             <p class="text-xl font-bold text-holly-800">{m.name || '(no name given)'} {!m.read_at && <span class="ml-2 rounded bg-holly-700 px-2 py-1 font-bold text-white">New</span>}</p>
-            <p class="text-lg text-stone-600">{fmtDate(m.received_at)}</p>
+            <p class="text-lg text-stone-600">{centralDate(m.received_at)}</p>
           </div>
           <p class="text-lg">{m.email}</p>
           <p class="mt-2 whitespace-pre-wrap">{m.message}</p>
