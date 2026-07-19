@@ -127,6 +127,24 @@ describe('block-aware pickup numbers', () => {
     } finally { await dispose(); }
   });
 
+  it('stragglers filter is flag-based (not the 2400s number range), ordered by number, and flows to export', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const strA = await insertApplication(db, base);                       // straggler, assigned into the 2400s
+      const strB = await insertApplication(db, { ...base, lastName: 'B' }); // straggler, but a hand-typed number outside 2400s
+      const notStr = await insertApplication(db, { ...base, lastName: 'NotStr' }); // NOT a straggler, but hand-typed into the 2400s
+      await setStraggler(db, strA, true);
+      await setStraggler(db, strB, true);
+      await assignPuNumber(db, strA, 2026);      // 2400
+      await setPuNumber(db, strB, 2026, 999);    // outside the 2400s — still a straggler by flag
+      await setPuNumber(db, notStr, 2026, 2405); // inside the 2400s — but the flag says no
+      const rows = await listApplications(db, 2026, 'all', '', 'stragglers');
+      expect(rows.map((r) => r.last_name)).toEqual(['B', 'Smith']); // pu_number order: 999, then 2400
+      const exportRows = await listApplicationsForExport(db, 2026, 'all', '', 'stragglers');
+      expect(exportRows.map((r) => r.last_name)).toEqual(['B', 'Smith']);
+    } finally { await dispose(); }
+  });
+
   it('listCities returns block_base', async () => {
     const { db, dispose } = await getTestDb();
     try {

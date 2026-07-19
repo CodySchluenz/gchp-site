@@ -13,7 +13,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
     'all' | 'new' | 'approved' | 'denied';
   const search = url.searchParams.get('q') ?? '';
   const townRaw = url.searchParams.get('town') ?? '';
-  const town = townRaw === 'mailed' ? ('mailed' as const) : /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
+  const town = townRaw === 'mailed' ? ('mailed' as const) : townRaw === 'stragglers' ? ('stragglers' as const) : /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
   const rows = await listApplicationsForExport(locals.runtime.env.DB, season, status, search, town);
   const incomeSummary = (r: (typeof rows)[number]) => [
     ['Food Share', r.food_share_amount], ['Social Security', r.social_security_amount], ['SSI', r.ssi_amount],
