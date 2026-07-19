@@ -95,10 +95,14 @@ Three reinforcing changes, all working with JavaScript disabled:
    sets — `[aria-invalid="true"]` inputs/selects/textareas get a berry border
    and light berry background tint, so every missed field is visible in
    place while scrolling.
-3. **Land on the first problem**: the server adds `autofocus` to the first
-   errored field on a POST re-render (works without JS; browsers scroll to
-   the focused control, whose inline error message sits right there).
-   Only ever one autofocus on the page; none on a clean GET.
+3. **Land on the first problem**: the existing `public/scripts/apply.js`
+   gains a few lines — on load, if a field with `aria-invalid="true"` exists,
+   focus the first one (browsers scroll to it; its inline message sits right
+   there). This is a progressive enhancement: with JavaScript off, the loud
+   banner (whose jump links already work without JS) and the red field
+   flagging carry the fix on their own. (Server-side `autofocus` was
+   considered and rejected: it would require plumbing a prop through four
+   shared form components for the same result.)
 
 Nothing typed is ever wiped (unchanged); field names unchanged (validation
 tests keep passing); 360px layout unchanged.
