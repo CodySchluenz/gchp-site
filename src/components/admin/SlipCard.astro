@@ -15,6 +15,9 @@ const sizes = (m: Record<string, unknown>) =>
   </div>
   <p class="name"><strong>{a.first_name} {a.last_name}</strong> — {a.phone}</p>
   <p>{a.address}, {detail.city_name}</p>
+  {detail.pickup_day && (
+    <p class="pickup"><strong>Pickup:</strong> {detail.pickup_day.date_text}{detail.pickup_day.description ? ` — ${detail.pickup_day.description}` : ''}</p>
+  )}
   <p>
     {a.diabetic === 1 && <span class="flag">DIABETIC</span>}
     {a.bed_choice !== 'none' && <span>Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''}</span>}
@@ -33,6 +36,7 @@ const sizes = (m: Record<string, unknown>) =>
   .slip { border: 2px solid #000; padding: 12px; margin: 0 0 16px; font-size: 14px; break-inside: avoid; }
   .row { display: flex; gap: 24px; font-size: 16px; }
   .name { font-size: 18px; margin: 8px 0 2px; }
+  .pickup { font-size: 16px; margin: 4px 0; }
   table { width: 100%; border-collapse: collapse; margin-top: 8px; }
   th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
   .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }
