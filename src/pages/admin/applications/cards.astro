@@ -1,8 +1,9 @@
 ---
-import { listApprovedForSlips } from '../../../lib/db';
+import { listApprovedForSlips, listCities } from '../../../lib/db';
 export const prerender = false;
 const season = Number(new URL(Astro.request.url).searchParams.get('season')) || new Date().getFullYear();
 const slips = await listApprovedForSlips(Astro.locals.runtime.env.DB, season);
+const cities = await listCities(Astro.locals.runtime.env.DB);
 // One fixed, print-safe color per town (keyed by city id, stable year to year).
 // Stragglers get black. Bands print because of print-color-adjust below.
 const PALETTE = [
@@ -11,8 +12,14 @@ const PALETTE = [
   '#86198f', '#1e40af', '#991b1b', '#065f46', '#92400e', '#5b21b6',
   '#155e75', '#9d174d', '#3f6212', '#7e22ce', '#166534',
 ];
+// Rank each town by its position in the id-sorted FULL city list (not the raw id):
+// city ids have a gap at 21, so raw-id modulo would give two towns the same color.
+// Ranking the full list keeps a town's color stable across seasons regardless of
+// which towns applied; the modulo stays only as a guard if towns ever exceed the palette.
+const rankByCityId = new Map<number, number>();
+[...cities].sort((a, b) => a.id - b.id).forEach((c, i) => rankByCityId.set(c.id, i));
 const bandFor = (d: (typeof slips)[number]) =>
-  d.app.straggler === 1 ? '#000000' : PALETTE[(Number(d.app.city_id) - 1) % PALETTE.length];
+  d.app.straggler === 1 ? '#000000' : PALETTE[(rankByCityId.get(Number(d.app.city_id)) ?? 0) % PALETTE.length];
 const labelFor = (d: (typeof slips)[number]) => (d.app.straggler === 1 ? 'STRAGGLER' : d.city_name);
 ---
 <!doctype html>
