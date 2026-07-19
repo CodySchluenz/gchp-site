@@ -124,6 +124,10 @@ error on the live site until the matching migration is applied.
 - [ ] **3. Apply any new database migration to the LIVE database FIRST:**
       `npm run db:migrate:remote`. Wrangler only applies migrations not yet run, so
       this is safe to run every time — if there's nothing new it's a no-op.
+      - **This order is not optional.** Example: migration `0006` adds the
+        `decided_at` column the code writes on every Approve/Deny and reads in the
+        Excel export — deploying the code before the migration breaks those
+        actions with a "no such column" error until you migrate.
       - Plan 5 adds **`migrations/0003_relationships.sql`** (per-person relationship,
         disabled/part-time, shoe/coat sizes, plus a parentage note and admin-only
         notes). Every statement is `ALTER TABLE ... ADD COLUMN ... NOT NULL DEFAULT ''`
