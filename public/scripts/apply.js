@@ -23,4 +23,10 @@
       if (first) first.focus();
     });
   });
+
+  // If the server re-rendered with validation errors, take the applicant to
+  // the first one. Without JavaScript the loud banner (with its jump links)
+  // and the red field flagging carry this on their own.
+  var firstInvalid = document.querySelector('[aria-invalid="true"]');
+  if (firstInvalid && firstInvalid.focus) firstInvalid.focus();
 })();

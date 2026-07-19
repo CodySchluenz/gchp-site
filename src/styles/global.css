@@ -18,6 +18,14 @@
   --color-gold-500: #d1a054;
 }
 
+/* Missed or invalid fields are flagged at the field itself. The server sets
+   aria-invalid on every field with an error; this makes that state visible
+   while scrolling — it works with JavaScript disabled. */
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
+  border-color: var(--color-berry-700);
+  background-color: var(--color-berry-100);
+}
+
 /* Two-tone focus ring: the white inner ring is visible on dark surfaces and
    the holly-900 outer ring is visible on light surfaces, so the indicator
    meets the 3:1 contrast minimum on any background (WCAG 2.2). */
