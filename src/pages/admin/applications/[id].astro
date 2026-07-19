@@ -119,7 +119,7 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
   ) : (
     <>
       {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
-      {new URL(Astro.request.url).searchParams.get('pu') === 'none' && (
+      {flags.get('pu') === 'none' && (
         <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="status">
           <p class="text-lg font-semibold">No pickup number could be assigned — the town's numbers may be full. Type one in under Decision below.</p>
         </div>
