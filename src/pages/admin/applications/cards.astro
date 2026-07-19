@@ -1,52 +1,58 @@
 ---
+import BoxCard from '../../../components/admin/BoxCard.astro';
 import { listApprovedForSlips, listCities } from '../../../lib/db';
+import { bandColorFor, bandLabelFor } from '../../../lib/box-cards';
 export const prerender = false;
-const season = Number(new URL(Astro.request.url).searchParams.get('season')) || new Date().getFullYear();
-const slips = await listApprovedForSlips(Astro.locals.runtime.env.DB, season);
+const url = new URL(Astro.request.url);
+const season = Number(url.searchParams.get('season')) || new Date().getFullYear();
+// Same parsing as export.xlsx.ts: town id / 'mailed' / 'stragglers' / unset.
+const townRaw = url.searchParams.get('town') ?? '';
+const town: number | 'mailed' | 'stragglers' | null =
+  townRaw === 'mailed' ? 'mailed' : townRaw === 'stragglers' ? 'stragglers' :
+  /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
+
+const allSlips = await listApprovedForSlips(Astro.locals.runtime.env.DB, season);
 const cities = await listCities(Astro.locals.runtime.env.DB);
-// One fixed, print-safe color per town (keyed by city id, stable year to year).
-// Stragglers get black. Bands print because of print-color-adjust below.
-const PALETTE = [
-  '#1a6b3a', '#b91c1c', '#1d4ed8', '#b45309', '#6d28d9', '#0f766e',
-  '#be185d', '#4d7c0f', '#c2410c', '#0e7490', '#7c2d12', '#365314',
-  '#86198f', '#1e40af', '#991b1b', '#065f46', '#92400e', '#5b21b6',
-  '#155e75', '#9d174d', '#3f6212', '#7e22ce', '#166534',
-];
-// Rank each town by its position in the id-sorted FULL city list (not the raw id):
-// city ids have a gap at 21, so raw-id modulo would give two towns the same color.
-// Ranking the full list keeps a town's color stable across seasons regardless of
-// which towns applied; the modulo stays only as a guard if towns ever exceed the palette.
-const rankByCityId = new Map<number, number>();
-[...cities].sort((a, b) => a.id - b.id).forEach((c, i) => rankByCityId.set(c.id, i));
-const bandFor = (d: (typeof slips)[number]) =>
-  d.app.straggler === 1 ? '#000000' : PALETTE[(rankByCityId.get(Number(d.app.city_id)) ?? 0) % PALETTE.length];
-const labelFor = (d: (typeof slips)[number]) => (d.app.straggler === 1 ? 'STRAGGLER' : d.city_name);
+// Mailed households never reach listApprovedForSlips (excluded at the query
+// level already), so the 'mailed' view is presentational only — no filter to run.
+const slips =
+  town === 'mailed' ? [] :
+  typeof town === 'number' ? allSlips.filter((d) => Number(d.app.city_id) === town) :
+  town === 'stragglers' ? allSlips.filter((d) => d.app.straggler === 1) :
+  allSlips;
+
+const viewLabel =
+  town === 'mailed' ? 'Mailed' :
+  town === 'stragglers' ? 'Stragglers' :
+  typeof town === 'number' ? (cities.find((c) => c.id === town)?.name ?? 'All towns') :
+  'All towns';
 ---
 <!doctype html>
 <html lang="en">
   <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Box cards {season}</title></head>
   <body style="margin:16px;font-family:system-ui,sans-serif;">
-    <p class="no-print"><a href="/admin/applications">&larr; Back to applications</a> ·
-      <button type="button" data-print>Print all {slips.length} cards</button></p>
-    <h1 class="no-print" style="font-size:20px;">Box cards — {season} ({slips.length})</h1>
-    {slips.length === 0 && <p>No approved applications yet.</p>}
+    <p class="no-print"><a href="/admin/applications">&larr; Back to applications</a>
+      {town !== 'mailed' && <> · <button type="button" data-print>Print all {slips.length} cards</button></>}</p>
+    <h1 class="no-print" style="font-size:20px;">Box cards — {viewLabel} — {season} ({slips.length})</h1>
+    {town === 'mailed' && (
+      <p>Mailed households don't get pickup slips or box cards — they receive gift and food cards by mail. Use the applications list's "Elderly &amp; disabled (mailed)" view to print the mail list with addresses.</p>
+    )}
+    {town !== 'mailed' && slips.length === 0 && <p>No approved applications yet.</p>}
     <div class="sheet">
-      {slips.map((d) => (
-        <article class="card">
-          <div class="band" style={`background:${bandFor(d)}`}>{labelFor(d)}</div>
-          <p class="num">{d.app.pu_number ?? '____'}</p>
-          <p class="bags">Bags: {d.app.bags_count ?? '____'}</p>
-        </article>
-      ))}
+      {slips.map((d) => {
+        const straggler = d.app.straggler === 1;
+        return (
+          <BoxCard
+            band={bandColorFor(cities, Number(d.app.city_id), straggler)}
+            label={bandLabelFor(d.city_name, straggler)}
+            puNumber={(d.app.pu_number as number | null) ?? null}
+            bags={(d.app.bags_count as number | null) ?? null}
+          />
+        );
+      })}
     </div>
     <style>
       .sheet { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-      .card { border: 2px solid #000; break-inside: avoid; text-align: center; padding-bottom: 12px; }
-      .band { color: #fff; font-weight: 700; font-size: 20px; letter-spacing: 0.06em;
-              padding: 8px 4px; text-transform: uppercase;
-              print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-      .num { font-size: 64px; font-weight: 800; margin: 10px 0 0; font-variant-numeric: tabular-nums; }
-      .bags { font-size: 22px; font-weight: 600; margin: 4px 0 0; }
       @media print { .no-print { display: none; } .sheet { gap: 12px; } }
     </style>
     <script src="/scripts/print-button.js" defer></script>
