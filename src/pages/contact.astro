@@ -114,12 +114,12 @@ const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
         )}
 
         {Object.keys(errors).length > 0 && (
-          <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert">
-            <p class="font-bold">Please check these before sending:</p>
-            <ul class="mt-1 list-disc pl-6">
+          <div class="mt-4 rounded-lg border-2 border-berry-700 bg-berry-100 p-5" role="alert">
+            <p class="text-xl font-bold text-berry-800">Please check these before sending:</p>
+            <ul class="mt-2 list-disc pl-6">
               {Object.entries(errors).map(([field, msg]) => (
                 <li>
-                  <a href={`#${field}`} class="text-berry-700 underline">
+                  <a href={`#${field}`} class="font-semibold text-berry-800 underline">
                     {msg}
                   </a>
                 </li>

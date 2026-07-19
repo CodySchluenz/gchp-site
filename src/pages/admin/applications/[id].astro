@@ -81,6 +81,7 @@ const done = flags.get('done');
 const mail = flags.get('mail');
 const mailNote = mail === 'ok' ? ' The email was sent.' : mail === 'fail' ? ' The email could not be sent right now — the application is still saved.' : '';
 const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'bags' ? 'Bag count saved.' : done === 'notes' ? 'Your notes were saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'created' ? 'Paper application entered.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : '';
+const isErrorBanner = flags.get('error') === 'csrf' || flags.get('error') === 'pu_bad' || flags.get('error') === 'pu_taken';
 
 const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
@@ -119,14 +120,18 @@ const dollars = (n: number) => '$' + n.toLocaleString('en-US');
     <p class="mt-4">That application could not be found. It may have been deleted.</p>
   ) : (
     <>
-      {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+      {banner && (isErrorBanner ? (
+        <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert"><p class="font-bold text-berry-800">{banner}</p></div>
+      ) : (
+        <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>
+      ))}
       {flags.get('pu') === 'none' && (
         <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="status">
           <p class="text-lg font-semibold">No pickup number could be assigned — the town's numbers may be full. Type one in under Decision below.</p>
         </div>
       )}
       {a.may_not_be_eligible === 1 && (
-        <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4">
+        <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="status">
           <p class="font-bold">Please check eligibility.</p>
           <p>Our rule of thumb: households with children, or an adult over 65 or permanently disabled. Use your judgment.</p>
         </div>

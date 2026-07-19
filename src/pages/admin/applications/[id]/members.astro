@@ -57,6 +57,7 @@ const banner = flags.get('added') ? 'Person added.' : flags.get('saved') ? 'Save
   : flags.get('error') === 'fields' ? 'Please enter a name and an age (0-120).'
   : flags.get('error') === 'full' ? 'That is the most people we can list for one household.'
   : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
+const isErrorBanner = flags.get('error') === 'fields' || flags.get('error') === 'full' || flags.get('error') === 'csrf';
 const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-lg';
 const full = detail ? detail.members.length >= MAX_MEMBERS : false;
 ---
@@ -64,7 +65,11 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
   {!detail ? <p class="mt-4">That application could not be found.</p> : (
     <>
       <p class="mt-1 text-lg text-stone-600">Help: fix a person's details and press Save. Add someone at the bottom, or press Remove to take a person off this application.</p>
-      {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+      {banner && (isErrorBanner ? (
+        <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert"><p class="font-bold text-berry-800">{banner}</p></div>
+      ) : (
+        <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>
+      ))}
 
       {detail.members.map((m) => (
         <section class="mt-6 rounded-lg border-2 border-stone-300 bg-white p-5">

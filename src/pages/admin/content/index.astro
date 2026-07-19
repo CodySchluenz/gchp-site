@@ -49,6 +49,7 @@ const banner = saved === 'added' ? 'Added.' : saved === 'saved' ? 'Saved.' : sav
   : url.searchParams.get('error') === 'title' ? 'Please give the item a title before saving.'
   : url.searchParams.get('error') === 'csrf' ? 'That didn\'t save — please try again.'
   : url.searchParams.get('restored') === '1' ? 'It\'s back in your list.' : '';
+const isErrorBanner = url.searchParams.get('error') === 'title' || url.searchParams.get('error') === 'csrf';
 const blocks = await listAllContentBlocks(env.DB);
 
 const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
@@ -60,7 +61,11 @@ const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-l
 <Admin title="This year's news" heading="This year's news & gifts list" back={{ href: '/admin', label: 'Back to admin home' }}>
   <p class="mt-1 text-lg text-stone-600">Help: these boxes show on the home page under "This Year's News." Edit one and press Save, or add a new one at the bottom.</p>
 
-  {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+  {banner && (isErrorBanner ? (
+    <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert"><p class="font-bold text-berry-800">{banner}</p></div>
+  ) : (
+    <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>
+  ))}
   {undoId && (
     <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
       <form method="post" action={`/admin/content/${undoId}/restore`} class="flex flex-wrap items-center gap-3">

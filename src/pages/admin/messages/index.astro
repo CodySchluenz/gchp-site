@@ -34,6 +34,7 @@ const saved = url.searchParams.get('saved');
 const banner = saved === 'read' ? 'Marked as read.' : saved === 'unread' ? 'Marked as unread.'
   : saved === 'deleted' ? 'Message deleted.'
   : url.searchParams.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : '';
+const isErrorBanner = url.searchParams.get('error') === 'csrf';
 
 const messages = await listContactMessages(env.DB);
 
@@ -45,7 +46,11 @@ const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
 <Admin title="Messages" heading="Messages" back={{ href: '/admin', label: 'Back to admin home' }}>
   <p class="mt-1 text-lg text-stone-600">Help: these are messages sent through the Contact form. They also come to your email. Reply opens your email program.</p>
 
-  {banner && <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>}
+  {banner && (isErrorBanner ? (
+    <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="alert"><p class="font-bold text-berry-800">{banner}</p></div>
+  ) : (
+    <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status"><p class="font-bold text-holly-800">{banner}</p></div>
+  ))}
 
   {messages.length === 0 ? <p class="mt-6 text-lg">No messages yet.</p> : (
     <ul class="mt-6 space-y-3">

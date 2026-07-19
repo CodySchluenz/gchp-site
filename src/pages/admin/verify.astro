@@ -41,7 +41,7 @@ const looksValid = /^[0-9a-f]{64}$/.test(token);
     <main class="mx-auto max-w-md px-4 py-16">
       <h1 class="text-3xl font-bold text-holly-800">Grant County Holiday Project — Admin</h1>
       {failed || !looksValid ? (
-        <div class="mt-6 rounded border-l-4 border-berry-700 bg-white p-5">
+        <div class="mt-6 rounded border-l-4 border-berry-700 bg-white p-5" role="alert">
           <p class="text-xl font-bold text-berry-800">That link didn't work</p>
           <p class="mt-2">Your sign-in link may have expired or already been used. They last 15 minutes.</p>
           <p class="mt-2"><a href="/admin" class="font-semibold text-berry-700 underline">Get a new sign-in link</a></p>
