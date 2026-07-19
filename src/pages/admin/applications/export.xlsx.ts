@@ -11,7 +11,9 @@ export const GET: APIRoute = async ({ locals, url }) => {
   const status = (['all', 'new', 'approved', 'denied'].includes(statusParam) ? statusParam : 'all') as
     'all' | 'new' | 'approved' | 'denied';
   const search = url.searchParams.get('q') ?? '';
-  const rows = await listApplicationsForExport(locals.runtime.env.DB, season, status, search);
+  const townRaw = url.searchParams.get('town') ?? '';
+  const town = townRaw === 'mailed' ? ('mailed' as const) : /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
+  const rows = await listApplicationsForExport(locals.runtime.env.DB, season, status, search, town);
   const incomeSummary = (r: (typeof rows)[number]) => [
     ['Food Share', r.food_share_amount], ['Social Security', r.social_security_amount], ['SSI', r.ssi_amount],
     ['Child support', r.child_support_amount], ['Unemployment', r.unemployment_weekly_amount], ['Other', r.other_income_amount],

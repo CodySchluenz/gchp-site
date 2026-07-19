@@ -1,9 +1,10 @@
 ---
 import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
-import { listApplications, listSeasons, getIncomeLimits, type ApplicationListRow } from '../../../lib/db';
+import { listApplications, listSeasons, getIncomeLimits, listCities, countBlockUsage, type ApplicationListRow } from '../../../lib/db';
 import { newCsrfCookieValue, csrfTokenFor } from '../../../lib/csrf';
 import { quickIncomeCheck, type BenefitAmounts } from '../../../lib/income-check';
+import { NEAR_FULL_AT, BLOCK_SIZE } from '../../../lib/pickup-numbers';
 export const prerender = false;
 
 const db = Astro.locals.runtime.env.DB;
@@ -14,6 +15,8 @@ const statusParam = url.searchParams.get('status') ?? 'new';
 const status = (['all', 'new', 'approved', 'denied'].includes(statusParam) ? statusParam : 'new') as
   'all' | 'new' | 'approved' | 'denied';
 const search = url.searchParams.get('q') ?? '';
+const townRaw = url.searchParams.get('town') ?? '';
+const town: number | 'mailed' | null = townRaw === 'mailed' ? 'mailed' : /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
 const undoRaw = url.searchParams.get('undo');
 const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
 
@@ -22,7 +25,7 @@ const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : new
 Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
 const csrfToken = await csrfTokenFor(Astro.locals.runtime.env.CSRF_SECRET, cookieValue);
 
-const rows = await listApplications(db, season, status, search);
+const rows = await listApplications(db, season, status, search, town);
 const incomeLimits = await getIncomeLimits(db, season);
 const rowBenefits = (r: ApplicationListRow): BenefitAmounts => ({
   foodShareAmount: r.food_share_amount,
@@ -37,6 +40,11 @@ const overLimit = (r: ApplicationListRow): boolean =>
 const seasons = await listSeasons(db);
 const yearsToShow = seasons.length > 0 ? seasons : [currentYear];
 
+const cities = await listCities(db);
+const selectedCity = typeof town === 'number' ? cities.find((c) => c.id === town) ?? null : null;
+const blockUsed = selectedCity && selectedCity.block_base > 0
+  ? await countBlockUsage(db, season, selectedCity.block_base) : 0;
+
 const tabs = [
   { key: 'new', label: 'To review' },
   { key: 'approved', label: 'Approved' },
@@ -44,12 +52,12 @@ const tabs = [
   { key: 'all', label: 'All' },
 ];
 const qs = (over: Record<string, string>) => {
-  const p = new URLSearchParams({ season: String(season), status, q: search, ...over });
+  const p = new URLSearchParams({ season: String(season), status, q: search, town: townRaw, ...over });
   return `?${p.toString()}`;
 };
 const statusWord = (s: string) => (s === 'new' ? 'To review' : s === 'approved' ? 'Approved' : 'Denied');
 const fmtDate = (iso: string) => iso.slice(0, 10);
-const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${status}&q=${encodeURIComponent(search)}`;
+const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${status}&q=${encodeURIComponent(search)}&town=${townRaw}`;
 ---
 <Admin title="Applications" heading={`Applications — ${season}`} back={{ href: '/admin', label: 'Back to admin home' }}>
   <p class="mt-1 text-lg text-stone-600">Help: click a name to review one application. Use the tabs to see who still needs review.</p>
@@ -78,6 +86,13 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
     </div>
   )}
 
+  {selectedCity && blockUsed >= NEAR_FULL_AT && (
+    <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="status">
+      <p class="text-lg font-semibold">{selectedCity.name} has used {blockUsed} of its {BLOCK_SIZE} numbers.
+        When they run out, type numbers in by hand on each application.</p>
+    </div>
+  )}
+
   <div class="mt-6 flex flex-wrap items-end gap-4">
     <nav aria-label="Filter by status" class="flex flex-wrap gap-2">
       {tabs.map((t) => (
@@ -95,6 +110,19 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
         <input type="text" name="q" value={search} class="ml-2 rounded border-2 border-stone-400 p-2" />
       </label>
       <button type="submit" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Search</button>
+    </form>
+    <form method="get" class="flex items-end gap-2">
+      <input type="hidden" name="status" value={status} />
+      <input type="hidden" name="season" value={String(season)} />
+      <input type="hidden" name="q" value={search} />
+      <label class="font-semibold">Show town
+        <select name="town" class="ml-2 rounded border-2 border-stone-400 p-2 text-lg">
+          <option value="">All towns</option>
+          {cities.map((c) => <option value={String(c.id)} selected={town === c.id}>{c.name}</option>)}
+          <option value="mailed" selected={town === 'mailed'}>Elderly &amp; disabled (mailed)</option>
+        </select>
+      </label>
+      <button type="submit" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Show</button>
     </form>
   </div>
 
@@ -120,6 +148,7 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
       <tr>
         <th scope="col" class="border-b-2 border-holly-700 p-3">Name</th>
         <th scope="col" class="border-b-2 border-holly-700 p-3">Town</th>
+        {town === 'mailed' && <th scope="col" class="border-b-2 border-holly-700 p-3">Address</th>}
         <th scope="col" class="border-b-2 border-holly-700 p-3">Applied</th>
         <th scope="col" class="border-b-2 border-holly-700 p-3">Status</th>
         <th scope="col" class="border-b-2 border-holly-700 p-3">PU #</th>
@@ -128,7 +157,7 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
     </thead>
     <tbody>
       {rows.length === 0 && (
-        <tr><td colspan="6" class="p-4">No applications here yet.</td></tr>
+        <tr><td colspan={town === 'mailed' ? 7 : 6} class="p-4">No applications here yet.</td></tr>
       )}
       {rows.map((r: ApplicationListRow) => (
         <tr>
@@ -137,6 +166,7 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
             {r.may_not_be_eligible === 1 && <span class="ml-2 rounded bg-gold-500 px-2 py-1 text-lg font-bold text-stone-900">Check eligibility</span>}
           </td>
           <td class="border-b border-stone-200 p-3">{r.city_name}</td>
+          {town === 'mailed' && <td class="border-b border-stone-200 p-3">{r.address}</td>}
           <td class="border-b border-stone-200 p-3 whitespace-nowrap">{fmtDate(r.submitted_at)}</td>
           <td class="border-b border-stone-200 p-3">{statusWord(r.status)}</td>
           <td class="border-b border-stone-200 p-3">{r.pu_number ?? ''}</td>
