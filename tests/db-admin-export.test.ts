@@ -127,4 +127,22 @@ describe('listApplicationsForExport binds both branches', () => {
       expect(quickIncomeCheck(under.employment_yearly, bens(under), under.member_count, limits).overLimit).toBe(false);
     } finally { await dispose(); }
   });
+
+  it('summarizes gift requests per person', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      await insertApplication(db, {
+        ...base, lastName: 'Gifty',
+        members: [
+          { name: 'Sue Smith', relationship: 'self', sex: 'F', age: 40, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
+          { name: 'Tim Smith', relationship: 'son', sex: 'M', age: 7, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: 'bike' },
+          { name: 'Ann Smith', relationship: 'daughter', sex: 'F', age: 5, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: 'books' },
+        ],
+      });
+      await insertApplication(db, { ...base, lastName: 'NoGifts' });
+      const rows = await listApplicationsForExport(db, 2026, 'all', '');
+      expect(rows.find((r) => r.last_name === 'Gifty')?.gifts_summary).toBe('Tim Smith: bike; Ann Smith: books');
+      expect(rows.find((r) => r.last_name === 'NoGifts')?.gifts_summary).toBe('');
+    } finally { await dispose(); }
+  });
 });

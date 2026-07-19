@@ -465,6 +465,7 @@ export type ExportRow = {
   other_income_amount: number | null;
   member_count: number;
   member_summary: string;
+  gifts_summary: string;
   employment_summary: string;
   employment_yearly: number;
   source: string;
@@ -514,6 +515,7 @@ export async function listApplicationsForExport(
              CASE WHEN m.disabled = 1 THEN ', disabled' ELSE '' END ||
              CASE WHEN m.part_time = 1 THEN ', part-time' ELSE '' END ||
              ')', '; '), '') AS member_summary,
+           COALESCE(GROUP_CONCAT(CASE WHEN m.gifts != '' THEN m.name || ': ' || m.gifts END, '; '), '') AS gifts_summary,
            (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
               FROM employers e WHERE e.application_id = a.id) AS employment_summary,
            ` +
