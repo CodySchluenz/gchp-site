@@ -106,4 +106,11 @@ describe('D1 schema integrity', () => {
     const cols = await db.prepare("SELECT name FROM pragma_table_info('applications')").all<{ name: string }>();
     expect(cols.results.map((c) => c.name)).toContain('source');
   });
+
+  it('0008 adds cities.pickup_day_id and settings.straggler_pickup_day_id', async () => {
+    const cityCols = await db.prepare("SELECT name FROM pragma_table_info('cities')").all<{ name: string }>();
+    expect(cityCols.results.map((c) => c.name)).toContain('pickup_day_id');
+    const settingsCols = await db.prepare("SELECT name FROM pragma_table_info('settings')").all<{ name: string }>();
+    expect(settingsCols.results.map((c) => c.name)).toContain('straggler_pickup_day_id');
+  });
 });

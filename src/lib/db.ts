@@ -19,12 +19,13 @@ export type Settings = {
   pickup_intro: string;
   pickup_footer: string;
   pdf_uploaded_at: string | null;
+  straggler_pickup_day_id: number | null;
 };
 
 export async function getSettings(db: D1Database): Promise<Settings> {
   const row = await db
     .prepare(
-      'SELECT applications_open, pickup_title, pickup_intro, pickup_footer, pdf_uploaded_at FROM settings WHERE id = 1',
+      'SELECT applications_open, pickup_title, pickup_intro, pickup_footer, pdf_uploaded_at, straggler_pickup_day_id FROM settings WHERE id = 1',
     )
     .first<Settings>();
   if (!row) throw new Error('settings row missing — run migrations');
@@ -88,11 +89,23 @@ export async function insertContactMessage(
     .run();
 }
 
-export type City = { id: number; name: string; block_base: number };
+export type City = { id: number; name: string; block_base: number; pickup_day_id: number | null };
 
 export async function listCities(db: D1Database): Promise<City[]> {
-  const { results } = await db.prepare('SELECT id, name, block_base FROM cities ORDER BY name').all<City>();
+  const { results } = await db.prepare('SELECT id, name, block_base, pickup_day_id FROM cities ORDER BY name').all<City>();
   return results;
+}
+
+// Assign (or clear, dayId = null) the pickup day a town's slips resolve to.
+// Unset means slips print with no date line — see migrations/0008.
+export async function setCityPickupDay(db: D1Database, cityId: number, dayId: number | null): Promise<void> {
+  await db.prepare('UPDATE cities SET pickup_day_id = ? WHERE id = ?').bind(dayId, cityId).run();
+}
+
+// Assign (or clear) the pickup day straggler applications resolve to,
+// independent of the applicant's town.
+export async function setStragglerPickupDay(db: D1Database, dayId: number | null): Promise<void> {
+  await db.prepare('UPDATE settings SET straggler_pickup_day_id = ? WHERE id = 1').bind(dayId).run();
 }
 
 export type NewApplication = CleanApplication & {
@@ -254,6 +267,7 @@ export type ApplicationDetail = {
   city_name: string;
   members: Record<string, unknown>[];
   employers: Record<string, unknown>[];
+  pickup_day: { date_text: string; description: string } | null;
 };
 
 export async function getApplicationDetail(db: D1Database, id: number): Promise<ApplicationDetail | null> {
@@ -279,6 +293,9 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
     city_name: city?.name ?? '',
     members: members.results,
     employers: employers.results,
+    // Not resolved here — this view is a single application lookup, not a
+    // slips run. Only listApprovedForSlips resolves town/straggler pickup days.
+    pickup_day: null,
   };
 }
 
@@ -553,16 +570,18 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
   // Fetch cities and members by JOINing to the approved-season set so the number
   // of BOUND PARAMETERS stays 1 regardless of how many apps are approved — D1
   // caps bound parameters at 100 per query, so an IN(...id list) would fail at scale.
-  const [cities, members] = await Promise.all([
+  // Pickup days (non-deleted) and the straggler day are both small, unfiltered
+  // reads — cheap to fetch every time so a deleted day silently stops resolving.
+  const [cities, members, pickupDays, settings] = await Promise.all([
     db
       .prepare(
-        `SELECT DISTINCT c.id, c.name FROM cities c
+        `SELECT DISTINCT c.id, c.name, c.pickup_day_id FROM cities c
          JOIN applications a ON a.city_id = c.id
          WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
            AND a.household_type NOT IN ('elderly', 'disabled')`,
       )
       .bind(seasonYear)
-      .all<{ id: number; name: string }>(),
+      .all<{ id: number; name: string; pickup_day_id: number | null }>(),
     db
       .prepare(
         `SELECT hm.* FROM household_members hm
@@ -573,22 +592,35 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
       )
       .bind(seasonYear)
       .all<Record<string, unknown>>(),
+    db
+      .prepare('SELECT id, date_text, description FROM pickup_days WHERE deleted_at IS NULL')
+      .all<{ id: number; date_text: string; description: string }>(),
+    db
+      .prepare('SELECT straggler_pickup_day_id FROM settings WHERE id = 1')
+      .first<{ straggler_pickup_day_id: number | null }>(),
   ]);
 
-  const cityById = new Map(cities.results.map((c) => [c.id, c.name]));
+  const cityById = new Map(cities.results.map((c) => [c.id, c]));
   const membersByApp = new Map<number, Record<string, unknown>[]>();
   for (const m of members.results) {
     const aid = m.application_id as number;
     if (!membersByApp.has(aid)) membersByApp.set(aid, []);
     membersByApp.get(aid)!.push(m);
   }
+  const dayById = new Map(pickupDays.results.map((d) => [d.id, { date_text: d.date_text, description: d.description }]));
+  const stragglerDayId = settings?.straggler_pickup_day_id ?? null;
 
-  return apps.results.map((app) => ({
-    app,
-    city_name: cityById.get(app.city_id as number) ?? '',
-    members: membersByApp.get(app.id as number) ?? [],
-    employers: [], // SlipCard does not render employers
-  }));
+  return apps.results.map((app) => {
+    const city = cityById.get(app.city_id as number);
+    const dayId = app.straggler === 1 ? stragglerDayId : (city?.pickup_day_id ?? null);
+    return {
+      app,
+      city_name: city?.name ?? '',
+      members: membersByApp.get(app.id as number) ?? [],
+      employers: [], // SlipCard does not render employers
+      pickup_day: dayId != null ? (dayById.get(dayId) ?? null) : null,
+    };
+  });
 }
 
 export async function setApplicationsOpen(db: D1Database, open: boolean): Promise<void> {

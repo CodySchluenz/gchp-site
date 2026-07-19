@@ -39,7 +39,7 @@ describe('application db helpers', () => {
   });
 
   it('listCities returns the seeded city', async () => {
-    expect(await listCities(db)).toEqual([{ id: 13, name: 'Lancaster', block_base: 800 }]);
+    expect(await listCities(db)).toEqual([{ id: 13, name: 'Lancaster', block_base: 800, pickup_day_id: null }]);
   });
 
   it('insertApplication writes the application, members, and employers', async () => {
