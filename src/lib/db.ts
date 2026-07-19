@@ -302,10 +302,14 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
     .all<Record<string, unknown>>();
   // Resolve the pickup day here too — single-slip reprints print through this
   // view, so it must agree with the bulk slips path (see pickupDayIdFor).
+  // Mailed households (elderly/disabled) receive by mail and never pick up, so
+  // a dated slip would mislead — always null for them. (The bulk slips path
+  // already excludes mailed households at the query level.)
+  const mailed = app.household_type === 'elderly' || app.household_type === 'disabled';
   const settings = await db
     .prepare('SELECT straggler_pickup_day_id FROM settings WHERE id = 1')
     .first<{ straggler_pickup_day_id: number | null }>();
-  const dayId = pickupDayIdFor(
+  const dayId = mailed ? null : pickupDayIdFor(
     app.straggler as number,
     settings?.straggler_pickup_day_id ?? null,
     city?.pickup_day_id ?? null,

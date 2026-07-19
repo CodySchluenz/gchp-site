@@ -78,6 +78,11 @@ describe('town pickup-day links', () => {
       expect((await getApplicationDetail(db, fam))?.pickup_day?.date_text).toBe('Dec 9');
       expect((await getApplicationDetail(db, str))?.pickup_day).toBeNull();
 
+      // Mailed households (elderly/disabled) never pick up: no date on a
+      // single-slip reprint even when their town HAS an assigned day.
+      const eld = await insertApplication(db, { ...base, lastName: 'Mailed', householdType: 'elderly' });
+      expect((await getApplicationDetail(db, eld))?.pickup_day).toBeNull();
+
       // Straggler day set: the straggler resolves that one.
       await setStragglerPickupDay(db, day);
       expect((await getApplicationDetail(db, str))?.pickup_day?.description).toContain('Lancaster');
