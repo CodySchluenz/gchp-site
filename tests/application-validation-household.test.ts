@@ -200,6 +200,19 @@ describe('doll choice', () => {
     expect(members[0].doll).toBe('');
     expect(errors).toEqual({});
   });
+
+  it('does not silently drop an extra row where only a doll is chosen', () => {
+    // A doll choice on an otherwise-blank extra card means someone started a
+    // person: ask for the name rather than discarding what they picked.
+    const errors: Errors = {};
+    const r = validateMembers({
+      ...fullValid,
+      member_name_2: '', member_relationship_2: '', member_sex_2: '', member_age_2: '',
+      member_pants_2: '', member_gifts_2: '', member_doll_2: 'black',
+    }, errors);
+    expect(r).toBeNull();
+    expect(errors.member_name_2).toBeTruthy();
+  });
 });
 
 describe('validateApplication', () => {
