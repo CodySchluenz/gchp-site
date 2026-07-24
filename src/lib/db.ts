@@ -497,7 +497,13 @@ export type ExportRow = {
   member_count: number;
   member_summary: string;
   gifts_summary: string;
+  dolls_summary: string;
   employment_summary: string;
+  thanksgiving_card: number;
+  food_card: number;
+  food_card_amount: number | null;
+  gift_card: number;
+  gift_card_amount: number | null;
   source: string;
 };
 
@@ -525,6 +531,7 @@ export async function listApplicationsForExport(
            a.years_received_help, a.adopted_last_year, a.bed_choice, a.bed_size,
            a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
            a.unemployment_weekly_amount, a.other_income_amount,
+           a.thanksgiving_card, a.food_card, a.food_card_amount, a.gift_card, a.gift_card_amount,
            COUNT(DISTINCT m.id) AS member_count,
            COALESCE(GROUP_CONCAT(
              m.name || ' (' ||
@@ -544,8 +551,10 @@ export async function listApplicationsForExport(
              || ', age ' || m.age ||
              CASE WHEN m.disabled = 1 THEN ', disabled' ELSE '' END ||
              CASE WHEN m.part_time = 1 THEN ', part-time' ELSE '' END ||
+             CASE WHEN m.doll = 'black' THEN ', black doll' WHEN m.doll = 'white' THEN ', white doll' ELSE '' END ||
              ')', '; '), '') AS member_summary,
            COALESCE(GROUP_CONCAT(CASE WHEN m.gifts != '' THEN m.name || ': ' || m.gifts END, '; '), '') AS gifts_summary,
+           COALESCE(GROUP_CONCAT(CASE m.doll WHEN 'black' THEN 'Black doll (' || m.name || ')' WHEN 'white' THEN 'White doll (' || m.name || ')' END, '; '), '') AS dolls_summary,
            (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
               FROM employers e WHERE e.application_id = a.id AND e.deleted_at IS NULL) AS employment_summary
     FROM applications a

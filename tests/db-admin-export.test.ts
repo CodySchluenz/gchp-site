@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { insertApplication, setApplicationStatus, setApplicationNotes, listApplicationsForExport, type NewApplication } from '../src/lib/db';
+import { insertApplication, setApplicationStatus, setApplicationNotes, setCardsGiven, listApplicationsForExport, type NewApplication } from '../src/lib/db';
 
 const base: NewApplication = {
   firstName: 'Sue', lastName: 'Smith', address: '1 Elm', cityId: 13, phone: '608', email: 'a@b.co',
@@ -118,6 +118,26 @@ describe('listApplicationsForExport binds both branches', () => {
       const rows = await listApplicationsForExport(db, 2026, 'all', '');
       expect(rows.find((r) => r.last_name === 'Gifty')?.gifts_summary).toBe('Tim Smith: bike; Ann Smith: books');
       expect(rows.find((r) => r.last_name === 'NoGifts')?.gifts_summary).toBe('');
+    } finally { await dispose(); }
+  });
+
+  it('exports dolls and card-tracking fields', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, {
+        ...base, lastName: 'Dolls',
+        members: [
+          { name: 'Mom Dolls', relationship: 'self', sex: 'F', age: 30, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
+          { name: 'Sue Dolls', relationship: 'daughter', sex: 'F', age: 5, doll: 'black', pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: 'blocks' },
+        ],
+      });
+      await setCardsGiven(db, id, { thanksgivingCard: true, foodCard: true, foodCardAmount: 50, giftCard: true, giftCardAmount: 25 });
+      const r = (await listApplicationsForExport(db, 2026, 'all', '')).find((x) => x.last_name === 'Dolls')!;
+      expect(r.dolls_summary).toBe('Black doll (Sue Dolls)');
+      expect(r.member_summary).toContain('black doll');
+      expect(r.thanksgiving_card).toBe(1);
+      expect(r.food_card_amount).toBe(50);
+      expect(r.gift_card_amount).toBe(25);
     } finally { await dispose(); }
   });
 });

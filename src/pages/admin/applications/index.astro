@@ -132,6 +132,7 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
       <button type="submit" class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Go</button>
     </form>
     <a href={exportHref} class="rounded bg-berry-700 px-4 py-2 font-bold text-white hover:bg-berry-800">Download list for Excel</a>
+    <a href={exportHref.replace('/export.xlsx', '/export-full.xlsx')} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Download everything (backup)</a>
     <button type="button" data-print class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Print this list</button>
     <a href={`/admin/applications/slips?season=${season}&town=${townRaw}`} class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Print packing slips</a>
     <a href="/admin/applications/new" class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Enter a paper application</a>
