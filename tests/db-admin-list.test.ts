@@ -16,7 +16,7 @@ function makeApp(over: Partial<NewApplication>): NewApplication {
     },
     members: [{ name: 'Sue Smith', relationship: 'self', sex: 'F', age: 40, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' }],
     goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00.000Z',
-    mayNotBeEligible: false, householdType: 'family',
+    householdType: 'family',
     ...over,
   };
 }
@@ -41,11 +41,6 @@ describe('listApplications / listSeasons', () => {
     const rows = await listApplications(db, 2026, 'all', '');
     expect(rows.map((r) => r.first_name)).toEqual(['Bob', 'Cy', 'Anna']); // newest submitted first
     expect(rows.every((r) => r.city_name === 'Lancaster')).toBe(true);
-
-    const row = rows[0];
-    expect(row.member_count).toBeGreaterThan(0);
-    expect(typeof row.employment_yearly).toBe('number');
-    expect('ssi_amount' in row).toBe(true);
   });
 
   it('filters by status', async () => {

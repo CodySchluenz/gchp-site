@@ -4,7 +4,6 @@ import Admin from '../../../layouts/Admin.astro';
 import { insertApplication, setApplicationNotes, setPuNumber, listCities } from '../../../lib/db';
 import { validateApplicationAdmin } from '../../../lib/validation/application-admin';
 import { MAX_MEMBERS, MAX_EMPLOYERS } from '../../../lib/validation/application';
-import { mayNotBeEligible } from '../../../lib/eligibility';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
 import { centralToday } from '../../../lib/dates';
 import MemberCard from '../../../components/apply/MemberCard.astro';
@@ -56,7 +55,6 @@ if (Astro.request.method === 'POST') {
           seasonYear,
           // Noon UTC is the same Central calendar day year-round.
           submittedAt: `${dateRaw}T12:00:00Z`,
-          mayNotBeEligible: mayNotBeEligible(result.clean),
           householdType,
           source: 'paper',
         });

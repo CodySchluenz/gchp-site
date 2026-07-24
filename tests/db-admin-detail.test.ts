@@ -14,7 +14,7 @@ const app: NewApplication = {
     { name: 'Tim Smith', relationship: 'son', sex: 'M', age: 7, pants: '8', shirtTop: '8', underwear: '', socks: '', diapers: '', gifts: 'legos' },
   ],
   goodDeed: 'shoveled snow', seasonYear: 2026, submittedAt: '2026-10-02T00:00:00Z',
-  mayNotBeEligible: false, householdType: 'family',
+  householdType: 'family',
 };
 
 describe('getApplicationDetail', () => {

@@ -44,7 +44,7 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
     childSupportAmount: amounts['child_support_amount'], childSupportFor: g('child_support_for'),
     unemploymentWeeklyAmount: amounts['unemployment_weekly_amount'], unemploymentFor: g('unemployment_for'),
     otherIncomeAmount: amounts['other_income_amount'], otherIncomeFor: g('other_income_for'),
-    goodDeed: g('good_deed'), parentageNote: g('parentage_note'), mayNotBeEligible: on('may_not_be_eligible'),
+    goodDeed: g('good_deed'), parentageNote: g('parentage_note'),
   };
   await updateApplicationFull(env.DB, id, edit);
   return Astro.redirect(`/admin/applications/${id}`, 303);
@@ -105,7 +105,6 @@ const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3 text-l
         <label class="flex items-center gap-3"><input type="checkbox" name="adopted_last_year" checked={a.adopted_last_year === 1} class="h-6 w-6" /> Adopted last year</label>
         <label class="flex items-center gap-3"><input type="checkbox" name="full_time_residence_confirmed" checked={a.full_time_residence_confirmed === 1} class="h-6 w-6" /> Confirmed they live in Grant County full time</label>
         <label class="flex items-center gap-3"><input type="checkbox" name="no_employment_confirmed" checked={a.no_employment_confirmed === 1} class="h-6 w-6" /> Confirmed no one in the household is employed</label>
-        <label class="flex items-center gap-3"><input type="checkbox" name="may_not_be_eligible" checked={a.may_not_be_eligible === 1} class="h-6 w-6" /> Flag: may not be eligible (needs a closer look)</label>
       </div>
 
       <h2 class="text-2xl font-bold text-holly-800">Income and benefits</h2>

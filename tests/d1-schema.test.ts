@@ -79,15 +79,6 @@ describe('D1 schema integrity', () => {
     expect(back).toMatchObject({ disabled: 1, part_time: 1, shoe: '10', coat: 'L', relationship: 'not_related' });
   });
 
-  it('income_limits table exists with the 2026 seed row', async () => {
-    const row = await db
-      .prepare('SELECT size_1, size_8, extra_person FROM income_limits WHERE season_year = 2026')
-      .first<{ size_1: number; size_8: number; extra_person: number }>();
-    expect(row?.size_1).toBe(31920);
-    expect(row?.size_8).toBe(111440);
-    expect(row?.extra_person).toBe(11360);
-  });
-
   it('0005 adds cities.block_base and applications.straggler', async () => {
     const city = await db
       .prepare('SELECT block_base FROM cities WHERE id = 13')
@@ -112,5 +103,18 @@ describe('D1 schema integrity', () => {
     expect(cityCols.results.map((c) => c.name)).toContain('pickup_day_id');
     const settingsCols = await db.prepare("SELECT name FROM pragma_table_info('settings')").all<{ name: string }>();
     expect(settingsCols.results.map((c) => c.name)).toContain('straggler_pickup_day_id');
+  });
+
+  it('season revisions: income_limits is gone; doll and card columns exist', async () => {
+    const t = await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'income_limits'").first();
+    expect(t).toBeNull();
+    const m = await db.prepare('PRAGMA table_info(household_members)').all<{ name: string }>();
+    expect(m.results.map((c) => c.name)).toContain('doll');
+    const a = await db.prepare('PRAGMA table_info(applications)').all<{ name: string }>();
+    const names = a.results.map((c) => c.name);
+    for (const col of ['thanksgiving_card', 'food_card', 'food_card_amount', 'gift_card', 'gift_card_amount']) {
+      expect(names).toContain(col);
+    }
+    expect(names).toContain('may_not_be_eligible'); // deliberately inert, still present
   });
 });

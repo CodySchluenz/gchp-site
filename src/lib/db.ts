@@ -1,5 +1,4 @@
 import type { CleanApplication } from './validation/application';
-import type { IncomeLimits } from './income-check';
 import { blockBaseFor, blockRange, BLOCK_SIZE } from './pickup-numbers';
 
 export type ContentBlock = { id: number; title: string; subtitle: string; body: string };
@@ -30,42 +29,6 @@ export async function getSettings(db: D1Database): Promise<Settings> {
     .first<Settings>();
   if (!row) throw new Error('settings row missing — run migrations');
   return row;
-}
-
-// Yearly income limits (200% of poverty), one row per season. Null = the
-// operator has not entered limits for that season yet — callers show a
-// "no limits entered" state, never a guess.
-export async function getIncomeLimits(db: D1Database, seasonYear: number): Promise<IncomeLimits | null> {
-  const row = await db
-    .prepare(
-      'SELECT size_1, size_2, size_3, size_4, size_5, size_6, size_7, size_8, extra_person FROM income_limits WHERE season_year = ?',
-    )
-    .bind(seasonYear)
-    .first<{
-      size_1: number; size_2: number; size_3: number; size_4: number;
-      size_5: number; size_6: number; size_7: number; size_8: number;
-      extra_person: number;
-    }>();
-  if (!row) return null;
-  return {
-    sizes: [row.size_1, row.size_2, row.size_3, row.size_4, row.size_5, row.size_6, row.size_7, row.size_8],
-    extraPerson: row.extra_person,
-  };
-}
-
-export async function saveIncomeLimits(db: D1Database, seasonYear: number, limits: IncomeLimits): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO income_limits (season_year, size_1, size_2, size_3, size_4, size_5, size_6, size_7, size_8, extra_person, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(season_year) DO UPDATE SET
-         size_1 = excluded.size_1, size_2 = excluded.size_2, size_3 = excluded.size_3,
-         size_4 = excluded.size_4, size_5 = excluded.size_5, size_6 = excluded.size_6,
-         size_7 = excluded.size_7, size_8 = excluded.size_8,
-         extra_person = excluded.extra_person, updated_at = excluded.updated_at`,
-    )
-    .bind(seasonYear, ...limits.sizes, limits.extraPerson, new Date().toISOString())
-    .run();
 }
 
 export type PickupDay = { id: number; date_text: string; description: string };
@@ -111,7 +74,6 @@ export async function setStragglerPickupDay(db: D1Database, dayId: number | null
 export type NewApplication = CleanApplication & {
   seasonYear: number;
   submittedAt: string;
-  mayNotBeEligible: boolean;
   householdType: 'family' | 'elderly' | 'disabled';
   source?: 'online' | 'paper';
 };
@@ -130,8 +92,8 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
          child_support_amount, child_support_for,
          unemployment_weekly_amount, unemployment_for,
          other_income_amount, other_income_for,
-         good_deed, may_not_be_eligible, parentage_note, source
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         good_deed, parentage_note, source
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       app.seasonYear, app.submittedAt, app.firstName, app.lastName, app.address, app.cityId,
@@ -147,7 +109,7 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
       app.benefits.childSupportAmount, app.benefits.childSupportFor,
       app.benefits.unemploymentWeeklyAmount, app.benefits.unemploymentFor,
       app.benefits.otherIncomeAmount, app.benefits.otherIncomeFor,
-      app.goodDeed, app.mayNotBeEligible ? 1 : 0, app.parentageNote ?? '', app.source ?? 'online',
+      app.goodDeed, app.parentageNote ?? '', app.source ?? 'online',
     )
     .run();
 
@@ -199,18 +161,9 @@ export type ApplicationListRow = {
   city_name: string;
   submitted_at: string;
   status: string;
-  may_not_be_eligible: number;
   pu_number: number | null;
   straggler: number;
   household_type: string;
-  member_count: number;
-  employment_yearly: number;
-  food_share_amount: number | null;
-  social_security_amount: number | null;
-  ssi_amount: number | null;
-  child_support_amount: number | null;
-  unemployment_weekly_amount: number | null;
-  other_income_amount: number | null;
 };
 
 // Escape LIKE metacharacters so operator-typed % or _ match literally.
@@ -227,12 +180,7 @@ export async function listApplications(
 ): Promise<ApplicationListRow[]> {
   const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const cols = `a.id, a.first_name, a.last_name, a.address, c.name AS city_name, a.submitted_at,
-                a.status, a.may_not_be_eligible, a.pu_number, a.straggler, a.household_type,
-                a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
-                a.unemployment_weekly_amount, a.other_income_amount,
-                (SELECT COUNT(*) FROM household_members m WHERE m.application_id = a.id AND m.deleted_at IS NULL) AS member_count,
-                (SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
-                   FROM employers e WHERE e.application_id = a.id AND e.deleted_at IS NULL) AS employment_yearly`;
+                a.status, a.pu_number, a.straggler, a.household_type`;
   const order = town !== null
     ? 'ORDER BY a.pu_number IS NULL, a.pu_number, a.id'
     : 'ORDER BY a.submitted_at DESC, a.id DESC';
@@ -457,7 +405,6 @@ export type ApplicationFullEdit = {
   otherIncomeFor: string;
   goodDeed: string;
   parentageNote: string;
-  mayNotBeEligible: boolean;
 };
 
 export async function updateApplicationFull(db: D1Database, id: number, f: ApplicationFullEdit): Promise<void> {
@@ -474,7 +421,7 @@ export async function updateApplicationFull(db: D1Database, id: number, f: Appli
          child_support_amount = ?, child_support_for = ?,
          unemployment_weekly_amount = ?, unemployment_for = ?,
          other_income_amount = ?, other_income_for = ?,
-         good_deed = ?, parentage_note = ?, may_not_be_eligible = ?
+         good_deed = ?, parentage_note = ?
        WHERE id = ?`,
     )
     .bind(
@@ -488,7 +435,7 @@ export async function updateApplicationFull(db: D1Database, id: number, f: Appli
       f.childSupportAmount, f.childSupportFor,
       f.unemploymentWeeklyAmount, f.unemploymentFor,
       f.otherIncomeAmount, f.otherIncomeFor,
-      f.goodDeed, f.parentageNote, f.mayNotBeEligible ? 1 : 0,
+      f.goodDeed, f.parentageNote,
       id,
     )
     .run();
@@ -506,7 +453,6 @@ export type ExportRow = {
   phone: string;
   email: string;
   household_type: string;
-  may_not_be_eligible: number;
   bags_count: number | null;
   parentage_note: string;
   admin_notes: string;
@@ -524,7 +470,6 @@ export type ExportRow = {
   member_summary: string;
   gifts_summary: string;
   employment_summary: string;
-  employment_yearly: number;
   source: string;
 };
 
@@ -547,7 +492,7 @@ export async function listApplicationsForExport(
     : 'ORDER BY a.submitted_at DESC, a.id DESC';
   const sql = `
     SELECT a.pu_number, a.status, a.submitted_at, a.decided_at, a.source, a.first_name, a.last_name, a.address,
-           c.name AS city_name, a.phone, a.email, a.household_type, a.may_not_be_eligible, a.bags_count,
+           c.name AS city_name, a.phone, a.email, a.household_type, a.bags_count,
            a.parentage_note, a.admin_notes,
            a.years_received_help, a.adopted_last_year, a.bed_choice, a.bed_size,
            a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
@@ -574,11 +519,7 @@ export async function listApplicationsForExport(
              ')', '; '), '') AS member_summary,
            COALESCE(GROUP_CONCAT(CASE WHEN m.gifts != '' THEN m.name || ': ' || m.gifts END, '; '), '') AS gifts_summary,
            (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
-              FROM employers e WHERE e.application_id = a.id AND e.deleted_at IS NULL) AS employment_summary,
-           ` +
-    // x52 must match the annualization in src/lib/income-check.ts
-    `(SELECT COALESCE(SUM(e.hourly_wage * e.hours_per_week * 52), 0)
-              FROM employers e WHERE e.application_id = a.id AND e.deleted_at IS NULL) AS employment_yearly
+              FROM employers e WHERE e.application_id = a.id AND e.deleted_at IS NULL) AS employment_summary
     FROM applications a
     JOIN cities c ON c.id = a.city_id
     LEFT JOIN household_members m ON m.application_id = a.id AND m.deleted_at IS NULL

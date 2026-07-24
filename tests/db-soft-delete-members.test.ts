@@ -3,7 +3,7 @@ import { getTestDb } from './helpers/d1';
 import {
   insertApplication, getApplicationDetail, insertMember, insertEmployer,
   softDeleteMember, restoreMember, softDeleteEmployer, restoreEmployer,
-  listApplications, listApplicationsForExport, listApprovedForSlips,
+  listApplicationsForExport, listApprovedForSlips,
   setApplicationStatus, assignPuNumber,
   listContactMessages, unreadMessageCount, softDeleteContactMessage, restoreContactMessage,
   type NewApplication,
@@ -16,14 +16,14 @@ const base: NewApplication = {
   yearsReceivedHelp: 0, adoptedLastYear: false, bedChoice: 'none', bedSize: null, noEmploymentConfirmed: true,
   employers: [], benefits: { foodShareAmount: null, socialSecurityAmount: null, socialSecurityFor: '', ssiAmount: null, ssiFor: '', childSupportAmount: null, childSupportFor: '', unemploymentWeeklyAmount: null, unemploymentFor: '', otherIncomeAmount: null, otherIncomeFor: '' },
   members: [{ name: 'Sue Smith', relationship: 'self', sex: 'F', age: 40, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' }],
-  goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', mayNotBeEligible: false, householdType: 'family',
+  goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', householdType: 'family',
 };
 
 const kid = { name: 'Kid Smith', relationship: 'son', sex: 'M', age: 8, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: 'bike' };
 const job = { employerName: 'Acme', workerName: 'Sue', hourlyWage: 15, hoursPerWeek: 40 };
 
 describe('soft-deleted household members', () => {
-  it('a soft-deleted member disappears from getApplicationDetail, list member_count, slips, and export member_summary/gifts_summary', async () => {
+  it('a soft-deleted member disappears from getApplicationDetail, slips, and export member_summary/gifts_summary', async () => {
     const { db, dispose } = await getTestDb();
     try {
       const id = await insertApplication(db, base); // Sue Smith @ position 1
@@ -35,9 +35,6 @@ describe('soft-deleted household members', () => {
 
       const detail = await getApplicationDetail(db, id);
       expect(detail!.members.map((m) => m.name)).toEqual(['Sue Smith']);
-
-      const rows = await listApplications(db, 2026, 'all', '');
-      expect(rows.find((r) => r.id === id)?.member_count).toBe(1);
 
       const exportRows = await listApplicationsForExport(db, 2026, 'all', '');
       const exp = exportRows.find((r) => r.last_name === 'Smith')!;
@@ -64,9 +61,6 @@ describe('soft-deleted household members', () => {
       const detail = await getApplicationDetail(db, id);
       expect(detail!.members.map((m) => m.name).sort()).toEqual(['Kid Smith', 'Sue Smith']);
 
-      const rows = await listApplications(db, 2026, 'all', '');
-      expect(rows.find((r) => r.id === id)?.member_count).toBe(2);
-
       const exportRows = await listApplicationsForExport(db, 2026, 'all', '');
       const exp = exportRows.find((r) => r.last_name === 'Smith')!;
       expect(exp.member_count).toBe(2);
@@ -89,7 +83,7 @@ describe('soft-deleted household members', () => {
 });
 
 describe('soft-deleted employers', () => {
-  it('a soft-deleted employer disappears from getApplicationDetail, list employment_yearly, and export employment_yearly/employment_summary', async () => {
+  it('a soft-deleted employer disappears from getApplicationDetail and export employment_summary', async () => {
     const { db, dispose } = await getTestDb();
     try {
       const id = await insertApplication(db, base);
@@ -100,12 +94,8 @@ describe('soft-deleted employers', () => {
       const detail = await getApplicationDetail(db, id);
       expect(detail!.employers).toHaveLength(0);
 
-      const rows = await listApplications(db, 2026, 'all', '');
-      expect(rows.find((r) => r.id === id)?.employment_yearly).toBe(0);
-
       const exportRows = await listApplicationsForExport(db, 2026, 'all', '');
       const exp = exportRows.find((r) => r.last_name === 'Smith')!;
-      expect(exp.employment_yearly).toBe(0);
       expect(exp.employment_summary).toBe('');
     } finally { await dispose(); }
   });
@@ -122,12 +112,8 @@ describe('soft-deleted employers', () => {
       const detail = await getApplicationDetail(db, id);
       expect(detail!.employers).toHaveLength(1);
 
-      const rows = await listApplications(db, 2026, 'all', '');
-      expect(rows.find((r) => r.id === id)?.employment_yearly).toBe(15 * 40 * 52);
-
       const exportRows = await listApplicationsForExport(db, 2026, 'all', '');
       const exp = exportRows.find((r) => r.last_name === 'Smith')!;
-      expect(exp.employment_yearly).toBe(15 * 40 * 52);
       expect(exp.employment_summary).toContain('Acme');
     } finally { await dispose(); }
   });

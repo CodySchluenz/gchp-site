@@ -14,7 +14,7 @@ const base: NewApplication = {
     { name: 'Sue', relationship: 'self', sex: 'F', age: 40, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
     { name: 'Jim', relationship: 'not_related', relationshipOther: '', sex: 'M', age: 38, disabled: true, partTime: false, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', shoe: '11', coat: 'XL', gifts: '' },
   ],
-  goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', mayNotBeEligible: false, householdType: 'family',
+  goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', householdType: 'family',
   parentageNote: 'Jim is nobody\'s parent.',
 };
 
@@ -43,7 +43,7 @@ describe('application relationships persistence', () => {
       yearsReceivedHelp: 0, adoptedLastYear: false, householdType: 'family', fullTimeResidenceConfirmed: true,
       noEmploymentConfirmed: true, foodShareAmount: null, socialSecurityAmount: null, socialSecurityFor: '',
       ssiAmount: null, ssiFor: '', childSupportAmount: null, childSupportFor: '', unemploymentWeeklyAmount: null,
-      unemploymentFor: '', otherIncomeAmount: null, otherIncomeFor: '', goodDeed: 'x', mayNotBeEligible: false,
+      unemploymentFor: '', otherIncomeAmount: null, otherIncomeFor: '', goodDeed: 'x',
       parentageNote: 'Edited note.',
     };
     await updateApplicationFull(db, id, edit);

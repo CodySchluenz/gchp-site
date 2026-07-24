@@ -12,7 +12,7 @@ const app: NewApplication = {
   employers: [],
   benefits: { foodShareAmount: null, socialSecurityAmount: null, socialSecurityFor: '', ssiAmount: null, ssiFor: '', childSupportAmount: null, childSupportFor: '', unemploymentWeeklyAmount: null, unemploymentFor: '', otherIncomeAmount: null, otherIncomeFor: '' },
   members: [{ name: 'Parent', relationship: 'self', sex: 'F', age: 40, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' }],
-  goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', mayNotBeEligible: false, householdType: 'family',
+  goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', householdType: 'family',
 };
 const kid = (name: string): MemberEdit => ({ name, relationship: 'child', sex: 'M', age: 8, pants: '8', shirtTop: 'M', underwear: '8', socks: 'M', diapers: '', gifts: 'lego' });
 

@@ -9,7 +9,7 @@ import { getSettings, listCities } from '../lib/db';
 import { newCsrfCookieValue, csrfTokenFor } from '../lib/csrf';
 import { MAX_MEMBERS, MAX_EMPLOYERS } from '../lib/validation/application';
 import { validateApplication } from '../lib/validation/application';
-import { mayNotBeEligible, suggestHouseholdType } from '../lib/eligibility';
+import { suggestHouseholdType } from '../lib/eligibility';
 import { insertApplication } from '../lib/db';
 import { centralYear } from '../lib/dates';
 import { renderApplicationReceivedEmail } from '../lib/email/render';
@@ -86,7 +86,6 @@ if (Astro.request.method === 'POST' && open) {
           // past midnight UTC.
           seasonYear: centralYear(),
           submittedAt,
-          mayNotBeEligible: mayNotBeEligible(result.clean),
           householdType: suggestHouseholdType(result.clean),
         };
         await insertApplication(env.DB, appRecord);

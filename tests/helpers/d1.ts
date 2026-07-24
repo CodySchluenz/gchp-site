@@ -8,7 +8,7 @@ type Env = { DB: D1Database };
 export async function getTestDb(): Promise<{ db: D1Database; dispose: () => Promise<void> }> {
   const proxy = await getPlatformProxy<Env>({ persist: false });
   const db = proxy.env.DB;
-  for (const file of ['migrations/0001_init.sql', 'migrations/0003_relationships.sql', 'migrations/0004_income_limits.sql', 'migrations/0005_town_blocks.sql', 'migrations/0006_decided_at.sql', 'migrations/0007_source.sql', 'migrations/0008_town_pickup_days.sql', 'migrations/0009_soft_delete_members.sql']) {
+  for (const file of ['migrations/0001_init.sql', 'migrations/0003_relationships.sql', 'migrations/0004_income_limits.sql', 'migrations/0005_town_blocks.sql', 'migrations/0006_decided_at.sql', 'migrations/0007_source.sql', 'migrations/0008_town_pickup_days.sql', 'migrations/0009_soft_delete_members.sql', 'migrations/0010_dolls_and_cards.sql', 'migrations/0011_drop_income_limits.sql']) {
     const sql = readFileSync(file, 'utf8')
       .split('\n')
       .filter((l: string) => !l.trim().startsWith('--'))

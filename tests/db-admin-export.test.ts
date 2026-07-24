@@ -11,7 +11,7 @@ const base: NewApplication = {
     { name: 'Sue Smith', relationship: 'self', sex: 'F', age: 40, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
     { name: 'Tim Smith', relationship: 'son', sex: 'M', age: 7, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
   ],
-  goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', mayNotBeEligible: false, householdType: 'family',
+  goodDeed: 'x', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', householdType: 'family',
 };
 
 describe('listApplicationsForExport binds both branches', () => {
@@ -59,7 +59,6 @@ describe('listApplicationsForExport binds both branches', () => {
       expect(r.bed_choice).toBe('blanket');
       expect(r.ssi_amount).toBe(520);
       expect(r.employment_summary).toContain('Acme');
-      expect(r.employment_yearly).toBe(15 * 40 * 52);
       expect(id).toBeGreaterThan(0);
     } finally { await dispose(); }
   });
@@ -101,30 +100,6 @@ describe('listApplicationsForExport binds both branches', () => {
       expect(r.member_summary).toContain(', part-time');
       expect(r.parentage_note).toBe('Dad has the kids Mon-Wed.');
       expect(r.admin_notes).toBe('Verified income 2026-10-02.');
-    } finally { await dispose(); }
-  });
-
-  it('provides what the income-check flag needs, over and under', async () => {
-    const { db, dispose } = await getTestDb();
-    try {
-      await insertApplication(db, {
-        ...base, lastName: 'Overby',
-        employers: [{ employerName: 'BigCo', workerName: 'P', hourlyWage: 50, hoursPerWeek: 40 }],
-      }); // 50*40*52 = 104,000 > 42,300-ish limit for household of 2
-      await insertApplication(db, { ...base, lastName: 'Underby' });
-      const rows = await listApplicationsForExport(db, 2026, 'all', '');
-      const over = rows.find((r) => r.last_name === 'Overby')!;
-      const under = rows.find((r) => r.last_name === 'Underby')!;
-      const { quickIncomeCheck } = await import('../src/lib/income-check');
-      const { getIncomeLimits } = await import('../src/lib/db');
-      const limits = await getIncomeLimits(db, 2026);
-      const bens = (r: typeof over) => ({
-        foodShareAmount: r.food_share_amount, socialSecurityAmount: r.social_security_amount,
-        ssiAmount: r.ssi_amount, childSupportAmount: r.child_support_amount,
-        unemploymentWeeklyAmount: r.unemployment_weekly_amount, otherIncomeAmount: r.other_income_amount,
-      });
-      expect(quickIncomeCheck(over.employment_yearly, bens(over), over.member_count, limits).overLimit).toBe(true);
-      expect(quickIncomeCheck(under.employment_yearly, bens(under), under.member_count, limits).overLimit).toBe(false);
     } finally { await dispose(); }
   });
 

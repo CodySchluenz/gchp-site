@@ -12,7 +12,7 @@ const app: NewApplication = {
   employers: [],
   benefits: { foodShareAmount: null, socialSecurityAmount: null, socialSecurityFor: '', ssiAmount: null, ssiFor: '', childSupportAmount: null, childSupportFor: '', unemploymentWeeklyAmount: null, unemploymentFor: '', otherIncomeAmount: null, otherIncomeFor: '' },
   members: [{ name: 'Parent', relationship: 'self', sex: 'F', age: 40, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' }],
-  goodDeed: 'first', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', mayNotBeEligible: false, householdType: 'family',
+  goodDeed: 'first', seasonYear: 2026, submittedAt: '2026-10-01T00:00:00Z', householdType: 'family',
 };
 
 describe('updateApplicationFull', () => {
@@ -30,7 +30,7 @@ describe('updateApplicationFull', () => {
       foodShareAmount: 250, socialSecurityAmount: 800, socialSecurityFor: 'self',
       ssiAmount: null, ssiFor: '', childSupportAmount: 120.5, childSupportFor: 'kids',
       unemploymentWeeklyAmount: null, unemploymentFor: '', otherIncomeAmount: null, otherIncomeFor: '',
-      goodDeed: 'second', parentageNote: 'note', mayNotBeEligible: true,
+      goodDeed: 'second', parentageNote: 'note',
     };
     await updateApplicationFull(db, id, edit);
     const a = (await getApplicationDetail(db, id))!.app;
@@ -42,7 +42,6 @@ describe('updateApplicationFull', () => {
     expect(a.child_support_amount).toBe(120.5);
     expect(a.ssi_amount).toBe(null);
     expect(a.good_deed).toBe('second');
-    expect(a.may_not_be_eligible).toBe(1);
     expect(a.household_type).toBe('elderly');
     expect(a.address).toBe('2 Ave');
     expect((await getApplicationDetail(db, id))!.members).toHaveLength(1); // members untouched by a row update

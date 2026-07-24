@@ -24,7 +24,7 @@ const app: NewApplication = {
   ],
   goodDeed: 'I shoveled snow.',
   seasonYear: 2026, submittedAt: '2026-10-02T15:00:00.000Z',
-  mayNotBeEligible: false, householdType: 'family',
+  householdType: 'family',
 };
 
 describe('application db helpers', () => {
@@ -55,7 +55,6 @@ describe('application db helpers', () => {
     expect(row.ssi_amount).toBe(450);
     expect(row.ssi_for).toBe('Sue');
     expect(row.social_security_amount).toBeNull();
-    expect(row.may_not_be_eligible).toBe(0);
     expect(row.household_type).toBe('family');
     expect(row.pu_number).toBeNull();
 

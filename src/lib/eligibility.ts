@@ -1,13 +1,9 @@
-// Eligibility is NEVER enforced by the form (owner decision 2026-07-12):
-// the flag only marks applications for the admin's human review.
+// The form NEVER decides or flags eligibility (owner decisions 2026-07-12
+// and 2026-07-23): Sherlyn verifies every application by hand. This helper
+// only suggests the household TYPE, which routes elderly/disabled
+// households to the mailed 2500 pickup block — workflow, not eligibility.
 
 type HouseholdShape = { permanentlyDisabled: boolean; members: { age: number }[] };
-
-export function mayNotBeEligible(app: HouseholdShape): boolean {
-  const hasChild = app.members.some((m) => m.age < 18);
-  const headIsSenior = (app.members[0]?.age ?? 0) >= 65;
-  return !hasChild && !headIsSenior && !app.permanentlyDisabled;
-}
 
 export function suggestHouseholdType(app: HouseholdShape): 'family' | 'elderly' | 'disabled' {
   if (app.permanentlyDisabled) return 'disabled';

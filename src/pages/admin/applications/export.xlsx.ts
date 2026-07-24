@@ -1,7 +1,6 @@
 import type { APIRoute } from 'astro';
-import { listApplicationsForExport, getIncomeLimits, latestSeason } from '../../../lib/db';
+import { listApplicationsForExport, latestSeason } from '../../../lib/db';
 import { buildXlsx } from '../../../lib/xlsx';
-import { quickIncomeCheck, incomeFlagLabel, type BenefitAmounts } from '../../../lib/income-check';
 import { centralDateTime } from '../../../lib/dates';
 
 export const prerender = false;
@@ -22,27 +21,17 @@ export const GET: APIRoute = async ({ locals, url }) => {
     ['Food Share', r.food_share_amount], ['Social Security', r.social_security_amount], ['SSI', r.ssi_amount],
     ['Child support', r.child_support_amount], ['Unemployment', r.unemployment_weekly_amount], ['Other', r.other_income_amount],
   ].filter(([, v]) => v != null).map(([k, v]) => `${k} $${v}`).join('; ');
-  const limits = await getIncomeLimits(locals.runtime.env.DB, season);
-  const incomeFlag = (r: (typeof rows)[number]): string => {
-    const benefits: BenefitAmounts = {
-      foodShareAmount: r.food_share_amount, socialSecurityAmount: r.social_security_amount,
-      ssiAmount: r.ssi_amount, childSupportAmount: r.child_support_amount,
-      unemploymentWeeklyAmount: r.unemployment_weekly_amount, otherIncomeAmount: r.other_income_amount,
-    };
-    const q = quickIncomeCheck(r.employment_yearly, benefits, r.member_count, limits);
-    return incomeFlagLabel(q.overLimit);
-  };
   const headers = [
     'Pickup #', 'Status', 'Decided', 'Applied', 'First name', 'Last name', 'Address', 'Town',
-    'Phone', 'Email', 'Household type', 'Check eligibility', 'Bags',
-    'People count', 'People', 'Gifts requested', 'Years received', 'Adopted last year', 'Bed', 'Bed size', 'Income', 'Jobs', 'Income check', 'Parentage note', 'Your notes',
+    'Phone', 'Email', 'Household type', 'Bags',
+    'People count', 'People', 'Gifts requested', 'Years received', 'Adopted last year', 'Bed', 'Bed size', 'Income', 'Jobs', 'Parentage note', 'Your notes',
     'Source',
   ];
   const data: (string | number | null)[][] = rows.map((r) => [
     r.pu_number, r.status, centralDateTime(r.decided_at ?? ''), centralDateTime(r.submitted_at), r.first_name, r.last_name, r.address,
-    r.city_name, r.phone, r.email, r.household_type, r.may_not_be_eligible === 1 ? 'yes' : '', r.bags_count,
+    r.city_name, r.phone, r.email, r.household_type, r.bags_count,
     r.member_count, r.member_summary, r.gifts_summary, r.years_received_help, r.adopted_last_year === 1 ? 'yes' : '',
-    r.bed_choice, r.bed_size ?? '', incomeSummary(r), r.employment_summary, incomeFlag(r), r.parentage_note, r.admin_notes,
+    r.bed_choice, r.bed_size ?? '', incomeSummary(r), r.employment_summary, r.parentage_note, r.admin_notes,
     r.source,
   ]);
   const workbook = buildXlsx('Applications', headers, data);
