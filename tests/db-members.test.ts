@@ -43,6 +43,16 @@ describe('household member admin helpers', () => {
     expect(detail!.members.map((m) => m.position)).toEqual([1, 2]);
   });
 
+  it('persists the doll choice through insert and update', async () => {
+    const id = await insertApplication(db, app);
+    const mid = await insertMember(db, id, { ...kid('Sam'), doll: 'black' });
+    let row = await db.prepare('SELECT doll FROM household_members WHERE id = ?').bind(mid).first<{ doll: string }>();
+    expect(row!.doll).toBe('black');
+    await updateMember(db, mid, id, { ...kid('Sam'), doll: 'white' });
+    row = await db.prepare('SELECT doll FROM household_members WHERE id = ?').bind(mid).first<{ doll: string }>();
+    expect(row!.doll).toBe('white');
+  });
+
   it('does not update or delete a member belonging to a different application', async () => {
     const one = await insertApplication(db, app);
     const two = await insertApplication(db, app);

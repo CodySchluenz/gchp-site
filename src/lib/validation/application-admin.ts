@@ -133,9 +133,12 @@ export function validateApplicationAdmin(
       coat: get(input, `member_coat_${i}`),
     };
     const gifts = get(input, `member_gifts_${i}`);
+    const dollRaw = get(input, `member_doll_${i}`);
+    // A <select> can only be wrong if tampered with — coerce, never error.
+    const doll = (dollRaw === 'black' || dollRaw === 'white' ? dollRaw : '') as '' | 'black' | 'white';
     const contentBlank =
       name === '' && sexRaw === '' && ageRaw === '' && relationshipOther === '' &&
-      Object.values(sizes).every((s) => s === '') && gifts === '' &&
+      Object.values(sizes).every((s) => s === '') && gifts === '' && dollRaw === '' &&
       !isOn(input, `member_disabled_${i}`) && !isOn(input, `member_part_time_${i}`);
     if (contentBlank) continue; // relationship-only rows are form prefill, not content
     if (name === '') {
@@ -155,6 +158,7 @@ export function validateApplicationAdmin(
       age,
       disabled: isOn(input, `member_disabled_${i}`),
       partTime: isOn(input, `member_part_time_${i}`),
+      doll,
       ...sizes,
       gifts,
     });

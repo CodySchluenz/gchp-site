@@ -118,7 +118,7 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
         <h2 class="text-2xl font-bold text-holly-800">People ({detail.members.length})</h2>
         <table class="mt-2 w-full border-collapse text-left">
           <caption class="sr-only">People in this household</caption>
-          <thead><tr><th scope="col" class="border-b p-2">Name</th><th scope="col" class="border-b p-2">Relationship</th><th scope="col" class="border-b p-2">Sex</th><th scope="col" class="border-b p-2">Age</th><th scope="col" class="border-b p-2">Sizes</th><th scope="col" class="border-b p-2">Gifts wanted</th></tr></thead>
+          <thead><tr><th scope="col" class="border-b p-2">Name</th><th scope="col" class="border-b p-2">Relationship</th><th scope="col" class="border-b p-2">Sex</th><th scope="col" class="border-b p-2">Age</th><th scope="col" class="border-b p-2">Sizes</th><th scope="col" class="border-b p-2">Gifts wanted</th><th scope="col" class="border-b p-2">Doll</th></tr></thead>
           <tbody>
             {detail.members.map((m) => (
               <tr>
@@ -135,6 +135,7 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
                 <td class="border-b p-2">{m.age}</td>
                 <td class="border-b p-2">{[['Pants', m.pants], ['Shirt', m.shirt_top], ['Underwear', m.underwear], ['Socks', m.socks], ['Shoe', m.shoe], ['Coat', m.coat], ['Diapers', m.diapers]].filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ') || '—'}</td>
                 <td class="border-b p-2">{m.gifts || '—'}</td>
+                <td class="border-b p-2">{m.doll === 'black' ? 'Black doll' : m.doll === 'white' ? 'White doll' : '—'}</td>
               </tr>
             ))}
           </tbody>

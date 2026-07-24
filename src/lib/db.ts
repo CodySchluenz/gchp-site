@@ -121,12 +121,12 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
         .prepare(
           `INSERT INTO household_members
              (application_id, position, name, relationship, relationship_other, sex, age,
-              disabled, part_time, pants, shirt_top, underwear, socks, diapers, shoe, coat, gifts)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              disabled, part_time, doll, pants, shirt_top, underwear, socks, diapers, shoe, coat, gifts)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           appId, i + 1, m.name, m.relationship, m.relationshipOther ?? '', m.sex, m.age,
-          m.disabled ? 1 : 0, m.partTime ? 1 : 0,
+          m.disabled ? 1 : 0, m.partTime ? 1 : 0, m.doll ?? '',
           m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.shoe ?? '', m.coat ?? '', m.gifts,
         ),
     ),
@@ -747,7 +747,7 @@ export async function movePickupDay(db: D1Database, id: number, dir: 'up' | 'dow
 
 export type MemberEdit = {
   name: string; relationship: string; relationshipOther?: string; sex: string; age: number;
-  disabled?: boolean; partTime?: boolean;
+  disabled?: boolean; partTime?: boolean; doll?: string;
   pants: string; shirtTop: string; underwear: string; socks: string; diapers: string; shoe?: string; coat?: string; gifts: string;
 };
 
@@ -763,12 +763,12 @@ export async function insertMember(db: D1Database, applicationId: number, m: Mem
     .prepare(
       `INSERT INTO household_members
          (application_id, position, name, relationship, relationship_other, sex, age,
-          disabled, part_time, pants, shirt_top, underwear, socks, diapers, shoe, coat, gifts)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          disabled, part_time, doll, pants, shirt_top, underwear, socks, diapers, shoe, coat, gifts)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       applicationId, (max?.m ?? 0) + 1, m.name, m.relationship, m.relationshipOther ?? '', m.sex, m.age,
-      m.disabled ? 1 : 0, m.partTime ? 1 : 0,
+      m.disabled ? 1 : 0, m.partTime ? 1 : 0, m.doll ?? '',
       m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.shoe ?? '', m.coat ?? '', m.gifts,
     )
     .run();
@@ -780,13 +780,13 @@ export async function updateMember(db: D1Database, id: number, applicationId: nu
     .prepare(
       `UPDATE household_members SET
          name = ?, relationship = ?, relationship_other = ?, sex = ?, age = ?,
-         disabled = ?, part_time = ?,
+         disabled = ?, part_time = ?, doll = ?,
          pants = ?, shirt_top = ?, underwear = ?, socks = ?, diapers = ?, shoe = ?, coat = ?, gifts = ?
        WHERE id = ? AND application_id = ?`,
     )
     .bind(
       m.name, m.relationship, m.relationshipOther ?? '', m.sex, m.age,
-      m.disabled ? 1 : 0, m.partTime ? 1 : 0,
+      m.disabled ? 1 : 0, m.partTime ? 1 : 0, m.doll ?? '',
       m.pants, m.shirtTop, m.underwear, m.socks, m.diapers, m.shoe ?? '', m.coat ?? '', m.gifts, id, applicationId,
     )
     .run();

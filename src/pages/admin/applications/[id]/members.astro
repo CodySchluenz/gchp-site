@@ -30,7 +30,7 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   if (name === '' || age === null) return Astro.redirect(`${base}?error=fields`, 303);
   const m: MemberEdit = {
     name, relationship: g('relationship'), relationshipOther: g('relationship_other'), sex: g('sex'), age,
-    disabled: g('disabled') === 'on', partTime: g('part_time') === 'on',
+    disabled: g('disabled') === 'on', partTime: g('part_time') === 'on', doll: g('doll'),
     pants: g('pants'), shirtTop: g('shirt_top'), underwear: g('underwear'), socks: g('socks'),
     diapers: g('diapers'), shoe: g('shoe'), coat: g('coat'), gifts: g('gifts'),
   };
@@ -107,6 +107,13 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
               <label class="block font-semibold">Shoe size<input class={input} type="text" name="shoe" value={m.shoe ?? ''} /></label>
               <label class="block font-semibold">Coat size<input class={input} type="text" name="coat" value={m.coat ?? ''} /></label>
               <label class="block font-semibold">Gifts / toys wanted<input class={input} type="text" name="gifts" value={m.gifts} /></label>
+              <label class="block font-semibold">Doll
+                <select class={input} name="doll">
+                  <option value="" selected={(m.doll ?? '') === ''}>No doll</option>
+                  <option value="black" selected={m.doll === 'black'}>Black doll</option>
+                  <option value="white" selected={m.doll === 'white'}>White doll</option>
+                </select>
+              </label>
             </div>
             <div class="flex flex-wrap gap-6">
               <label class="flex items-center gap-2"><input type="checkbox" name="disabled" checked={m.disabled === 1} class="h-6 w-6" /> Permanently disabled</label>
@@ -146,6 +153,13 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
               <label class="block font-semibold">Shoe size<input class={input} type="text" name="shoe" /></label>
               <label class="block font-semibold">Coat size<input class={input} type="text" name="coat" /></label>
               <label class="block font-semibold">Gifts / toys wanted<input class={input} type="text" name="gifts" /></label>
+              <label class="block font-semibold">Doll
+                <select class={input} name="doll">
+                  <option value="">No doll</option>
+                  <option value="black">Black doll</option>
+                  <option value="white">White doll</option>
+                </select>
+              </label>
             </div>
             <div class="flex flex-wrap gap-6">
               <label class="flex items-center gap-2"><input type="checkbox" name="disabled" class="h-6 w-6" /> Permanently disabled</label>

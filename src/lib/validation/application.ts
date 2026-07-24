@@ -300,6 +300,7 @@ export type MemberClean = {
   age: number;
   disabled?: boolean;
   partTime?: boolean;
+  doll?: '' | 'black' | 'white';
   pants: string;
   shirtTop: string;
   underwear: string;
@@ -333,10 +334,13 @@ export function validateMembers(input: ApplicationInput, errors: Errors): Member
       coat: get(input, `member_coat_${i}`),
     };
     const gifts = get(input, `member_gifts_${i}`);
+    const dollRaw = get(input, `member_doll_${i}`);
+    // A <select> can only be wrong if tampered with — coerce, never error.
+    const doll = (dollRaw === 'black' || dollRaw === 'white' ? dollRaw : '') as '' | 'black' | 'white';
 
     const allBlank =
       name === '' && relationship === '' && relationshipOther === '' && sex === '' && ageRaw === '' &&
-      Object.values(sizes).every((s) => s === '') && gifts === '';
+      Object.values(sizes).every((s) => s === '') && gifts === '' && dollRaw === '';
     if (allBlank && i > 1) continue; // blank extra card: skip
 
     if (name === '') errors[`member_name_${i}`] = "Please give this person's first and last name.";
@@ -358,7 +362,7 @@ export function validateMembers(input: ApplicationInput, errors: Errors): Member
     }
     members.push({
       name, relationship, relationshipOther, sex: sex as 'M' | 'F', age: age as number,
-      disabled, partTime, ...sizes, gifts,
+      disabled, partTime, doll, ...sizes, gifts,
     });
   }
 

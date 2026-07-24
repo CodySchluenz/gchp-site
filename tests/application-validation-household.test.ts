@@ -179,6 +179,29 @@ describe('validateMembers', () => {
   });
 });
 
+describe('doll choice', () => {
+  it('accepts black and white and defaults blank', () => {
+    const errors: Errors = {};
+    const members = validateMembers({ ...fullValid, member_doll_1: 'black' }, errors)!;
+    expect(members[0].doll).toBe('black');
+    expect(errors).toEqual({});
+  });
+
+  it('coerces junk to no-doll instead of erroring the applicant', () => {
+    const errors: Errors = {};
+    const members = validateMembers({ ...fullValid, member_doll_1: 'purple' }, errors)!;
+    expect(members[0].doll).toBe('');
+    expect(errors).toEqual({}); // a tampered select must never block a family
+  });
+
+  it('defaults to no-doll when not present at all', () => {
+    const errors: Errors = {};
+    const members = validateMembers(fullValid, errors)!;
+    expect(members[0].doll).toBe('');
+    expect(errors).toEqual({});
+  });
+});
+
 describe('validateApplication', () => {
   it('returns spam for a filled honeypot', () => {
     expect(validateApplication({ ...fullValid, website: 'http://spam' })).toEqual({ ok: true, spam: true });

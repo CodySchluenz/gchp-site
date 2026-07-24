@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { listCities, insertApplication, type NewApplication } from '../src/lib/db';
+import { listCities, insertApplication, getApplicationDetail, type NewApplication } from '../src/lib/db';
 
 const app: NewApplication = {
   firstName: 'Sue', lastName: 'Smith', address: '1 Elm St', cityId: 13,
@@ -69,6 +69,20 @@ describe('application db helpers', () => {
       .prepare('SELECT * FROM employers WHERE application_id = ?').bind(id).all<any>();
     expect(employers.results).toHaveLength(1);
     expect(employers.results[0]).toMatchObject({ employer_name: 'Acme', hourly_wage: 15.5 });
+  });
+
+  it('persists a member doll choice and returns it in getApplicationDetail', async () => {
+    const withDoll: NewApplication = {
+      ...app,
+      members: [
+        { ...app.members[0] },
+        { ...app.members[1], doll: 'white' },
+      ],
+    };
+    const id = await insertApplication(db, withDoll);
+    const detail = await getApplicationDetail(db, id);
+    expect(detail!.members[0].doll).toBe('');
+    expect(detail!.members[1].doll).toBe('white');
   });
 
   it('stores bed_size as NULL when the choice is none', async () => {
