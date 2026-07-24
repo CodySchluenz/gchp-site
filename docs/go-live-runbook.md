@@ -136,6 +136,18 @@ error on the live site until the matching migration is applied.
         disabled/part-time, shoe/coat sizes, plus a parentage note and admin-only
         notes). Every statement is `ALTER TABLE ... ADD COLUMN ... NOT NULL DEFAULT ''`
         / `DEFAULT 0` — **additive and non-destructive**; existing rows keep working.
+- [ ] **Season-revisions batch (July 2026) — read before deploying it.** Three
+      migrations are pending together: `0009` (soft-delete columns), `0010`
+      (doll + card-tracking columns), and `0011` (**drops** the old
+      `income_limits` table). Because `0011` removes a table the OLD code
+      still reads, run the migrate and the deploy **back-to-back in one
+      sitting**:
+      1. `npm run db:migrate:remote`  (applies 0009 + 0010 + 0011)
+      2. `npm run build` then `npx wrangler pages deploy dist --project-name gchp-site`
+      **Between step 1 and step 2 the admin applications screens will show
+      errors — that is expected and lasts only until the deploy finishes.
+      Do not stop halfway.** The public site is unaffected (applications are
+      closed; nothing public reads the dropped table).
 - [ ] **4. Build and deploy:** `npm run build` then
       `npx wrangler pages deploy dist --project-name gchp-site`.
 - [ ] **5. Verify on the live site** (`grantcountyholidayproject.org`):
