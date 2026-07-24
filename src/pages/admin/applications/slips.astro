@@ -37,7 +37,7 @@ const viewLabel =
       {town !== 'mailed' && <> · <button type="button" data-print>Print all {slips.length} slips</button></>}</p>
     <h1 style="font-size:20px;">Approved pickup slips — {viewLabel} — {season} ({slips.length})</h1>
     {town === 'mailed' && (
-      <p>Mailed households don't get pickup slips or box cards — they receive gift and food cards by mail. Use the applications list's "Elderly &amp; disabled (mailed)" view to print the mail list with addresses.</p>
+      <p>Mailed households don't get packing slips — they receive gift and food cards by mail. Use the applications list's "Elderly &amp; disabled (mailed)" view to print the mail list with addresses.</p>
     )}
     {town !== 'mailed' && slips.length === 0 && <p>No approved applications yet.</p>}
     {slips.map((d) => <SlipCard detail={d} />)}
