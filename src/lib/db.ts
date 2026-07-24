@@ -367,6 +367,34 @@ export async function setApplicationNotes(db: D1Database, id: number, notes: str
   await db.prepare('UPDATE applications SET admin_notes = ? WHERE id = ?').bind(notes, id).run();
 }
 
+// Sherlyn hands a Thanksgiving card to the first 30 applicants each season
+// and tracks food/gift cards per household (mostly the mailed ones). She
+// records them here herself — the site never marks anything automatically.
+export const THANKSGIVING_CARD_TOTAL = 30;
+
+export type CardsGiven = {
+  thanksgivingCard: boolean;
+  foodCard: boolean; foodCardAmount: number | null;
+  giftCard: boolean; giftCardAmount: number | null;
+};
+
+export async function setCardsGiven(db: D1Database, id: number, c: CardsGiven): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE applications SET thanksgiving_card = ?, food_card = ?, food_card_amount = ?, gift_card = ?, gift_card_amount = ? WHERE id = ?`,
+    )
+    .bind(c.thanksgivingCard ? 1 : 0, c.foodCard ? 1 : 0, c.foodCardAmount, c.giftCard ? 1 : 0, c.giftCardAmount, id)
+    .run();
+}
+
+export async function thanksgivingCount(db: D1Database, seasonYear: number): Promise<number> {
+  const row = await db
+    .prepare('SELECT COUNT(*) AS n FROM applications WHERE deleted_at IS NULL AND season_year = ? AND thanksgiving_card = 1')
+    .bind(seasonYear)
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
 export async function softDeleteApplication(db: D1Database, id: number, nowIso: string): Promise<void> {
   await db.prepare('UPDATE applications SET deleted_at = ? WHERE id = ?').bind(nowIso, id).run();
 }
