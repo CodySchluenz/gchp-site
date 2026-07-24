@@ -8,16 +8,16 @@ const mailed = detail ? detail.app.household_type === 'elderly' || detail.app.ho
 ---
 <!doctype html>
 <html lang="en">
-  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{detail ? `Pickup slip — ${detail.app.first_name} ${detail.app.last_name}` : 'Pickup slip'}</title></head>
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>{detail ? `Packing slip — ${detail.app.first_name} ${detail.app.last_name}` : 'Packing slip'}</title></head>
   <body style="margin:16px;font-family:Georgia,serif;">
     {detail ? (
       <>
         <div class="no-print">
-          <h1 style="font-size:20px;margin:0 0 8px;">Pickup slip</h1>
+          <h1 style="font-size:20px;margin:0 0 8px;">Packing slip</h1>
           <p><a href={`/admin/applications/${id}`}>&larr; Back</a>{!mailed && <> · <button type="button" data-print>Print this slip</button></>}</p>
         </div>
         {mailed ? (
-          <p>Mailed household — no pickup slip. They receive gift and food cards by mail.</p>
+          <p>Mailed household — no packing slip. They receive gift and food cards by mail.</p>
         ) : (
           <SlipCard detail={detail} />
         )}

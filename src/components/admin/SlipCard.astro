@@ -10,7 +10,6 @@ const sizes = (m: Record<string, unknown>) =>
 <article class="slip">
   <div class="row">
     <span><strong>PU #:</strong> {a.pu_number ?? '____'}</span>
-    <span><strong>Bags:</strong> {a.bags_count ?? '____'}</span>
     <span><strong>People:</strong> {detail.members.length}</span>
   </div>
   <p class="name"><strong>{a.first_name} {a.last_name}</strong> — {a.phone}</p>
@@ -21,27 +20,28 @@ const sizes = (m: Record<string, unknown>) =>
   <p>
     {a.diabetic === 1 && <span class="flag">DIABETIC</span>}
     {a.bed_choice !== 'none' && <span>Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''}</span>}
-    {a.share_with_sponsor === 1 && <span> · sponsor OK</span>}
   </p>
   <table>
     <caption class="sr-only">Household members and sizes</caption>
-    <thead><tr><th scope="col">Name</th><th scope="col">Sex</th><th scope="col">Age</th><th scope="col">Sizes</th><th scope="col">Gifts</th></tr></thead>
+    <thead><tr><th scope="col">Name</th><th scope="col">Sex</th><th scope="col">Age</th><th scope="col">Sizes</th></tr></thead>
     <tbody>
       {detail.members.map((m) => (
-        <tr><td>{m.name}</td><td>{m.sex}</td><td>{m.age}</td><td>{sizes(m)}</td><td>{m.gifts || '—'}</td></tr>
+        <tr><td>{m.name}</td><td>{m.sex}</td><td>{m.age}</td><td>{sizes(m)}</td></tr>
       ))}
     </tbody>
   </table>
 </article>
 <style>
-  .slip { border: 2px solid #000; padding: 12px; margin: 0 0 16px; font-size: 14px; break-inside: avoid; }
-  .row { display: flex; gap: 24px; font-size: 16px; }
-  .name { font-size: 18px; margin: 8px 0 2px; }
-  .pickup { font-size: 16px; margin: 4px 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  /* Sherlyn's layout from the old site: large slips, three per printed page.
+     min-height (not height) so a big household grows taller instead of
+     clipping people off the slip. */
+  .slip { border: 2px solid #000; padding: 14px; margin: 0 0 12px; font-size: 16px; min-height: 3.1in; break-inside: avoid; box-sizing: border-box; }
+  .row { display: flex; gap: 24px; font-size: 20px; }
+  .name { font-size: 22px; margin: 8px 0 2px; }
+  .pickup { font-size: 18px; margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 16px; }
   th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
   .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }
-  @media print { .slip { page-break-after: always; } }
   /* This component's pages (slips.astro, [id]/slip.astro) intentionally
      don't import global.css, so Tailwind's sr-only utility isn't loaded
      here — define the same visually-hidden technique locally. */
