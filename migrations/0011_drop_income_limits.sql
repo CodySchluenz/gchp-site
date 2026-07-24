@@ -1,7 +1,10 @@
 -- Season revisions (2026-07-23 spec §1): Sherlyn verifies eligibility fully
 -- by hand — the income-check feature is removed. DESTRUCTIVE: apply AFTER
 -- the new code is deployed (the old code reads income_limits on every
--- admin applications screen and would 500).
+-- admin applications screen and would 500). In practice it applies together
+-- with 0009/0010 right before the deploy — run the migrate and deploy
+-- back-to-back per the runbook ("Season-revisions batch") and expect a
+-- brief admin error window between them.
 -- applications.may_not_be_eligible is deliberately LEFT in place, inert
 -- (NOT NULL DEFAULT 0): dropping it would break the still-deployed old
 -- code's INSERTs during the migrate->deploy window.

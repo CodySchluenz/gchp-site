@@ -6,6 +6,9 @@ import { fullHeaders, fullRow } from '../../../lib/export-columns';
 export const prerender = false;
 
 export const GET: APIRoute = async ({ locals, url }) => {
+  // Same fallback as the applications list: param wins, then the latest
+  // season with data, then the calendar year. Normally this page is reached
+  // via a ?season= link from the list, so this only matters on a direct visit.
   const season = Number(url.searchParams.get('season')) || (await latestSeason(locals.runtime.env.DB)) || new Date().getFullYear();
   const statusParam = url.searchParams.get('status') ?? 'all';
   const status = (['all', 'new', 'approved', 'denied'].includes(statusParam) ? statusParam : 'all') as

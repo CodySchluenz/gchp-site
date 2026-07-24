@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { sherlynHeaders, sherlynRow, fullHeaders, fullRow } from '../src/lib/export-columns';
+import { centralDateTime } from '../src/lib/dates';
 import type { ExportRow } from '../src/lib/db';
 
 const row: ExportRow = {
@@ -39,5 +40,15 @@ describe('full backup export', () => {
       expect(h).toContain(col);
     }
     expect(fullRow(row)).toHaveLength(h.length);
+  });
+  it('maps every column to the matching field, in header order', () => {
+    expect(fullRow(row)).toEqual([
+      803, 'approved', centralDateTime(''), centralDateTime('2026-10-01T12:00:00Z'),
+      'Jane', 'Smith', '123 Oak St', 'Lancaster', '608', 'a@b.co', 'family', null,
+      3, 'Jane Smith (self, age 30)', 'Tim Smith: bike', 'Black doll (Sue Smith)', 2,
+      'yes', 'none', '', '', '',
+      'yes', 'yes', 50, '', '',
+      '', '', 'online',
+    ]);
   });
 });

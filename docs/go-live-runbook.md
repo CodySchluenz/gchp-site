@@ -153,9 +153,11 @@ error on the live site until the matching migration is applied.
 - [ ] **5. Verify on the live site** (`grantcountyholidayproject.org`):
       - Sign in to `/admin`, open an existing application detail — it should load
         (this is the path Plan 5 touched most).
-      - Download the Excel list (**Applications → Download list for Excel**) and
-        confirm the new columns are present (relationship labels, parentage note,
-        your-notes).
+      - Download BOTH Excel files and confirm each looks right: **Download list
+        for Excel** (Sherlyn's 11-column working sheet — spot-check that Special
+        Gift shows doll choices like "Black doll (name)") and **Download
+        everything (backup)** (still carries the full detail: People, notes,
+        income summary).
       - If applications are open, submit one test application through `/apply` to
         confirm the new per-person questions save; delete it afterward.
 - [ ] **Note — settings are not affected by a deploy.** Whether applications are
