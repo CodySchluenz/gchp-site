@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 const FORBIDDEN = [
   'bags_count', 'gifts', 'good_deed', 'admin_notes', 'parentage_note',
   'share_with_sponsor', 'food_share', 'social_security', 'ssi_amount',
-  'child_support', 'unemployment', 'other_income',
+  'child_support', 'unemployment', 'other_income', 'original_json',
 ];
 
 describe('packing slip privacy', () => {

@@ -73,4 +73,15 @@ describe('application history rows', () => {
     expect(rows[0].summary).toBe('A: age changed from 40 to 41');
     expect(rows[0].area).toBe('people');
   });
+
+  it('a failed "received" history write must never fail a saved application', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      await db.prepare('DROP TABLE application_history').run();
+      const id = await insertApplication(db, base);
+      expect(id).toBeGreaterThan(0);
+      const row = await db.prepare('SELECT COUNT(*) AS n FROM applications WHERE id = ?').bind(id).first<{ n: number }>();
+      expect(row?.n).toBe(1);
+    } finally { await dispose(); }
+  });
 });

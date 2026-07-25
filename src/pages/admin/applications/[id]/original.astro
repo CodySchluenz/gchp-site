@@ -14,7 +14,7 @@ let snap: NewApplication | null = null;
 try { snap = typeof a.original_json === 'string' && a.original_json !== '' ? JSON.parse(a.original_json) : null; } catch { snap = null; }
 const cities = await listCities(env.DB);
 const town = snap ? (cities.find((c) => c.id === snap!.cityId)?.name ?? '') : '';
-const money = (v: number | null) => (v == null ? '—' : `$${v}`);
+const money = (v: number | null) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const dollWord = (d?: string) => (d === 'black' ? 'Black doll' : d === 'white' ? 'White doll' : '—');
 const yesno = (v: unknown) => (v === true ? 'Yes' : 'No');
 const forNote = (s?: string) => (s ? ` (for ${s})` : '');

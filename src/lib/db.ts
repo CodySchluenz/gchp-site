@@ -150,11 +150,18 @@ export async function insertApplication(db: D1Database, app: NewApplication, act
     }
   }
 
-  await addHistory(
-    db, appId, actorEmail, 'record',
-    (app.source ?? 'online') === 'paper' ? 'Entered from a paper application' : 'Application received online',
-    app.submittedAt,
-  );
+  try {
+    await addHistory(
+      db, appId, actorEmail, 'record',
+      (app.source ?? 'online') === 'paper' ? 'Entered from a paper application' : 'Application received online',
+      app.submittedAt,
+    );
+  } catch {
+    // A missing "received" history row must never fail a saved application:
+    // the applicant flow would 500 AFTER the save, inviting a duplicate
+    // resubmission. The timeline is best-effort by design; the application
+    // is the record that matters.
+  }
 
   return appId;
 }
