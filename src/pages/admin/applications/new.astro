@@ -57,7 +57,7 @@ if (Astro.request.method === 'POST') {
           submittedAt: `${dateRaw}T12:00:00Z`,
           householdType,
           source: 'paper',
-        });
+        }, Astro.locals.adminEmail ?? '');
         const notes = (values.admin_notes ?? '').trim().slice(0, 5000);
         if (notes !== '') await setApplicationNotes(env.DB, id, notes);
         if (puRaw !== '') {

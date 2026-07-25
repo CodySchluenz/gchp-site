@@ -117,4 +117,13 @@ describe('D1 schema integrity', () => {
     }
     expect(names).toContain('may_not_be_eligible'); // deliberately inert, still present
   });
+
+  it('application history: table, index, and original_json exist', async () => {
+    const t = await db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'application_history'").first();
+    expect(t).not.toBeNull();
+    const i = await db.prepare("SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_history_app'").first();
+    expect(i).not.toBeNull();
+    const a = await db.prepare('PRAGMA table_info(applications)').all<{ name: string }>();
+    expect(a.results.map((c) => c.name)).toContain('original_json');
+  });
 });

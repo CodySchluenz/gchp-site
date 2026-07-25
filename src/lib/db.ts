@@ -78,7 +78,7 @@ export type NewApplication = CleanApplication & {
   source?: 'online' | 'paper';
 };
 
-export async function insertApplication(db: D1Database, app: NewApplication): Promise<number> {
+export async function insertApplication(db: D1Database, app: NewApplication, actorEmail = ''): Promise<number> {
   const res = await db
     .prepare(
       `INSERT INTO applications (
@@ -92,8 +92,8 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
          child_support_amount, child_support_for,
          unemployment_weekly_amount, unemployment_for,
          other_income_amount, other_income_for,
-         good_deed, parentage_note, source
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         good_deed, parentage_note, source, original_json
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       app.seasonYear, app.submittedAt, app.firstName, app.lastName, app.address, app.cityId,
@@ -109,7 +109,7 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
       app.benefits.childSupportAmount, app.benefits.childSupportFor,
       app.benefits.unemploymentWeeklyAmount, app.benefits.unemploymentFor,
       app.benefits.otherIncomeAmount, app.benefits.otherIncomeFor,
-      app.goodDeed, app.parentageNote ?? '', app.source ?? 'online',
+      app.goodDeed, app.parentageNote ?? '', app.source ?? 'online', JSON.stringify(app),
     )
     .run();
 
@@ -149,6 +149,12 @@ export async function insertApplication(db: D1Database, app: NewApplication): Pr
       throw e;
     }
   }
+
+  await addHistory(
+    db, appId, actorEmail, 'record',
+    (app.source ?? 'online') === 'paper' ? 'Entered from a paper application' : 'Application received online',
+    app.submittedAt,
+  );
 
   return appId;
 }
@@ -365,6 +371,37 @@ export async function setBagsCount(db: D1Database, id: number, bags: number | nu
 
 export async function setApplicationNotes(db: D1Database, id: number, notes: string): Promise<void> {
   await db.prepare('UPDATE applications SET admin_notes = ? WHERE id = ?').bind(notes, id).run();
+}
+
+// The application's audit timeline: one plain-English sentence per change,
+// written by the same code path that saves the change (see src/lib/history.ts
+// for the sentence composers). Read-only by design — nothing ever edits or
+// deletes these rows; they are removed only when their application is purged.
+export type HistoryRow = { id: number; at: string; actor_email: string; area: string; summary: string };
+
+export function historyStatements(
+  db: D1Database, applicationId: number, actorEmail: string, area: string, summaries: string[], at: string,
+): D1PreparedStatement[] {
+  return summaries.map((summary) =>
+    db.prepare('INSERT INTO application_history (application_id, at, actor_email, area, summary) VALUES (?, ?, ?, ?, ?)')
+      .bind(applicationId, at, actorEmail, area, summary));
+}
+
+export async function addHistory(
+  db: D1Database, applicationId: number, actorEmail: string, area: string, summary: string, at: string,
+): Promise<void> {
+  await db
+    .prepare('INSERT INTO application_history (application_id, at, actor_email, area, summary) VALUES (?, ?, ?, ?, ?)')
+    .bind(applicationId, at, actorEmail, area, summary)
+    .run();
+}
+
+export async function listHistory(db: D1Database, applicationId: number): Promise<HistoryRow[]> {
+  const { results } = await db
+    .prepare('SELECT id, at, actor_email, area, summary FROM application_history WHERE application_id = ? ORDER BY id DESC')
+    .bind(applicationId)
+    .all<HistoryRow>();
+  return results;
 }
 
 // Sherlyn hands a Thanksgiving card to the first 30 applicants each season
