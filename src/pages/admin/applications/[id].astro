@@ -3,6 +3,7 @@ import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
 import {
   getApplicationDetail, assignPuNumber, setApplicationStatus, setBagsCount, softDeleteApplication, setApplicationNotes, setPuNumber, setStraggler, setCardsGiven,
+  addHistory, historyStatements, listHistory,
 } from '../../../lib/db';
 import { renderApprovedEmail, renderDeniedEmail } from '../../../lib/email/render';
 import { sendEmail } from '../../../lib/email/send';
@@ -10,6 +11,7 @@ import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf'
 import { relationshipLabel, NON_FAMILY_RELATIONSHIPS } from '../../../lib/relationships';
 import { centralDateTime } from '../../../lib/dates';
 import { parseMoney } from '../../../lib/validation/application';
+import { describeDecision, describeBagsChange, describePuChange, describeCardsChanges } from '../../../lib/history';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -21,6 +23,8 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
   if (!okCsrf) return Astro.redirect(`${detailUrl}?error=csrf`, 303);
   const act = String(form.get('act') ?? '');
+  const actor = Astro.locals.adminEmail ?? '';
+  const now = new Date().toISOString();
   const detail = await getApplicationDetail(env.DB, id);
   if (detail) {
     const season = detail.app.season_year as number;
@@ -32,47 +36,71 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
       const puFlag = assigned === null ? '&pu=none' : '';
       if (act === 'approve_email') {
         const r = await sendEmail(env, email, renderApprovedEmail(firstName));
+        await addHistory(env.DB, id, actor, 'decision', describeDecision('approved', assigned, r.sent ? 'sent' : 'failed'), now);
         return Astro.redirect(`${detailUrl}?done=approved&mail=${r.sent ? 'ok' : 'fail'}${puFlag}`, 303);
       }
+      await addHistory(env.DB, id, actor, 'decision', describeDecision('approved', assigned, 'none'), now);
       return Astro.redirect(`${detailUrl}?done=approved${puFlag}`, 303);
     } else if (act === 'deny_email' || act === 'deny_silent') {
       await setApplicationStatus(env.DB, id, 'denied');
       if (act === 'deny_email') {
         const r = await sendEmail(env, email, renderDeniedEmail(firstName));
+        await addHistory(env.DB, id, actor, 'decision', describeDecision('denied', undefined, r.sent ? 'sent' : 'failed'), now);
         return Astro.redirect(`${detailUrl}?done=denied&mail=${r.sent ? 'ok' : 'fail'}`, 303);
       }
+      await addHistory(env.DB, id, actor, 'decision', describeDecision('denied', undefined, 'none'), now);
       return Astro.redirect(`${detailUrl}?done=denied`, 303);
     } else if (act === 'set_bags') {
       const raw = String(form.get('bags_count') ?? '').trim();
-      await setBagsCount(env.DB, id, raw === '' ? null : Math.max(0, Math.floor(Number(raw)) || 0));
+      const oldBags = detail.app.bags_count as number | null;
+      const newBags = raw === '' ? null : Math.max(0, Math.floor(Number(raw)) || 0);
+      await setBagsCount(env.DB, id, newBags);
+      const line = describeBagsChange(oldBags, newBags);
+      if (line) await addHistory(env.DB, id, actor, 'bags', line, now);
       return Astro.redirect(`${detailUrl}?done=bags`, 303);
     } else if (act === 'set_notes') {
       await setApplicationNotes(env.DB, id, String(form.get('admin_notes') ?? '').slice(0, 5000));
+      await addHistory(env.DB, id, actor, 'notes', 'Your notes were updated', now);
       return Astro.redirect(`${detailUrl}?done=notes`, 303);
     } else if (act === 'set_cards') {
       const money = (name: string) => { const raw = String(form.get(name) ?? '').trim(); return raw === '' ? null : parseMoney(raw); };
-      await setCardsGiven(env.DB, id, {
+      const cards = {
         thanksgivingCard: String(form.get('thanksgiving_card') ?? '') === 'on',
         foodCard: String(form.get('food_card') ?? '') === 'on',
         foodCardAmount: money('food_card_amount'),
         giftCard: String(form.get('gift_card') ?? '') === 'on',
         giftCardAmount: money('gift_card_amount'),
-      });
+      };
+      await setCardsGiven(env.DB, id, cards);
+      const lines = describeCardsChanges(detail.app, cards);
+      if (lines.length) await env.DB.batch(historyStatements(env.DB, id, actor, 'cards', lines, now));
       return Astro.redirect(`${detailUrl}?done=cards`, 303);
     } else if (act === 'set_pu') {
       const raw = String(form.get('pu_number') ?? '').trim();
+      const oldPu = detail.app.pu_number as number | null;
       if (raw === '') {
         await setPuNumber(env.DB, id, season, null);
+        const line = describePuChange(oldPu, null);
+        if (line) await addHistory(env.DB, id, actor, 'number', line, now);
         return Astro.redirect(`${detailUrl}?done=pu`, 303);
       }
       if (!/^\d+$/.test(raw)) return Astro.redirect(`${detailUrl}?error=pu_bad`, 303);
-      const r = await setPuNumber(env.DB, id, season, Number(raw));
+      const newPu = Number(raw);
+      const r = await setPuNumber(env.DB, id, season, newPu);
+      if (r.ok) {
+        const line = describePuChange(oldPu, newPu);
+        if (line) await addHistory(env.DB, id, actor, 'number', line, now);
+      }
       return Astro.redirect(r.ok ? `${detailUrl}?done=pu` : `${detailUrl}?error=pu_taken&by=${r.takenBy}`, 303);
     } else if (act === 'set_straggler') {
-      await setStraggler(env.DB, id, String(form.get('straggler') ?? '') === 'on');
+      const on = String(form.get('straggler') ?? '') === 'on';
+      const wasOn = detail.app.straggler === 1;
+      await setStraggler(env.DB, id, on);
+      if (on !== wasOn) await addHistory(env.DB, id, actor, 'number', on ? 'Marked as a straggler' : 'Straggler mark removed', now);
       return Astro.redirect(`${detailUrl}?done=straggler`, 303);
     } else if (act === 'delete') {
       await softDeleteApplication(env.DB, id, new Date().toISOString());
+      await addHistory(env.DB, id, actor, 'record', 'Application deleted', now);
       return Astro.redirect(`/admin/applications?undo=${id}`, 303);
     }
   }
@@ -97,6 +125,8 @@ const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
 const a = detail?.app ?? {};
 const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' ? 'Denied' : 'To review';
+const history = detail ? await listHistory(env.DB, id) : [];
+const hasOriginal = typeof a.original_json === 'string' && a.original_json !== '';
 ---
 <Admin title="Application" heading={detail ? `${a.first_name} ${a.last_name}` : 'Application not found'} back={{ href: '/admin/applications', label: 'Back to applications' }}>
   {!detail ? (
@@ -268,6 +298,29 @@ const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' 
           </div>
           <button type="submit" name="act" value="set_cards" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save cards</button>
         </form>
+      </section>
+
+      <section class="mt-8 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <div class="flex flex-wrap items-baseline justify-between gap-3">
+          <h2 class="text-2xl font-bold text-holly-800">History</h2>
+          {hasOriginal && (
+            <a href={`/admin/applications/${id}/original`} class="font-semibold text-berry-700 underline">See the application as first submitted</a>
+          )}
+        </div>
+        <p class="mt-1 text-stone-600">Every change to this application, newest first. Only you see this.</p>
+        {history.length === 0 ? (
+          <p class="mt-3 text-lg text-stone-700">History began July 2026 — earlier changes weren't recorded.</p>
+        ) : (
+          <ul class="mt-3 space-y-2">
+            {history.map((h) => (
+              <li class="border-b border-stone-200 pb-2 text-lg">
+                <span class="whitespace-nowrap font-semibold text-holly-800">{centralDateTime(h.at)}</span>
+                {' — '}{h.summary}
+                <span class="text-stone-600"> — {h.actor_email === '' ? 'the family' : h.actor_email}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section class="mt-6 rounded-lg border-2 border-berry-700 bg-white p-5">

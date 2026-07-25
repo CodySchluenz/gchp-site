@@ -1,0 +1,93 @@
+---
+import '../../../../styles/global.css';
+import Admin from '../../../../layouts/Admin.astro';
+import { getApplicationDetail, listCities, type NewApplication } from '../../../../lib/db';
+import { centralDateTime } from '../../../../lib/dates';
+import { relationshipLabel, NON_FAMILY_RELATIONSHIPS } from '../../../../lib/relationships';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+const id = Number(Astro.params.id);
+const detail = Number.isInteger(id) ? await getApplicationDetail(env.DB, id) : null;
+const a = detail?.app ?? {} as Record<string, unknown>;
+let snap: NewApplication | null = null;
+try { snap = typeof a.original_json === 'string' && a.original_json !== '' ? JSON.parse(a.original_json) : null; } catch { snap = null; }
+const cities = await listCities(env.DB);
+const town = snap ? (cities.find((c) => c.id === snap!.cityId)?.name ?? '') : '';
+const money = (v: number | null) => (v == null ? '—' : `$${v}`);
+const dollWord = (d?: string) => (d === 'black' ? 'Black doll' : d === 'white' ? 'White doll' : '—');
+const yesno = (v: unknown) => (v === true ? 'Yes' : 'No');
+const forNote = (s?: string) => (s ? ` (for ${s})` : '');
+---
+<Admin title="As first submitted" heading={detail ? `As first submitted — ${a.first_name} ${a.last_name}` : 'Not found'} back={{ href: `/admin/applications/${id}`, label: 'Back to the application' }}>
+  {!detail ? <p class="mt-4">That application could not be found.</p> : !snap ? (
+    <p class="mt-4 text-lg">This application predates history tracking, so there is no saved original.</p>
+  ) : (
+    <>
+      <div class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="note">
+        <p class="text-lg font-semibold">This is the application exactly as first submitted on {centralDateTime(snap.submittedAt)} — read-only.
+          The application page shows the current, possibly corrected, version.</p>
+      </div>
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Household</h2>
+        <p class="mt-2 text-stone-700">Name as submitted: {snap!.firstName ?? ''} {snap!.lastName ?? ''}</p>
+        {snap!.source === 'paper' && <p class="text-stone-700">Entered from a paper application.</p>}
+        <p class="mt-2">{snap!.address ?? ''}, {town}</p>
+        <p>Phone: {snap!.phone ?? ''} · Email: {snap!.email ?? ''}</p>
+        <p>Household type: {snap!.householdType ?? ''} · Diabetic in household: {yesno(snap!.diabetic)} · Permanently disabled: {yesno(snap!.permanentlyDisabled)} · OK to share needs with a sponsor: {yesno(snap!.shareWithSponsor)}</p>
+        <p>Bed: {snap!.bedChoice ?? ''}{snap!.bedSize ? ` (${snap!.bedSize})` : ''} · Years received help: {snap!.yearsReceivedHelp ?? ''} · Adopted last year: {yesno(snap!.adoptedLastYear)}</p>
+      </section>
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">People ({(snap!.members ?? []).length})</h2>
+        <table class="mt-2 w-full border-collapse text-left">
+          <caption class="sr-only">People in this household, as first submitted</caption>
+          <thead><tr><th scope="col" class="border-b p-2">Name</th><th scope="col" class="border-b p-2">Relationship</th><th scope="col" class="border-b p-2">Sex</th><th scope="col" class="border-b p-2">Age</th><th scope="col" class="border-b p-2">Sizes</th><th scope="col" class="border-b p-2">Gifts wanted</th><th scope="col" class="border-b p-2">Doll</th></tr></thead>
+          <tbody>
+            {(snap!.members ?? []).map((m) => (
+              <tr>
+                <td class="border-b p-2">{m.name ?? ''}</td>
+                <td class="border-b p-2">
+                  {relationshipLabel(String(m.relationship ?? ''), String(m.relationshipOther ?? ''))}
+                  {NON_FAMILY_RELATIONSHIPS.has(String(m.relationship ?? '')) && (
+                    <span class="mt-1 block rounded bg-gold-500 px-2 py-1 text-base font-bold text-stone-900">Not immediate family — please verify eligibility</span>
+                  )}
+                  {m.disabled === true && <span class="mt-1 block text-base font-semibold text-berry-800">Disabled</span>}
+                  {m.partTime === true && <span class="mt-1 block text-base text-stone-600">Lives here part-time</span>}
+                </td>
+                <td class="border-b p-2">{m.sex ?? ''}</td>
+                <td class="border-b p-2">{m.age ?? ''}</td>
+                <td class="border-b p-2">{[['Pants', m.pants], ['Shirt', m.shirtTop], ['Underwear', m.underwear], ['Socks', m.socks], ['Shoe', m.shoe], ['Coat', m.coat], ['Diapers', m.diapers]].filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ') || '—'}</td>
+                <td class="border-b p-2">{m.gifts || '—'}</td>
+                <td class="border-b p-2">{dollWord(m.doll)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      {snap!.parentageNote ? (
+        <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+          <h2 class="text-2xl font-bold text-holly-800">Which children belong to whom</h2>
+          <p class="mt-2 whitespace-pre-wrap">{snap!.parentageNote}</p>
+        </section>
+      ) : null}
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Income</h2>
+        {(snap!.employers ?? []).length === 0 ? <p class="mt-2">No one in the household is employed.</p> : (
+          <ul class="mt-2 list-disc pl-6">
+            {(snap!.employers ?? []).map((e) => <li>{e.workerName} at {e.employerName}: {money(e.hourlyWage)}/hr, {e.hoursPerWeek} hrs/week</li>)}
+          </ul>
+        )}
+        <p class="mt-2">Food Share: {money(snap!.benefits?.foodShareAmount ?? null)} · Social Security: {money(snap!.benefits?.socialSecurityAmount ?? null)}{forNote(snap!.benefits?.socialSecurityFor)} · SSI: {money(snap!.benefits?.ssiAmount ?? null)}{forNote(snap!.benefits?.ssiFor)} · Child support: {money(snap!.benefits?.childSupportAmount ?? null)}{forNote(snap!.benefits?.childSupportFor)} · Unemployment (weekly): {money(snap!.benefits?.unemploymentWeeklyAmount ?? null)}{forNote(snap!.benefits?.unemploymentFor)} · Other: {money(snap!.benefits?.otherIncomeAmount ?? null)}{forNote(snap!.benefits?.otherIncomeFor)}</p>
+      </section>
+
+      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+        <h2 class="text-2xl font-bold text-holly-800">Good deed</h2>
+        <p class="mt-2 whitespace-pre-wrap">{snap!.goodDeed ?? ''}</p>
+      </section>
+    </>
+  )}
+</Admin>

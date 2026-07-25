@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { restoreApplication } from '../../../../lib/db';
+import { restoreApplication, addHistory } from '../../../../lib/db';
 import { verifyCsrf } from '../../../../lib/csrf';
 
 export const prerender = false;
@@ -13,6 +13,9 @@ export const POST: APIRoute = async ({ locals, params, request, cookies, redirec
     String(form.get('csrf_token') ?? ''),
   );
   if (!ok) return redirect('/admin/applications?error=csrf', 303);
-  if (Number.isInteger(id)) await restoreApplication(locals.runtime.env.DB, id);
+  if (Number.isInteger(id)) {
+    await restoreApplication(locals.runtime.env.DB, id);
+    await addHistory(locals.runtime.env.DB, id, locals.adminEmail ?? '', 'record', 'Application restored', new Date().toISOString());
+  }
   return redirect('/admin/applications?restored=1', 303);
 };

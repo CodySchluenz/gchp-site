@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { addHistory, historyStatements, listHistory, insertApplication, type NewApplication } from '../src/lib/db';
+import { addHistory, historyStatements, listHistory, insertApplication, softDeleteApplication, restoreApplication, type NewApplication } from '../src/lib/db';
 
 const base: NewApplication = {
   firstName: 'A', lastName: 'A', address: '1', cityId: 13, phone: '6', email: 'a@b.co',
@@ -38,5 +38,18 @@ describe('application history rows', () => {
     const rows = await listHistory(db, id);
     expect(rows.at(-1)!.summary).toBe('Entered from a paper application');
     expect(rows.at(-1)!.actor_email).toBe('admin@x.co');
+  });
+
+  it('a save flow writes composed rows that list back newest-first', async () => {
+    const id = await insertApplication(db, base);
+    const lines = ['Approved; pickup number 803 assigned', 'Bag count set to 4'];
+    await db.batch(historyStatements(db, id, 'admin@x.co', 'decision', [lines[0]], '2026-11-01T00:00:00Z'));
+    await addHistory(db, id, 'admin@x.co', 'bags', lines[1], '2026-11-02T00:00:00Z');
+    const rows = await listHistory(db, id);
+    expect(rows.map((r) => r.summary).slice(0, 2)).toEqual([lines[1], lines[0]]);
+    // History must survive the application's soft-delete and restore untouched.
+    await softDeleteApplication(db, id, '2026-11-03T00:00:00Z');
+    await restoreApplication(db, id);
+    expect((await listHistory(db, id)).length).toBe(rows.length);
   });
 });
