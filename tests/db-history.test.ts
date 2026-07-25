@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { addHistory, historyStatements, listHistory, insertApplication, softDeleteApplication, restoreApplication, type NewApplication } from '../src/lib/db';
+import {
+  addHistory, historyStatements, listHistory, insertApplication, softDeleteApplication, restoreApplication,
+  getApplicationDetail, updateMember, type NewApplication, type MemberEdit,
+} from '../src/lib/db';
+import { describeMemberChange } from '../src/lib/history';
 
 const base: NewApplication = {
   firstName: 'A', lastName: 'A', address: '1', cityId: 13, phone: '6', email: 'a@b.co',
@@ -51,5 +55,22 @@ describe('application history rows', () => {
     await softDeleteApplication(db, id, '2026-11-03T00:00:00Z');
     await restoreApplication(db, id);
     expect((await listHistory(db, id)).length).toBe(rows.length);
+  });
+
+  it('a member edit composes a diff from the pre-update row and writes it under area "people"', async () => {
+    const id = await insertApplication(db, base);
+    const detail = await getApplicationDetail(db, id);
+    const current = detail!.members.find((x) => Number(x.id) === Number(detail!.members[0].id))!;
+    const edit: MemberEdit = {
+      name: 'A', relationship: 'self', relationshipOther: '', sex: 'F', age: 41,
+      disabled: false, partTime: false, doll: '',
+      pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', shoe: '', coat: '', gifts: '',
+    };
+    const lines = describeMemberChange('updated', current, edit);
+    await updateMember(db, Number(current.id), id, edit);
+    await db.batch(historyStatements(db, id, 'admin@x.co', 'people', lines, '2026-11-04T00:00:00Z'));
+    const rows = await listHistory(db, id);
+    expect(rows[0].summary).toBe('A: age changed from 40 to 41');
+    expect(rows[0].area).toBe('people');
   });
 });

@@ -1,10 +1,11 @@
 ---
 import '../../../../styles/global.css';
 import Admin from '../../../../layouts/Admin.astro';
-import { getApplicationDetail, insertMember, updateMember, softDeleteMember, type MemberEdit } from '../../../../lib/db';
+import { getApplicationDetail, insertMember, updateMember, softDeleteMember, historyStatements, type MemberEdit } from '../../../../lib/db';
 import { parseIntInRange, MAX_MEMBERS } from '../../../../lib/validation/application';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../../lib/csrf';
 import { RELATIONSHIP_OPTIONS } from '../../../../lib/relationships';
+import { describeMemberChange } from '../../../../lib/history';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -20,9 +21,13 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   const g = (k: string) => String(form.get(k) ?? '').trim();
   const detail = await getApplicationDetail(env.DB, id);
   if (!detail) return Astro.redirect(base, 303);
+  const actor = Astro.locals.adminEmail ?? '';
+  const now = new Date().toISOString();
 
   if (act === 'delete' && Number.isInteger(memberId)) {
-    await softDeleteMember(env.DB, memberId, id, new Date().toISOString());
+    const current = detail.members.find((x) => Number(x.id) === memberId) ?? null;
+    await softDeleteMember(env.DB, memberId, id, now);
+    if (current) await env.DB.batch(historyStatements(env.DB, id, actor, 'people', describeMemberChange('removed', current, null), now));
     return Astro.redirect(`${base}?undo=${memberId}`, 303);
   }
   const age = parseIntInRange(g('age'), 0, 120);
@@ -37,10 +42,14 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   if (act === 'create') {
     if (detail.members.length >= MAX_MEMBERS) return Astro.redirect(`${base}?error=full`, 303);
     await insertMember(env.DB, id, m);
+    await env.DB.batch(historyStatements(env.DB, id, actor, 'people', describeMemberChange('added', null, m), now));
     return Astro.redirect(`${base}?added=1`, 303);
   }
   if (act === 'update' && Number.isInteger(memberId)) {
+    const current = detail.members.find((x) => Number(x.id) === memberId) ?? null;
     await updateMember(env.DB, memberId, id, m);
+    const lines = current ? describeMemberChange('updated', current, m) : [];
+    if (lines.length) await env.DB.batch(historyStatements(env.DB, id, actor, 'people', lines, now));
     return Astro.redirect(`${base}?saved=1`, 303);
   }
   return Astro.redirect(base, 303);

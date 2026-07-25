@@ -1,9 +1,10 @@
 ---
 import '../../../../styles/global.css';
 import Admin from '../../../../layouts/Admin.astro';
-import { getApplicationDetail, listCities, updateApplicationFull, type ApplicationFullEdit } from '../../../../lib/db';
+import { getApplicationDetail, listCities, updateApplicationFull, historyStatements, type ApplicationFullEdit } from '../../../../lib/db';
 import { parseIntInRange, parseMoney } from '../../../../lib/validation/application';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../../lib/csrf';
+import { describeApplicationChanges } from '../../../../lib/history';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -13,6 +14,9 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   const form = await Astro.request.formData();
   const okCsrf = await verifyCsrf(env.CSRF_SECRET, Astro.cookies.get('csrf')?.value ?? '', String(form.get('csrf_token') ?? ''));
   if (!okCsrf) return Astro.redirect(`/admin/applications/${id}/edit?error=csrf`, 303);
+
+  const detail = await getApplicationDetail(env.DB, id);
+  if (!detail) return Astro.redirect('/admin/applications', 303);
 
   const g = (k: string) => String(form.get(k) ?? '').trim();
   const on = (k: string) => form.get(k) === 'on';
@@ -46,7 +50,13 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
     otherIncomeAmount: amounts['other_income_amount'], otherIncomeFor: g('other_income_for'),
     goodDeed: g('good_deed'), parentageNote: g('parentage_note'),
   };
+  const cities = await listCities(env.DB);
+  const cityName = (cid: number) => cities.find((c) => c.id === cid)?.name ?? `Town #${cid}`;
+  const lines = describeApplicationChanges(detail.app, edit, cityName);
   await updateApplicationFull(env.DB, id, edit);
+  if (lines.length > 0) {
+    await env.DB.batch(historyStatements(env.DB, id, Astro.locals.adminEmail ?? '', 'application', lines, new Date().toISOString()));
+  }
   return Astro.redirect(`/admin/applications/${id}`, 303);
 }
 

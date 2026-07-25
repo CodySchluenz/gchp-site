@@ -1,9 +1,10 @@
 ---
 import '../../../../styles/global.css';
 import Admin from '../../../../layouts/Admin.astro';
-import { getApplicationDetail, insertEmployer, updateEmployer, softDeleteEmployer, type EmployerEdit } from '../../../../lib/db';
+import { getApplicationDetail, insertEmployer, updateEmployer, softDeleteEmployer, historyStatements, type EmployerEdit } from '../../../../lib/db';
 import { parseMoney, MAX_EMPLOYERS } from '../../../../lib/validation/application';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../../lib/csrf';
+import { describeEmployerChange } from '../../../../lib/history';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -19,9 +20,13 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   const g = (k: string) => String(form.get(k) ?? '').trim();
   const detail = await getApplicationDetail(env.DB, id);
   if (!detail) return Astro.redirect(base, 303);
+  const actor = Astro.locals.adminEmail ?? '';
+  const now = new Date().toISOString();
 
   if (act === 'delete' && Number.isInteger(employerId)) {
-    await softDeleteEmployer(env.DB, employerId, id, new Date().toISOString());
+    const current = detail.employers.find((x) => Number(x.id) === employerId) ?? null;
+    await softDeleteEmployer(env.DB, employerId, id, now);
+    if (current) await env.DB.batch(historyStatements(env.DB, id, actor, 'jobs', describeEmployerChange('removed', current, null), now));
     return Astro.redirect(`${base}?undo=${employerId}`, 303);
   }
   const wage = parseMoney(g('hourly_wage'));
@@ -33,10 +38,14 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
   if (act === 'create') {
     if (detail.employers.length >= MAX_EMPLOYERS) return Astro.redirect(`${base}?error=full`, 303);
     await insertEmployer(env.DB, id, e);
+    await env.DB.batch(historyStatements(env.DB, id, actor, 'jobs', describeEmployerChange('added', null, e), now));
     return Astro.redirect(`${base}?added=1`, 303);
   }
   if (act === 'update' && Number.isInteger(employerId)) {
+    const current = detail.employers.find((x) => Number(x.id) === employerId) ?? null;
     await updateEmployer(env.DB, employerId, id, e);
+    const lines = current ? describeEmployerChange('updated', current, e) : [];
+    if (lines.length) await env.DB.batch(historyStatements(env.DB, id, actor, 'jobs', lines, now));
     return Astro.redirect(`${base}?saved=1`, 303);
   }
   return Astro.redirect(base, 303);
