@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 // Sherlyn's 2026-07-23 decision: NO automated eligibility of any kind.
 // This scan keeps removed features from creeping back into shipped code.
-const FORBIDDEN = ['income-check', 'incomeCheck', 'IncomeLimits', 'getIncomeLimits', 'quickIncomeCheck', 'mayNotBeEligible', 'box-cards', 'boxCard', 'BoxCard', 'Print box card'];
+const FORBIDDEN = ['income-check', 'incomeCheck', 'IncomeLimits', 'getIncomeLimits', 'quickIncomeCheck', 'mayNotBeEligible', 'box-cards', 'boxCard', 'BoxCard', 'Print box card', 'setBagsCount', 'describeBagsChange', 'set_bags', 'bags_count'];
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
