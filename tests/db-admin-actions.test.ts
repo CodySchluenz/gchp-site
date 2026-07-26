@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
 import {
-  insertApplication, assignPuNumber, setApplicationStatus, setBagsCount,
+  insertApplication, assignPuNumber, setApplicationStatus,
   softDeleteApplication, restoreApplication, getApplicationDetail, listApplications, type NewApplication,
 } from '../src/lib/db';
 
@@ -30,13 +30,11 @@ describe('admin actions', () => {
     expect(await assignPuNumber(db, other, 2025)).toBe(800); // per-season sequence
   });
 
-  it('sets status and bags', async () => {
+  it('sets status', async () => {
     const id = await insertApplication(db, base);
     await setApplicationStatus(db, id, 'approved');
-    await setBagsCount(db, id, 3);
     const d = await getApplicationDetail(db, id);
     expect(d!.app.status).toBe('approved');
-    expect(d!.app.bags_count).toBe(3);
   });
 
   it('soft-deletes and restores', async () => {

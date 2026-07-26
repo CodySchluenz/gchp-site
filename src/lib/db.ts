@@ -459,10 +459,6 @@ export async function setApplicationStatus(
     .run();
 }
 
-export async function setBagsCount(db: D1Database, id: number, bags: number | null): Promise<void> {
-  await db.prepare('UPDATE applications SET bags_count = ? WHERE id = ?').bind(bags, id).run();
-}
-
 export async function setApplicationNotes(db: D1Database, id: number, notes: string): Promise<void> {
   await db.prepare('UPDATE applications SET admin_notes = ? WHERE id = ?').bind(notes, id).run();
 }
@@ -612,7 +608,6 @@ export type ExportRow = {
   phone: string;
   email: string;
   household_type: string;
-  bags_count: number | null;
   parentage_note: string;
   admin_notes: string;
   years_received_help: number;
@@ -657,7 +652,7 @@ export async function listApplicationsForExport(
     : 'ORDER BY a.submitted_at DESC, a.id DESC';
   const sql = `
     SELECT a.pu_number, a.status, a.submitted_at, a.decided_at, a.source, a.first_name, a.last_name, a.address,
-           c.name AS city_name, a.phone, a.email, a.household_type, a.bags_count,
+           c.name AS city_name, a.phone, a.email, a.household_type,
            a.parentage_note, a.admin_notes,
            a.years_received_help, a.adopted_last_year, a.bed_choice, a.bed_size,
            a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,

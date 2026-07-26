@@ -28,7 +28,7 @@ export function sherlynRow(r: ExportRow): (string | number | null)[] {
 export function fullHeaders(): string[] {
   return [
     'Pickup #', 'Status', 'Decided', 'Applied', 'First name', 'Last name', 'Address', 'Town',
-    'Phone', 'Email', 'Household type', 'Bags',
+    'Phone', 'Email', 'Household type',
     'People count', 'People', 'Gifts requested', 'Dolls', 'Years received', 'Adopted last year',
     'Bed', 'Bed size', 'Income', 'Jobs',
     'Thanksgiving', 'Food card', 'Food card amount', 'Gift cards', 'Gift card amount',
@@ -43,7 +43,7 @@ export function fullRow(r: ExportRow): (string | number | null)[] {
   ].filter(([, v]) => v != null).map(([k, v]) => `${k} $${v}`).join('; ');
   return [
     r.pu_number, r.status, centralDateTime(r.decided_at ?? ''), centralDateTime(r.submitted_at),
-    r.first_name, r.last_name, r.address, r.city_name, r.phone, r.email, r.household_type, r.bags_count,
+    r.first_name, r.last_name, r.address, r.city_name, r.phone, r.email, r.household_type,
     r.member_count, r.member_summary, r.gifts_summary, r.dolls_summary, r.years_received_help,
     yes(r.adopted_last_year), r.bed_choice, r.bed_size ?? '', income, r.employment_summary,
     yes(r.thanksgiving_card), yes(r.food_card), r.food_card_amount ?? '', yes(r.gift_card), r.gift_card_amount ?? '',

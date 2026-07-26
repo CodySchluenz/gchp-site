@@ -2,7 +2,7 @@
 import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
 import {
-  getApplicationDetail, assignPuNumber, setApplicationStatus, setBagsCount, softDeleteApplication, setApplicationNotes, setPuNumber, setStraggler, setCardsGiven,
+  getApplicationDetail, assignPuNumber, setApplicationStatus, softDeleteApplication, setApplicationNotes, setPuNumber, setStraggler, setCardsGiven,
   addHistory, historyStatements, listHistory, listPossibleDuplicates,
 } from '../../../lib/db';
 import { renderApprovedEmail, renderDeniedEmail } from '../../../lib/email/render';
@@ -11,7 +11,7 @@ import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf'
 import { relationshipLabel, NON_FAMILY_RELATIONSHIPS } from '../../../lib/relationships';
 import { centralDate, centralDateTime } from '../../../lib/dates';
 import { parseMoney } from '../../../lib/validation/application';
-import { describeDecision, describeBagsChange, describePuChange, describeCardsChanges } from '../../../lib/history';
+import { describeDecision, describePuChange, describeCardsChanges } from '../../../lib/history';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -50,14 +50,6 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
       }
       await addHistory(env.DB, id, actor, 'decision', describeDecision('denied', undefined, 'none'), now);
       return Astro.redirect(`${detailUrl}?done=denied`, 303);
-    } else if (act === 'set_bags') {
-      const raw = String(form.get('bags_count') ?? '').trim();
-      const oldBags = detail.app.bags_count as number | null;
-      const newBags = raw === '' ? null : Math.max(0, Math.floor(Number(raw)) || 0);
-      await setBagsCount(env.DB, id, newBags);
-      const line = describeBagsChange(oldBags, newBags);
-      if (line) await addHistory(env.DB, id, actor, 'bags', line, now);
-      return Astro.redirect(`${detailUrl}?done=bags`, 303);
     } else if (act === 'set_notes') {
       await setApplicationNotes(env.DB, id, String(form.get('admin_notes') ?? '').slice(0, 5000));
       await addHistory(env.DB, id, actor, 'notes', 'Your notes were updated', now);
@@ -119,7 +111,7 @@ const flags = new URL(Astro.request.url).searchParams;
 const done = flags.get('done');
 const mail = flags.get('mail');
 const mailNote = mail === 'ok' ? ' The email was sent.' : mail === 'fail' ? ' The email could not be sent right now — the application is still saved.' : '';
-const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'bags' ? 'Bag count saved.' : done === 'notes' ? 'Your notes were saved.' : done === 'cards' ? 'Cards saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'created' ? 'Paper application entered.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : '';
+const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'notes' ? 'Your notes were saved.' : done === 'cards' ? 'Cards saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'created' ? 'Paper application entered.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : '';
 const isErrorBanner = flags.get('error') === 'csrf' || flags.get('error') === 'pu_bad' || flags.get('error') === 'pu_taken';
 
 const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
@@ -267,17 +259,6 @@ const hasOriginal = typeof a.original_json === 'string' && a.original_json !== '
             <button type="submit" name="act" value="set_straggler" class="mt-2 rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Save straggler setting</button>
           </form>
         </div>
-      </section>
-
-      <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
-        <h2 class="text-2xl font-bold text-holly-800">Bags</h2>
-        <form method="post" class="mt-2 flex flex-wrap items-end gap-3">
-          <input type="hidden" name="csrf_token" value={csrfToken} />
-          <label class="font-semibold">Number of bags
-            <input type="text" inputmode="numeric" name="bags_count" value={a.bags_count ?? ''} class="ml-2 w-24 rounded border-2 border-stone-400 p-2" />
-          </label>
-          <button type="submit" name="act" value="set_bags" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save bags</button>
-        </form>
       </section>
 
       <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">

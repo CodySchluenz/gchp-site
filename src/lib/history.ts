@@ -142,13 +142,6 @@ export function describeCardsChanges(current: Record<string, unknown>, next: Car
   return out;
 }
 
-export function describeBagsChange(oldBags: number | null, newBags: number | null): string | null {
-  if (oldBags === newBags) return null;
-  if (newBags == null) return 'Bag count cleared';
-  if (oldBags == null) return `Bag count set to ${newBags}`;
-  return `Bag count changed from ${oldBags} to ${newBags}`;
-}
-
 export function describePuChange(oldPu: number | null, newPu: number | null): string | null {
   if (oldPu === newPu) return null;
   if (newPu == null) return 'Pickup number cleared';

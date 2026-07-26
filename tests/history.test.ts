@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   describeApplicationChanges, describeMemberChange, describeEmployerChange,
-  describeCardsChanges, describeBagsChange, describePuChange, describeDecision,
+  describeCardsChanges, describePuChange, describeDecision,
 } from '../src/lib/history';
 import type { ApplicationFullEdit, MemberEdit, EmployerEdit, CardsGiven } from '../src/lib/db';
 
@@ -98,7 +98,7 @@ describe('describeEmployerChange', () => {
   });
 });
 
-describe('cards / bags / pickup number / decision', () => {
+describe('cards / pickup number / decision', () => {
   const cardsRow: Record<string, unknown> = { thanksgiving_card: 0, food_card: 0, food_card_amount: null, gift_card: 1, gift_card_amount: 25 };
   it('cards: one row per changed item', () => {
     const out = describeCardsChanges(cardsRow, { thanksgivingCard: true, foodCard: true, foodCardAmount: 50, giftCard: true, giftCardAmount: 40 });
@@ -111,11 +111,7 @@ describe('cards / bags / pickup number / decision', () => {
     const out = describeCardsChanges({ ...cardsRow, thanksgiving_card: 1 }, { thanksgivingCard: false, foodCard: false, foodCardAmount: null, giftCard: true, giftCardAmount: 25 });
     expect(out).toContain('Thanksgiving card unmarked');
   });
-  it('bags and pickup number', () => {
-    expect(describeBagsChange(null, 5)).toBe('Bag count set to 5');
-    expect(describeBagsChange(4, 5)).toBe('Bag count changed from 4 to 5');
-    expect(describeBagsChange(4, null)).toBe('Bag count cleared');
-    expect(describeBagsChange(4, 4)).toBeNull();
+  it('pickup number', () => {
     expect(describePuChange(null, 1610)).toBe('Pickup number set to 1610');
     expect(describePuChange(1604, 1610)).toBe('Pickup number changed from 1604 to 1610');
     expect(describePuChange(1604, null)).toBe('Pickup number cleared');

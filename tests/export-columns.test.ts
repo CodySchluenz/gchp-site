@@ -6,7 +6,7 @@ import type { ExportRow } from '../src/lib/db';
 const row: ExportRow = {
   pu_number: 803, status: 'approved', submitted_at: '2026-10-01T12:00:00Z', decided_at: null,
   first_name: 'Jane', last_name: 'Smith', address: '123 Oak St', city_name: 'Lancaster',
-  phone: '608', email: 'a@b.co', household_type: 'family', bags_count: null,
+  phone: '608', email: 'a@b.co', household_type: 'family',
   parentage_note: '', admin_notes: '', years_received_help: 2, adopted_last_year: 1,
   bed_choice: 'none', bed_size: null, food_share_amount: null, social_security_amount: null,
   ssi_amount: null, child_support_amount: null, unemployment_weekly_amount: null, other_income_amount: null,
@@ -36,6 +36,7 @@ describe('full backup export', () => {
     const h = fullHeaders();
     expect(h).not.toContain('Check eligibility');
     expect(h).not.toContain('Income check');
+    expect(h).not.toContain('Bags');
     for (const col of ['Thanksgiving', 'Food card', 'Food card amount', 'Gift cards', 'Gift card amount', 'Dolls']) {
       expect(h).toContain(col);
     }
@@ -44,7 +45,7 @@ describe('full backup export', () => {
   it('maps every column to the matching field, in header order', () => {
     expect(fullRow(row)).toEqual([
       803, 'approved', centralDateTime(''), centralDateTime('2026-10-01T12:00:00Z'),
-      'Jane', 'Smith', '123 Oak St', 'Lancaster', '608', 'a@b.co', 'family', null,
+      'Jane', 'Smith', '123 Oak St', 'Lancaster', '608', 'a@b.co', 'family',
       3, 'Jane Smith (self, age 30)', 'Tim Smith: bike', 'Non-White doll (Sue Smith)', 2,
       'yes', 'none', '', '', '',
       'yes', 'yes', 50, '', '',

@@ -22,7 +22,7 @@ describe('application history rows', () => {
 
   it('adds and lists newest-first', async () => {
     const id = await insertApplication(db, base);
-    await addHistory(db, id, 'a@b.co', 'bags', 'Bag count set to 4', '2026-10-02T00:00:00Z');
+    await addHistory(db, id, 'a@b.co', 'notes', 'Your notes were updated', '2026-10-02T00:00:00Z');
     await db.batch(historyStatements(db, id, 'a@b.co', 'application', ['Address changed from 1 Elm to 2 Oak', 'Phone changed from blank to 608'], '2026-10-03T00:00:00Z'));
     const rows = await listHistory(db, id);
     // newest first; the received row from insertApplication is last
@@ -46,9 +46,9 @@ describe('application history rows', () => {
 
   it('a save flow writes composed rows that list back newest-first', async () => {
     const id = await insertApplication(db, base);
-    const lines = ['Approved; pickup number 803 assigned', 'Bag count set to 4'];
+    const lines = ['Approved; pickup number 803 assigned', 'Your notes were updated'];
     await db.batch(historyStatements(db, id, 'admin@x.co', 'decision', [lines[0]], '2026-11-01T00:00:00Z'));
-    await addHistory(db, id, 'admin@x.co', 'bags', lines[1], '2026-11-02T00:00:00Z');
+    await addHistory(db, id, 'admin@x.co', 'notes', lines[1], '2026-11-02T00:00:00Z');
     const rows = await listHistory(db, id);
     expect(rows.map((r) => r.summary).slice(0, 2)).toEqual([lines[1], lines[0]]);
     // History must survive the application's soft-delete and restore untouched.
