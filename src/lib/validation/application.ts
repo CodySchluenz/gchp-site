@@ -300,7 +300,7 @@ export type MemberClean = {
   age: number;
   disabled?: boolean;
   partTime?: boolean;
-  doll?: '' | 'black' | 'white';
+  doll?: '' | 'white' | 'non_white';
   pants: string;
   shirtTop: string;
   underwear: string;
@@ -336,7 +336,7 @@ export function validateMembers(input: ApplicationInput, errors: Errors): Member
     const gifts = get(input, `member_gifts_${i}`);
     const dollRaw = get(input, `member_doll_${i}`);
     // A <select> can only be wrong if tampered with — coerce, never error.
-    const doll = (dollRaw === 'black' || dollRaw === 'white' ? dollRaw : '') as '' | 'black' | 'white';
+    const doll = (dollRaw === 'white' || dollRaw === 'non_white' ? dollRaw : '') as '' | 'white' | 'non_white';
 
     const allBlank =
       name === '' && relationship === '' && relationshipOther === '' && sex === '' && ageRaw === '' &&

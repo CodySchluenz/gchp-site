@@ -119,8 +119,8 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
               <label class="block font-semibold">Doll
                 <select class={input} name="doll">
                   <option value="" selected={(m.doll ?? '') === ''}>No doll</option>
-                  <option value="black" selected={m.doll === 'black'}>Black doll</option>
                   <option value="white" selected={m.doll === 'white'}>White doll</option>
+                  <option value="non_white" selected={m.doll === 'non_white'}>Non-White doll</option>
                 </select>
               </label>
             </div>
@@ -165,8 +165,8 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
               <label class="block font-semibold">Doll
                 <select class={input} name="doll">
                   <option value="">No doll</option>
-                  <option value="black">Black doll</option>
                   <option value="white">White doll</option>
+                  <option value="non_white">Non-White doll</option>
                 </select>
               </label>
             </div>

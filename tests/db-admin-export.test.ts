@@ -128,13 +128,13 @@ describe('listApplicationsForExport binds both branches', () => {
         ...base, lastName: 'Dolls',
         members: [
           { name: 'Mom Dolls', relationship: 'self', sex: 'F', age: 30, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' },
-          { name: 'Sue Dolls', relationship: 'daughter', sex: 'F', age: 5, doll: 'black', pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: 'blocks' },
+          { name: 'Sue Dolls', relationship: 'daughter', sex: 'F', age: 5, doll: 'non_white', pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: 'blocks' },
         ],
       });
       await setCardsGiven(db, id, { thanksgivingCard: true, foodCard: true, foodCardAmount: 50, giftCard: true, giftCardAmount: 25 });
       const r = (await listApplicationsForExport(db, 2026, 'all', '')).find((x) => x.last_name === 'Dolls')!;
-      expect(r.dolls_summary).toBe('Black doll (Sue Dolls)');
-      expect(r.member_summary).toContain('black doll');
+      expect(r.dolls_summary).toBe('Non-White doll (Sue Dolls)');
+      expect(r.member_summary).toContain('non-white doll');
       expect(r.thanksgiving_card).toBe(1);
       expect(r.food_card_amount).toBe(50);
       expect(r.gift_card_amount).toBe(25);

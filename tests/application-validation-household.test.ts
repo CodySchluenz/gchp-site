@@ -180,10 +180,10 @@ describe('validateMembers', () => {
 });
 
 describe('doll choice', () => {
-  it('accepts black and white and defaults blank', () => {
+  it('accepts white and non-white and defaults blank', () => {
     const errors: Errors = {};
-    const members = validateMembers({ ...fullValid, member_doll_1: 'black' }, errors)!;
-    expect(members[0].doll).toBe('black');
+    const members = validateMembers({ ...fullValid, member_doll_1: 'non_white' }, errors)!;
+    expect(members[0].doll).toBe('non_white');
     expect(errors).toEqual({});
   });
 
@@ -208,7 +208,7 @@ describe('doll choice', () => {
     const r = validateMembers({
       ...fullValid,
       member_name_2: '', member_relationship_2: '', member_sex_2: '', member_age_2: '',
-      member_pants_2: '', member_gifts_2: '', member_doll_2: 'black',
+      member_pants_2: '', member_gifts_2: '', member_doll_2: 'non_white',
     }, errors);
     expect(r).toBeNull();
     expect(errors.member_name_2).toBeTruthy();

@@ -12,7 +12,7 @@ const money = (v: number | null | undefined): string =>
 const blank = (s: string | null | undefined): string => (s == null || s === '' ? 'blank' : s);
 const yesNo = (b: boolean): string => (b ? 'Yes' : 'No');
 const dollLabel = (d: string | null | undefined): string =>
-  d === 'black' ? 'Black doll' : d === 'white' ? 'White doll' : 'No doll';
+  d === 'white' ? 'White doll' : d === 'non_white' ? 'Non-White doll' : 'No doll';
 
 type Field =
   | { label: string; old: string; next: string }         // compared as strings

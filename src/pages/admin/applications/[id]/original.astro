@@ -15,7 +15,7 @@ try { snap = typeof a.original_json === 'string' && a.original_json !== '' ? JSO
 const cities = await listCities(env.DB);
 const town = snap ? (cities.find((c) => c.id === snap!.cityId)?.name ?? '') : '';
 const money = (v: number | null) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
-const dollWord = (d?: string) => (d === 'black' ? 'Black doll' : d === 'white' ? 'White doll' : '—');
+const dollWord = (d?: string) => (d === 'white' ? 'White doll' : d === 'non_white' ? 'Non-White doll' : '—');
 const yesno = (v: unknown) => (v === true ? 'Yes' : 'No');
 const forNote = (s?: string) => (s ? ` (for ${s})` : '');
 ---

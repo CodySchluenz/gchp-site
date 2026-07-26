@@ -45,9 +45,9 @@ describe('household member admin helpers', () => {
 
   it('persists the doll choice through insert and update', async () => {
     const id = await insertApplication(db, app);
-    const mid = await insertMember(db, id, { ...kid('Sam'), doll: 'black' });
+    const mid = await insertMember(db, id, { ...kid('Sam'), doll: 'non_white' });
     let row = await db.prepare('SELECT doll FROM household_members WHERE id = ?').bind(mid).first<{ doll: string }>();
-    expect(row!.doll).toBe('black');
+    expect(row!.doll).toBe('non_white');
     await updateMember(db, mid, id, { ...kid('Sam'), doll: 'white' });
     row = await db.prepare('SELECT doll FROM household_members WHERE id = ?').bind(mid).first<{ doll: string }>();
     expect(row!.doll).toBe('white');

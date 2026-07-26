@@ -74,10 +74,10 @@ describe('describeMemberChange', () => {
     expect(describeMemberChange('restored', memberRow, null)).toEqual(['Tim Smith restored']);
   });
   it('updates: per-field rows prefixed with the name; rename gets its own row', () => {
-    const out = describeMemberChange('updated', memberRow, { ...sameMember, name: 'Timothy Smith', coat: 'L', doll: 'black', age: 8 });
+    const out = describeMemberChange('updated', memberRow, { ...sameMember, name: 'Timothy Smith', coat: 'L', doll: 'non_white', age: 8 });
     expect(out).toContain('Person renamed from Tim Smith to Timothy Smith');
     expect(out).toContain('Timothy Smith: coat size changed from M to L');
-    expect(out).toContain('Timothy Smith: doll changed from No doll to Black doll');
+    expect(out).toContain('Timothy Smith: doll changed from No doll to Non-White doll');
     expect(out).toContain('Timothy Smith: age changed from 7 to 8');
     expect(describeMemberChange('updated', memberRow, sameMember)).toEqual([]);
   });

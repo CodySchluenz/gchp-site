@@ -11,7 +11,7 @@ const row: ExportRow = {
   bed_choice: 'none', bed_size: null, food_share_amount: null, social_security_amount: null,
   ssi_amount: null, child_support_amount: null, unemployment_weekly_amount: null, other_income_amount: null,
   member_count: 3, member_summary: 'Jane Smith (self, age 30)', gifts_summary: 'Tim Smith: bike',
-  dolls_summary: 'Black doll (Sue Smith)', employment_summary: '',
+  dolls_summary: 'Non-White doll (Sue Smith)', employment_summary: '',
   thanksgiving_card: 1, food_card: 1, food_card_amount: 50, gift_card: 0, gift_card_amount: null,
   source: 'online',
 };
@@ -25,7 +25,7 @@ describe('sherlyn sheet', () => {
   });
   it('maps a row: dolls fold into Special Gift, yes/blank flags, blank null amounts', () => {
     expect(sherlynRow(row)).toEqual([
-      803, 'Jane Smith', '123 Oak St, Lancaster', 'Black doll (Sue Smith); Tim Smith: bike',
+      803, 'Jane Smith', '123 Oak St, Lancaster', 'Non-White doll (Sue Smith); Tim Smith: bike',
       'yes', 'yes', 'yes', 50, '', '', 3,
     ]);
   });
@@ -45,7 +45,7 @@ describe('full backup export', () => {
     expect(fullRow(row)).toEqual([
       803, 'approved', centralDateTime(''), centralDateTime('2026-10-01T12:00:00Z'),
       'Jane', 'Smith', '123 Oak St', 'Lancaster', '608', 'a@b.co', 'family', null,
-      3, 'Jane Smith (self, age 30)', 'Tim Smith: bike', 'Black doll (Sue Smith)', 2,
+      3, 'Jane Smith (self, age 30)', 'Tim Smith: bike', 'Non-White doll (Sue Smith)', 2,
       'yes', 'none', '', '', '',
       'yes', 'yes', 50, '', '',
       '', '', 'online',

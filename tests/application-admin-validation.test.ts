@@ -67,10 +67,10 @@ describe('validateApplicationAdmin — lenient', () => {
     expect(nameless.ok).toBe(false);
     if (!nameless.ok) expect(nameless.errors.member_name_1).toBeTruthy();
   });
-  it('doll choice: accepts black and white and defaults blank', () => {
-    const black = validateApplicationAdmin({ ...minimal, member_name_1: 'Sue', member_doll_1: 'black' });
-    expect(black.ok).toBe(true);
-    if (black.ok) expect(black.clean.members[0].doll).toBe('black');
+  it('doll choice: accepts white and non-white and defaults blank', () => {
+    const nonWhite = validateApplicationAdmin({ ...minimal, member_name_1: 'Sue', member_doll_1: 'non_white' });
+    expect(nonWhite.ok).toBe(true);
+    if (nonWhite.ok) expect(nonWhite.clean.members[0].doll).toBe('non_white');
     const white = validateApplicationAdmin({ ...minimal, member_name_1: 'Sue', member_doll_1: 'white' });
     expect(white.ok).toBe(true);
     if (white.ok) expect(white.clean.members[0].doll).toBe('white');
@@ -86,7 +86,7 @@ describe('validateApplicationAdmin — lenient', () => {
   it('doll choice: a doll-only row is content, not a blank row to skip', () => {
     // Choosing a doll but nothing else means someone started a row: ask the
     // operator for the name rather than silently dropping the choice.
-    const r = validateApplicationAdmin({ ...minimal, member_doll_1: 'black' });
+    const r = validateApplicationAdmin({ ...minimal, member_doll_1: 'non_white' });
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors.member_name_1).toBeTruthy();
   });

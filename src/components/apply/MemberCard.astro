@@ -84,8 +84,8 @@ const sizes = [
     <label for={`member_doll_${i}`} class="block font-semibold">Would they like a doll?</label>
     <select id={`member_doll_${i}`} name={`member_doll_${i}`} class={input}>
       <option value="" selected={v(`member_doll_${i}`) === ''}>No doll</option>
-      <option value="black" selected={v(`member_doll_${i}`) === 'black'}>Black doll</option>
       <option value="white" selected={v(`member_doll_${i}`) === 'white'}>White doll</option>
+      <option value="non_white" selected={v(`member_doll_${i}`) === 'non_white'}>Non-White doll</option>
     </select>
   </div>
 </fieldset>

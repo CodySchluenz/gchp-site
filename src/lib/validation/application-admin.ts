@@ -135,7 +135,7 @@ export function validateApplicationAdmin(
     const gifts = get(input, `member_gifts_${i}`);
     const dollRaw = get(input, `member_doll_${i}`);
     // A <select> can only be wrong if tampered with — coerce, never error.
-    const doll = (dollRaw === 'black' || dollRaw === 'white' ? dollRaw : '') as '' | 'black' | 'white';
+    const doll = (dollRaw === 'white' || dollRaw === 'non_white' ? dollRaw : '') as '' | 'white' | 'non_white';
     const contentBlank =
       name === '' && sexRaw === '' && ageRaw === '' && relationshipOther === '' &&
       Object.values(sizes).every((s) => s === '') && gifts === '' && dollRaw === '' &&

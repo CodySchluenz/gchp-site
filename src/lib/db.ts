@@ -595,10 +595,10 @@ export async function listApplicationsForExport(
              || ', age ' || m.age ||
              CASE WHEN m.disabled = 1 THEN ', disabled' ELSE '' END ||
              CASE WHEN m.part_time = 1 THEN ', part-time' ELSE '' END ||
-             CASE WHEN m.doll = 'black' THEN ', black doll' WHEN m.doll = 'white' THEN ', white doll' ELSE '' END ||
+             CASE WHEN m.doll = 'white' THEN ', white doll' WHEN m.doll = 'non_white' THEN ', non-white doll' ELSE '' END ||
              ')', '; '), '') AS member_summary,
            COALESCE(GROUP_CONCAT(CASE WHEN m.gifts != '' THEN m.name || ': ' || m.gifts END, '; '), '') AS gifts_summary,
-           COALESCE(GROUP_CONCAT(CASE m.doll WHEN 'black' THEN 'Black doll (' || m.name || ')' WHEN 'white' THEN 'White doll (' || m.name || ')' END, '; '), '') AS dolls_summary,
+           COALESCE(GROUP_CONCAT(CASE m.doll WHEN 'white' THEN 'White doll (' || m.name || ')' WHEN 'non_white' THEN 'Non-White doll (' || m.name || ')' END, '; '), '') AS dolls_summary,
            (SELECT COALESCE(GROUP_CONCAT(e.worker_name || ' @ ' || e.employer_name || ': $' || e.hourly_wage || ' x ' || e.hours_per_week, '; '), '')
               FROM employers e WHERE e.application_id = a.id AND e.deleted_at IS NULL) AS employment_summary
     FROM applications a

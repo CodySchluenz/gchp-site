@@ -176,7 +176,7 @@ const hasOriginal = typeof a.original_json === 'string' && a.original_json !== '
                 <td class="border-b p-2">{m.age}</td>
                 <td class="border-b p-2">{[['Pants', m.pants], ['Shirt', m.shirt_top], ['Underwear', m.underwear], ['Socks', m.socks], ['Shoe', m.shoe], ['Coat', m.coat], ['Diapers', m.diapers]].filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ') || '—'}</td>
                 <td class="border-b p-2">{m.gifts || '—'}</td>
-                <td class="border-b p-2">{m.doll === 'black' ? 'Black doll' : m.doll === 'white' ? 'White doll' : '—'}</td>
+                <td class="border-b p-2">{m.doll === 'white' ? 'White doll' : m.doll === 'non_white' ? 'Non-White doll' : '—'}</td>
               </tr>
             ))}
           </tbody>
