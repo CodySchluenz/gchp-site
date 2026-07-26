@@ -58,3 +58,14 @@ end: the detail-page section, the `set_bags` action and its banner,
 in the database, inert (house pattern; dropping risks the deploy window for
 zero gain). Packing slips already never showed bags; the slip-privacy scan
 keeps forbidding `bags_count`.
+
+## Addendum 2 (2026-07-26): one slip per page + handwriting notes area
+
+Sherlyn, via the owner: "Each pick up slip should print out individually and
+allow for me to put notes at bottom of slip." This supersedes the July
+three-per-page preference (her expanded content made slips taller anyway).
+- Each slip prints on its own page (`page-break-after: always` restored; the
+  3.1in min-height goes — no longer meaningful).
+- Each slip ends with a "Notes" label and five ruled blank lines for
+  handwriting. Nothing stored, nothing printed from admin notes (those remain
+  private and off-slip); it is blank paper space, by design.
