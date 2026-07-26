@@ -1,5 +1,6 @@
 import type { CleanApplication } from './validation/application';
 import { blockBaseFor, blockRange, BLOCK_SIZE } from './pickup-numbers';
+import { duplicateKey } from './duplicates';
 
 export type ContentBlock = { id: number; title: string; subtitle: string; body: string };
 
@@ -214,6 +215,92 @@ export async function listApplications(
     )
     .all<ApplicationListRow>();
   return results;
+}
+
+// The Board's numbers, computed live — several small readable queries beat
+// one clever one. Precedence for the by-group table: mailed households first,
+// then stragglers, then towns, so every served family lands in exactly one row.
+export type SeasonSummary = {
+  received: number; online: number; paper: number; imported: number;
+  served: number; toReview: number; denied: number;
+  peopleServed: number;
+  towns: { name: string; count: number }[];
+  stragglers: number; mailed: number;
+  thanksgiving: number;
+  foodCards: number; foodCardTotal: number;
+  giftCards: number; giftCardTotal: number;
+};
+
+export async function getSeasonSummary(db: D1Database, seasonYear: number): Promise<SeasonSummary> {
+  const statusRows = await db
+    .prepare(`SELECT status, source, COUNT(*) AS n FROM applications
+              WHERE deleted_at IS NULL AND season_year = ? GROUP BY status, source`)
+    .bind(seasonYear).all<{ status: string; source: string; n: number }>();
+  let received = 0, online = 0, paper = 0, imported = 0, served = 0, toReview = 0, denied = 0;
+  for (const r of statusRows.results) {
+    received += r.n;
+    if (r.source === 'online') online += r.n; else if (r.source === 'paper') paper += r.n; else imported += r.n;
+    if (r.status === 'approved') served += r.n; else if (r.status === 'new') toReview += r.n; else if (r.status === 'denied') denied += r.n;
+  }
+  const people = await db
+    .prepare(`SELECT COUNT(*) AS n FROM household_members m
+              JOIN applications a ON a.id = m.application_id
+              WHERE a.deleted_at IS NULL AND m.deleted_at IS NULL
+                AND a.season_year = ? AND a.status = 'approved'`)
+    .bind(seasonYear).first<{ n: number }>();
+  const towns = await db
+    .prepare(`SELECT c.name, COUNT(*) AS count FROM applications a JOIN cities c ON c.id = a.city_id
+              WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
+                AND a.household_type NOT IN ('elderly', 'disabled') AND a.straggler = 0
+              GROUP BY c.id ORDER BY c.block_base`)
+    .bind(seasonYear).all<{ name: string; count: number }>();
+  const groups = await db
+    .prepare(`SELECT
+                SUM(CASE WHEN household_type NOT IN ('elderly','disabled') AND straggler = 1 THEN 1 ELSE 0 END) AS stragglers,
+                SUM(CASE WHEN household_type IN ('elderly','disabled') THEN 1 ELSE 0 END) AS mailed
+              FROM applications WHERE deleted_at IS NULL AND season_year = ? AND status = 'approved'`)
+    .bind(seasonYear).first<{ stragglers: number | null; mailed: number | null }>();
+  const cards = await db
+    .prepare(`SELECT
+                SUM(thanksgiving_card) AS tg,
+                SUM(food_card) AS fc, SUM(CASE WHEN food_card = 1 THEN COALESCE(food_card_amount, 0) ELSE 0 END) AS fct,
+                SUM(gift_card) AS gc, SUM(CASE WHEN gift_card = 1 THEN COALESCE(gift_card_amount, 0) ELSE 0 END) AS gct
+              FROM applications WHERE deleted_at IS NULL AND season_year = ?`)
+    .bind(seasonYear).first<{ tg: number | null; fc: number | null; fct: number | null; gc: number | null; gct: number | null }>();
+  return {
+    received, online, paper, imported, served, toReview, denied,
+    peopleServed: people?.n ?? 0,
+    towns: towns.results,
+    stragglers: groups?.stragglers ?? 0, mailed: groups?.mailed ?? 0,
+    thanksgiving: cards?.tg ?? 0,
+    foodCards: cards?.fc ?? 0, foodCardTotal: cards?.fct ?? 0,
+    giftCards: cards?.gc ?? 0, giftCardTotal: cards?.gct ?? 0,
+  };
+}
+
+// Possible duplicates of one application: same season, same normalized
+// last name + address (the pure lib decides — SQL narrows by last name only
+// so the whitespace-collapse rule lives in ONE place, duplicates.ts).
+export type DuplicateCandidate = {
+  id: number; first_name: string; last_name: string; address: string;
+  submitted_at: string; status: string; pu_number: number | null; source: string;
+};
+
+export async function listPossibleDuplicates(db: D1Database, id: number): Promise<DuplicateCandidate[]> {
+  const self = await db
+    .prepare('SELECT season_year, last_name, address FROM applications WHERE id = ? AND deleted_at IS NULL')
+    .bind(id).first<{ season_year: number; last_name: string; address: string }>();
+  if (!self) return [];
+  const key = duplicateKey(self.last_name, self.address);
+  if (key === null) return [];
+  const { results } = await db
+    .prepare(`SELECT id, first_name, last_name, address, submitted_at, status, pu_number, source
+              FROM applications
+              WHERE deleted_at IS NULL AND season_year = ? AND id != ?
+                AND lower(trim(last_name)) = lower(trim(?))
+              ORDER BY id`)
+    .bind(self.season_year, id, self.last_name).all<DuplicateCandidate>();
+  return results.filter((c) => duplicateKey(c.last_name, c.address) === key);
 }
 
 export async function listSeasons(db: D1Database): Promise<number[]> {
