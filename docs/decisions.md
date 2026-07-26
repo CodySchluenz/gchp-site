@@ -205,6 +205,8 @@ in commit bda9f62 with a decode map + test). One deferred owner decision surface
 
 ## No purge feature (2026-07-25)
 
+(Finalizes decision #10, "Data retention and export", 2026-07-12 — from "not required" to "deliberately not built".)
+
 No purge feature. The admin will not get a purge-prior-seasons capability (reverses the original
 CLAUDE.md intent). Records are deliberately kept for the yearly county audit; if the Board ever
 wants old seasons cleared, it is a developer task on explicit request.
