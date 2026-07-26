@@ -1,0 +1,79 @@
+---
+import '../../styles/global.css';
+import Admin from '../../layouts/Admin.astro';
+import { getSeasonSummary, listSeasons, latestSeason, THANKSGIVING_CARD_TOTAL } from '../../lib/db';
+export const prerender = false;
+
+const db = Astro.locals.runtime.env.DB;
+const url = new URL(Astro.request.url);
+const season = Number(url.searchParams.get('season')) || (await latestSeason(db)) || new Date().getFullYear();
+const s = await getSeasonSummary(db, season);
+const seasons = await listSeasons(db);
+const yearsToShow = seasons.includes(season) ? seasons : [...seasons, season].sort((a, b) => b - a);
+const money = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
+---
+<Admin title="Season summary" heading={`Season summary — ${season}`} back={{ href: '/admin', label: 'Back to admin home' }}>
+  <p class="mt-1 text-lg text-stone-600">Help: the year's numbers, computed live from the applications list — ready to print for the Board.</p>
+
+  <div class="mt-4 flex flex-wrap items-end gap-4 print:hidden">
+    <form method="get" class="flex items-end gap-2">
+      <label class="font-semibold">Season
+        <select name="season" class="ml-2 rounded border-2 border-stone-400 p-2">
+          {yearsToShow.map((y) => <option value={String(y)} selected={y === season}>{y}</option>)}
+        </select>
+      </label>
+      <button type="submit" class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Go</button>
+    </form>
+    <button type="button" data-print class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Print this page</button>
+  </div>
+
+  <div class="mt-6 grid gap-4 sm:grid-cols-2">
+    <section class="rounded-lg border-2 border-stone-300 bg-white p-5">
+      <h2 class="text-2xl font-bold text-holly-800">Applications</h2>
+      <p class="mt-2 text-lg">Received: <strong>{s.received}</strong>
+        {s.imported > 0
+          ? <span class="text-stone-600"> ({s.online} online · {s.paper} from paper · {s.imported} imported from the old website)</span>
+          : <span class="text-stone-600"> ({s.online} online · {s.paper} from paper)</span>}
+      </p>
+      <p class="mt-1 text-lg">Families served (approved): <strong>{s.served}</strong></p>
+      <p class="mt-1 text-lg">Still to review: <strong>{s.toReview}</strong> · Denied: <strong>{s.denied}</strong></p>
+      <p class="mt-1 text-lg">People in served households: <strong>{s.peopleServed}</strong></p>
+    </section>
+
+    <section class="rounded-lg border-2 border-stone-300 bg-white p-5">
+      <h2 class="text-2xl font-bold text-holly-800">Cards given</h2>
+      <p class="mt-2 text-lg">Thanksgiving cards: <strong>{s.thanksgiving} of {THANKSGIVING_CARD_TOTAL}</strong></p>
+      <p class="mt-1 text-lg">Food cards / certificates: <strong>{s.foodCards}</strong> · total <strong>{money(s.foodCardTotal)}</strong></p>
+      <p class="mt-1 text-lg">Gift cards: <strong>{s.giftCards}</strong> · total <strong>{money(s.giftCardTotal)}</strong></p>
+    </section>
+  </div>
+
+  <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
+    <h2 class="text-2xl font-bold text-holly-800">Families served, by town</h2>
+    {s.served === 0 ? (
+      <p class="mt-2 text-lg">No approved applications yet this season.</p>
+    ) : (
+      <table class="mt-3 w-full max-w-md border-collapse text-left text-lg">
+        <caption class="sr-only">Approved families per town</caption>
+        <thead><tr><th scope="col" class="border-b-2 border-holly-700 p-2">Town</th><th scope="col" class="border-b-2 border-holly-700 p-2">Families</th></tr></thead>
+        <tbody>
+          {s.towns.map((t) => (
+            <tr><td class="border-b border-stone-200 p-2">{t.name}</td><td class="border-b border-stone-200 p-2">{t.count}</td></tr>
+          ))}
+          {s.stragglers > 0 && <tr><td class="border-b border-stone-200 p-2 font-semibold">Stragglers</td><td class="border-b border-stone-200 p-2">{s.stragglers}</td></tr>}
+          {s.mailed > 0 && <tr><td class="border-b border-stone-200 p-2 font-semibold">Elderly &amp; disabled (mailed)</td><td class="border-b border-stone-200 p-2">{s.mailed}</td></tr>}
+          <tr><td class="p-2 font-bold">Total served</td><td class="p-2 font-bold">{s.served}</td></tr>
+        </tbody>
+      </table>
+    )}
+  </section>
+
+  <p class="mt-4 text-stone-600">Numbers computed live from the applications list — {season}.</p>
+  <script src="/scripts/print-button.js" defer></script>
+</Admin>
+
+<style>
+  @media print {
+    :global(header), :global(a[href="/admin"]) { display: none; }
+  }
+</style>
