@@ -1,11 +1,16 @@
 ---
 import type { ApplicationDetail } from '../../lib/db';
+import { centralDateTime } from '../../lib/dates';
+import { relationshipLabel } from '../../lib/relationships';
 interface Props { detail: ApplicationDetail }
 const { detail } = Astro.props;
 const a = detail.app;
+const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
 const sizes = (m: Record<string, unknown>) =>
-  [['Pants', m.pants], ['Shirt', m.shirt_top], ['Underwear', m.underwear], ['Socks', m.socks], ['Diapers', m.diapers]]
+  [['Pants', m.pants], ['Shirt', m.shirt_top], ['Underwear', m.underwear], ['Socks', m.socks], ['Shoe', m.shoe], ['Coat', m.coat], ['Diapers', m.diapers]]
     .filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ') || '—';
+const doll = (m: Record<string, unknown>) =>
+  m.doll === 'white' ? 'White doll' : m.doll === 'non_white' ? 'Non-White doll' : '—';
 ---
 <article class="slip">
   <div class="row">
@@ -21,12 +26,27 @@ const sizes = (m: Record<string, unknown>) =>
     {a.diabetic === 1 && <span class="flag">DIABETIC</span>}
     {a.bed_choice !== 'none' && <span>Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''}</span>}
   </p>
+  <p class="facts">
+    Applied: {centralDateTime(String(a.submitted_at ?? ''))}
+    {a.email ? <> · Email: {String(a.email)}</> : null}
+  </p>
+  <p class="facts">
+    Household type: {a.household_type} · OK to share with a sponsor: {yesno(a.share_with_sponsor)} · Years received help: {a.years_received_help} · Adopted last year: {yesno(a.adopted_last_year)}
+  </p>
   <table>
-    <caption class="sr-only">Household members and sizes</caption>
-    <thead><tr><th scope="col">Name</th><th scope="col">Sex</th><th scope="col">Age</th><th scope="col">Sizes</th></tr></thead>
+    <caption class="sr-only">Household members, sizes, and gifts</caption>
+    <thead><tr><th scope="col">Name</th><th scope="col">Relationship</th><th scope="col">Sex</th><th scope="col">Age</th><th scope="col">Sizes</th><th scope="col">Gifts wanted</th><th scope="col">Doll</th></tr></thead>
     <tbody>
       {detail.members.map((m) => (
-        <tr><td>{m.name}</td><td>{m.sex}</td><td>{m.age}</td><td>{sizes(m)}</td></tr>
+        <tr>
+          <td>{m.name}</td>
+          <td>{relationshipLabel(String(m.relationship ?? ''), String(m.relationship_other ?? ''))}</td>
+          <td>{m.sex}</td>
+          <td>{m.age}</td>
+          <td>{sizes(m)}</td>
+          <td>{m.gifts || '—'}</td>
+          <td>{doll(m)}</td>
+        </tr>
       ))}
     </tbody>
   </table>
@@ -39,7 +59,11 @@ const sizes = (m: Record<string, unknown>) =>
   .row { display: flex; gap: 24px; font-size: 20px; }
   .name { font-size: 22px; margin: 8px 0 2px; }
   .pickup { font-size: 18px; margin: 4px 0; }
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 16px; }
+  .facts { font-size: 16px; margin: 4px 0; }
+  /* Seven columns (Name, Relationship, Sex, Age, Sizes, Gifts wanted, Doll)
+     crowd the 16px base — drop the table alone to 14px so it still fits;
+     every other line on the slip stays at 16px+ per the print-legibility rule. */
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
   th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
   .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }
   /* This component's pages (slips.astro, [id]/slip.astro) intentionally
