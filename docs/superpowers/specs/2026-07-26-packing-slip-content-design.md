@@ -47,3 +47,14 @@ Build-verified rendering per house pattern.
 
 Income/good-deeds/notes on slips (never); bags (not in her document); any
 change to the mailed-household exclusion or the packing-slip name.
+
+## Addendum (2026-07-26, later the same day): no Bags section at all
+
+Sherlyn, via the owner, on seeing the application page's Bags box ("Number of
+bags / Save bags"): she does not want a bag section. Remove the feature end to
+end: the detail-page section, the `set_bags` action and its banner,
+`setBagsCount`, the bags history sentences (`describeBagsChange`), and the
+`Bags` column in the backup export. The `applications.bags_count` column stays
+in the database, inert (house pattern; dropping risks the deploy window for
+zero gain). Packing slips already never showed bags; the slip-privacy scan
+keeps forbidding `bags_count`.
