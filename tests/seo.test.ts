@@ -37,8 +37,13 @@ describe('seo', () => {
     // Pinned regression: prerendered pages see Astro.url.pathname with a trailing
     // slash at build time (e.g. "/donate/"), which would emit a canonical that
     // disagrees with the slash-free sitemap above. The canonical must normalize
-    // the same way the nav's `current` highlight does.
-    expect(layout).toContain("replace(/\\/$/, '')");
+    // the same way the nav's `current` highlight does. Scoped to the canonical
+    // assignment line itself — the nav line contains the same replace() call, so
+    // a whole-file substring check would match it and protect nothing.
+    const canonicalLine = layout.split('\n').find((l) => l.includes('const canonical'));
+    expect(canonicalLine, 'the canonical assignment must strip the trailing slash').toContain(
+      "replace(/\\/$/, '')",
+    );
   });
 
   it('every public page passes its own description', () => {
