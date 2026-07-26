@@ -6,7 +6,26 @@ export const prerender = false;
 
 const blocks = await listContentBlocks(Astro.locals.runtime.env.DB);
 ---
-<Site title="Home">
+<Site title="Home" description="The Grant County Holiday Project provides holiday food, gifts, and clothing to hundreds of Grant County, Wisconsin families and elderly neighbors every December. Over 30 years of neighbors helping neighbors, with Tri-State Toys for Tots.">
+  <script type="application/ld+json" set:html={JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'NGO',
+    name: 'Grant County Holiday Project',
+    url: 'https://grantcountyholidayproject.org/',
+    logo: 'https://grantcountyholidayproject.org/images/header-banner.png',
+    email: 'skleinow@co.grant.wi.gov',
+    telephone: '+1-608-723-2136',
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: '245 W. Elm St.',
+      addressLocality: 'Lancaster',
+      addressRegion: 'WI',
+      postalCode: '53813',
+      addressCountry: 'US',
+    },
+    areaServed: 'Grant County, Wisconsin',
+    description: 'An all-volunteer program providing holiday food, gifts, and clothing to Grant County, Wisconsin families and elderly neighbors, in partnership with Tri-State Toys for Tots.',
+  })} />
   <h1 class="text-3xl font-bold text-holly-800">Welcome to the Grant County Holiday Project</h1>
   <p class="mt-4">
     Our mission is to seek out and provide food, clothing, gifts, and toys to children and

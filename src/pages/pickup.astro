@@ -8,7 +8,7 @@ const db = Astro.locals.runtime.env.DB;
 const settings = await getSettings(db);
 const days = await listPickupDays(db);
 ---
-<Site title="Pickup Schedule">
+<Site title="Pickup Schedule" description="Pickup days, times, and locations for Grant County Holiday Project families. Find your town's pickup schedule for this season.">
   <h1 class="text-3xl font-bold text-holly-800">Pickup Schedule</h1>
   <p class="mt-4 text-xl font-semibold">{settings.pickup_title}</p>
   <p class="mt-3 whitespace-pre-wrap">{settings.pickup_intro}</p>

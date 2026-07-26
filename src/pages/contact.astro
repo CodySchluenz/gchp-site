@@ -87,7 +87,7 @@ Astro.cookies.set('csrf', cookieValue, {
 });
 const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
 ---
-<Site title="Contact Us">
+<Site title="Contact Us" description="Questions about applying, donating, or the Grant County Holiday Project? Send us a message or call the message line — a volunteer will get back to you.">
   <h1 class="text-3xl font-bold text-holly-800">Contact Us</h1>
 
   {
