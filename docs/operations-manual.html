@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grant County Holiday Project — Website Operations Manual</title>
+<style>
+  :root {
+    --paper:#faf6ea; --surface:#ffffff; --ink:#23291f; --ink-soft:#5c6152;
+    --holly:#14532d; --holly-bright:#1a6b3a; --holly-tint:#e7f1e8;
+    --berry:#b91c1c; --berry-tint:#fdecec; --gold:#b7791f; --gold-soft:#f3ead2;
+    --line:#e6ddc7;
+    --font-display: Georgia, 'Times New Roman', serif;
+    --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:#14201a; --surface:#1b2a22; --ink:#eef2e6; --ink-soft:#a9b3a0;
+      --holly:#8fd3a6; --holly-bright:#a6dfb8; --holly-tint:#213328;
+      --berry:#f19a9a; --berry-tint:#392222; --gold:#d8b25a; --gold-soft:#2a2417;
+      --line:#2c3a30;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper:#faf6ea; --surface:#ffffff; --ink:#23291f; --ink-soft:#5c6152;
+    --holly:#14532d; --holly-bright:#1a6b3a; --holly-tint:#e7f1e8;
+    --berry:#b91c1c; --berry-tint:#fdecec; --gold:#b7791f; --gold-soft:#f3ead2; --line:#e6ddc7;
+  }
+  :root[data-theme="dark"] {
+    --paper:#14201a; --surface:#1b2a22; --ink:#eef2e6; --ink-soft:#a9b3a0;
+    --holly:#8fd3a6; --holly-bright:#a6dfb8; --holly-tint:#213328; --gold-soft:#2a2417;
+    --berry:#f19a9a; --berry-tint:#392222; --gold:#d8b25a; --line:#2c3a30;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--font-body); font-size: 18px; line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 46rem; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+
+  header.mast { border-bottom: 3px solid var(--gold); padding-bottom: 1.6rem; margin-bottom: 2.2rem; }
+  .eyebrow { font-size: 0.8rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); font-weight: 700; margin: 0 0 0.5rem; }
+  h1 { font-family: var(--font-display); color: var(--holly); font-size: clamp(2rem, 5.5vw, 2.7rem); line-height: 1.1; margin: 0; text-wrap: balance; }
+  .lead { font-size: 1.12rem; margin: 1rem 0 0; color: var(--ink); text-wrap: pretty; }
+
+  nav.toc { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.4rem; margin: 1.6rem 0 0; }
+  nav.toc p { margin: 0 0 0.4rem; font-weight: 700; color: var(--holly-bright); text-transform: uppercase; font-size: 0.82rem; letter-spacing: 0.1em; }
+  nav.toc ol { margin: 0; padding-left: 1.3rem; columns: 2; column-gap: 2rem; font-size: 0.98rem; }
+  nav.toc li { margin: 0.2rem 0; break-inside: avoid; }
+  nav.toc a { color: var(--ink); text-decoration: none; }
+  nav.toc a:hover { color: var(--holly-bright); text-decoration: underline; }
+
+  section { margin-top: 2.6rem; }
+  h2 { font-family: var(--font-display); color: var(--holly); font-size: 1.55rem; line-height: 1.15; margin: 0 0 0.6rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--line); text-wrap: balance; }
+  h2 .no { color: var(--gold); margin-right: 0.5rem; }
+  h3 { font-weight: 700; font-size: 1.08rem; margin: 1.5rem 0 0.35rem; }
+  p { margin: 0.65rem 0; }
+  ul, ol { margin: 0.5rem 0; padding-left: 1.4rem; }
+  li { margin: 0.3rem 0; }
+  a { color: var(--holly-bright); }
+
+  .note, .warn {
+    border-left: 5px solid var(--holly); background: var(--holly-tint);
+    padding: 0.9rem 1.2rem; border-radius: 0 8px 8px 0; margin: 1.1rem 0; break-inside: avoid;
+  }
+  .warn { border-left-color: var(--berry); background: var(--berry-tint); }
+  .note strong { color: var(--holly-bright); } .warn strong { color: var(--berry); }
+  .note p, .warn p { margin: 0.35rem 0; }
+
+  table.ref { width: 100%; border-collapse: collapse; margin: 0.8rem 0; font-size: 0.95rem; }
+  table.ref th, table.ref td { border: 1px solid var(--line); padding: 0.45rem 0.7rem; text-align: left; vertical-align: top; }
+  table.ref th { background: var(--gold-soft); font-weight: 700; }
+  table.ref td:first-child { white-space: nowrap; font-weight: 600; color: var(--holly-bright); font-variant-numeric: tabular-nums; }
+  .tablewrap { overflow-x: auto; }
+
+  .screen { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1.1rem 1.4rem; margin: 1rem 0; break-inside: avoid; }
+  .screen h3 { margin-top: 0; color: var(--holly-bright); }
+  .btn { font-weight: 700; background: var(--gold-soft); padding: 0.03em 0.4em; border-radius: 5px; border: 1px solid var(--line); white-space: nowrap; }
+  .path { font-weight: 700; color: var(--holly-bright); }
+
+  footer.foot { margin-top: 3rem; padding-top: 1.4rem; border-top: 3px solid var(--gold); color: var(--ink-soft); font-size: 0.95rem; }
+
+  @media print {
+    :root { --paper:#fff; --surface:#fff; --ink:#1a1a1a; --ink-soft:#444; --holly:#14532d; --holly-bright:#14532d;
+            --holly-tint:#fff; --berry:#a11616; --berry-tint:#fff; --gold:#8a5e18; --gold-soft:#f0ead9; --line:#cbcbcb; }
+    body { font-size: 11.5pt; }
+    .wrap { max-width: none; padding: 0; }
+    h2 { break-after: avoid; }
+    section, .screen, .note, .warn, table.ref tr { break-inside: avoid; }
+    a { color: var(--ink); text-decoration: none; }
+    nav.toc ol { columns: 2; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="mast">
+    <p class="eyebrow">Grant County Holiday Project · Operations Manual</p>
+    <h1>Running the Website: the Complete Reference</h1>
+    <p class="lead">This manual is for whoever runs the Holiday Project website — today's coordinator or
+      the person who takes over someday. It assumes you have never seen the site before, and it covers
+      every screen, every button, and the rhythm of a season.</p>
+  </header>
+
+  <nav class="toc">
+    <p>Contents</p>
+    <ol>
+      <li><a href="#program">What this program is</a></li>
+      <li><a href="#access">Getting access</a></li>
+      <li><a href="#season">The shape of a season</a></li>
+      <li><a href="#numbers">The pickup-number system</a></li>
+      <li><a href="#rules">What the software decides — and what you decide</a></li>
+      <li><a href="#screens">Every screen, in detail</a></li>
+      <li><a href="#privacy">Privacy duties</a></li>
+      <li><a href="#developer">When to call the developer</a></li>
+      <li><a href="#pointers">What this manual does not cover</a></li>
+    </ol>
+  </nav>
+
+  <section id="program">
+    <h2><span class="no">1.</span>What this program is</h2>
+    <p>The Grant County Holiday Project is an all-volunteer program, more than thirty years old, that
+      provides food, gifts, and clothing to 300–400 low-income families and elderly neighbors across
+      Grant County, Wisconsin each December. It partners with Tri-State Toys for Tots (Dubuque, IA).
+      It is not government-run: the county lets the project use its tax-exempt status, all finances and
+      receipts run through the county's financial department, and the county audits the program yearly.</p>
+    <p>Families apply in October and November — online through the website, or on a paper form that gets
+      typed into the website so everything lives in one list. The coordinator reviews each application,
+      approves or denies it, and runs packing and distribution by town in December. Elderly and disabled
+      households are served separately: they receive gift and food cards <strong>by mail</strong> and
+      never go through packing or pickup.</p>
+    <p>Applicants "pay it forward": each application includes good deeds done for others in the
+      community. It is part of eligibility, and it is checked by a person — never by the software.</p>
+  </section>
+
+  <section id="access">
+    <h2><span class="no">2.</span>Getting access</h2>
+    <ol>
+      <li>The website is <span class="path">grantcountyholidayproject.org</span>. The coordinator's
+        workspace — "the admin" — is at <span class="path">grantcountyholidayproject.org/admin</span>.</li>
+      <li>There is no password. You type your email address, press
+        <span class="btn">Email me a sign-in link</span>, and click the link in the email it sends you.
+        Links work for 15 minutes and only once; you stay signed in about 30 days.</li>
+      <li><strong>Your email address must be on the admin list first.</strong> Adding or removing an
+        authorized email is a developer task (section 8) — it is the very first thing a new coordinator
+        arranges.</li>
+    </ol>
+    <div class="note">
+      <p><strong>First week suggestion:</strong> sign in while applications are closed, open every screen
+        in the green menu with this manual beside you, and enter one clearly-marked TEST paper
+        application (last name "TEST") to practice approving, printing, and deleting. Delete it when
+        you're done — deletes ask for confirmation and offer an Undo.</p>
+    </div>
+  </section>
+
+  <section id="season">
+    <h2><span class="no">3.</span>The shape of a season</h2>
+    <div class="tablewrap"><table class="ref">
+      <tr><th>When</th><th>What you do on the website</th></tr>
+      <tr><td>September</td><td>Freshen the home page on <strong>This year's news</strong> (dates, the
+        special gifts list); set this year's <strong>Pickup schedule</strong>; upload the new blank
+        paper application PDF.</td></tr>
+      <tr><td>October 1</td><td>Press <span class="btn">Open applications</span> on the admin Home
+        screen. Donations also begin October 1.</td></tr>
+      <tr><td>October–November</td><td>Review applications as they arrive; type in paper applications;
+        verify income and the good deeds by hand (the website does no eligibility math); approve or deny
+        (approving assigns the pickup number automatically); mark Thanksgiving cards as you give them —
+        the first 30 applicants get one, and the list counts them for you; keep notes on each
+        application.</td></tr>
+      <tr><td>Packing</td><td>Work town by town: pick the town in the <strong>Show town</strong>
+        dropdown, print the list and the <strong>packing slips</strong> for the volunteers (three to a
+        page), record bag counts on each application.</td></tr>
+      <tr><td>~10 days before pickup</td><td>Packing slips carry each family's pickup date automatically
+        if you've matched towns to days (section 6.5). Elderly &amp; disabled: print the mailed list with
+        addresses, send their gift and food cards, and record them in each family's
+        <strong>Cards given</strong> box.</td></tr>
+      <tr><td>Distribution days</td><td>Give each day's distributors the Excel download for their town —
+        it lists who's coming, in pickup-number order, with the Special Gift column for the first-come
+        extra-gifts table.</td></tr>
+      <tr><td>End of project</td><td>Serve the stragglers (their own list and 2400-series numbers).
+        Press <span class="btn">Close applications</span>. The season's records stay in the website for
+        the county audit.</td></tr>
+      <tr><td>Anytime</td><td>Late applications after a town is packed: mark them
+        <strong>Straggler</strong> on their application page.</td></tr>
+    </table></div>
+  </section>
+
+  <section id="numbers">
+    <h2><span class="no">4.</span>The pickup-number system</h2>
+    <p>Every approved household gets a pickup number. The number follows the family everywhere: the
+      lists, the packing slips, the Excel — and it is how boxes are
+      matched to families. Each town owns a block of one hundred numbers;
+      the first approved household from a town gets the base number itself, the next gets base + 1, and
+      so on. <strong>Approving an application assigns the next number automatically.</strong> Numbers
+      are never reused within a season, even if an application is deleted.</p>
+    <div class="tablewrap"><table class="ref">
+      <tr><th>Block</th><th>Belongs to</th><th>Block</th><th>Belongs to</th></tr>
+      <tr><td>100s</td><td>Blue River</td><td>1300s</td><td>Glen Haven</td></tr>
+      <tr><td>200s</td><td>Muscoda</td><td>1400s</td><td>Patch Grove</td></tr>
+      <tr><td>300s</td><td>Cuba City</td><td>1500s</td><td>Platteville</td></tr>
+      <tr><td>400s</td><td>Dickeyville</td><td>1600s</td><td>Fennimore</td></tr>
+      <tr><td>500s</td><td>Hazel Green</td><td>1700s</td><td>Livingston</td></tr>
+      <tr><td>600s</td><td>Kieler</td><td>1800s</td><td>Montfort</td></tr>
+      <tr><td>700s</td><td>Potosi</td><td>1900s</td><td>Mt. Hope</td></tr>
+      <tr><td>800s</td><td>Lancaster</td><td>2000s</td><td>Stitzer</td></tr>
+      <tr><td>900s</td><td>Bagley</td><td>2100s</td><td>Boscobel</td></tr>
+      <tr><td>1000s</td><td>Beetown</td><td>2200s</td><td>Woodman</td></tr>
+      <tr><td>1100s</td><td>Bloomington</td><td>2300s</td><td>Prairie du Chien</td></tr>
+      <tr><td>1200s</td><td>Cassville</td><td>2400s</td><td><strong>Stragglers</strong> (late, after
+        their town packed)</td></tr>
+      <tr><td>2500s</td><td colspan="3"><strong>Elderly &amp; disabled</strong> — mailed their cards,
+        never packed, never on packing slips</td></tr>
+    </table></div>
+    <p>Every number can be changed by hand in the <strong>Pickup number</strong> box on the application
+      page — for reconciling with paper records, or for any special case that needs a number outside the
+      blocks. The website only enforces one rule: no two households ever share a number. If a town's
+      hundred numbers ever run out, the website says so plainly and you type numbers in yourself.</p>
+  </section>
+
+  <section id="rules">
+    <h2><span class="no">5.</span>What the software decides — and what you decide</h2>
+    <div class="warn">
+      <p><strong>The website never decides eligibility and never denies anyone automatically.</strong>
+        Every approval and every denial is a human decision. This is a founding rule of the site, not an
+        accident.</p>
+    </div>
+    <p><strong>The software does:</strong> assign pickup numbers by block; record when applications
+      arrive and when you decide; display what each family reported — income, jobs, household,
+      good deed — exactly as they gave it; keep your card tallies (Thanksgiving, food, gift) and count
+      Thanksgiving cards toward 30; keep a plain-English <strong>History</strong> of every change to
+      every application (what changed, when, by whom) plus each application exactly as first
+      submitted; keep everything for the audit.</p>
+    <p><strong>You decide — all of it:</strong> whether income fits the program's limits (the website
+      does <em>no</em> income math and shows <em>no</em> eligibility flags — the coordinator compares
+      reported income against the 200%-of-poverty chart by hand, knowing families sometimes
+      under-report or forget income); whether the pay-it-forward requirement is met; whether the
+      household type is right (elderly and disabled mean age 65+, or found disabled by Social
+      Security — and living in Grant County); approvals, denials, stragglers, and every number you
+      choose to change.</p>
+  </section>
+
+  <section id="screens">
+    <h2><span class="no">6.</span>Every screen, in detail</h2>
+    <p>The green menu on every admin page: <strong>Home · Applications this year · This year's news ·
+      Pickup schedule · Paper application · Donors · Messages</strong>. Every screen has
+      a Back link, and <span class="btn">View the website</span> shows what families see.</p>
+
+    <div class="screen">
+      <h3>6.1 Home</h3>
+      <ul>
+        <li>Shows whether applications are <strong>OPEN or CLOSED</strong>, with one button to switch
+          (asks "are you sure" first). While closed, families see a kind message pointing to the phone
+          line and the paper form.</li>
+        <li>Cards linking to every other screen, and the count of unread messages.</li>
+      </ul>
+    </div>
+
+    <div class="screen">
+      <h3>6.2 Applications this year</h3>
+      <ul>
+        <li><strong>Tabs:</strong> To review · Approved · Denied · All. <strong>Search by name.</strong>
+          A <strong>year</strong> control looks back at past seasons (past seasons stay stored for the
+          audit). The list always opens on the season you're actually working — in January it stays on
+          the season you're wrapping up, and only moves to the new year once its first application
+          arrives.</li>
+        <li><strong>Show town dropdown:</strong> All towns · each town · Elderly &amp; disabled (mailed)
+          · Stragglers. A town view lists that town's applications in pickup-number order — the
+          distributor list, and the answer when a school asks who in their town is served. The mailed
+          view adds addresses (your mail list). The Stragglers view is the late list, by itself. The
+          chosen view follows you through tabs, search, printing, and the Excel download.</li>
+        <li><strong>Buttons:</strong> <span class="btn">Enter a paper application</span> (6.4),
+          <span class="btn">Print this list</span>, <span class="btn">Print packing slips</span>,
+          <span class="btn">Download list for Excel</span>, <span class="btn">Download everything
+          (backup)</span>. The print buttons and both downloads follow the current Show-town view —
+          pick a town (or Stragglers) first to print just that stack.</li>
+        <li><strong>Also on this screen:</strong> a running <em>"Thanksgiving cards: X of 30 given"</em>
+          count for the season, and a warning when a town has used 90 of its 100 numbers.</li>
+        <li><strong>The main Excel download</strong> is the coordinator's working sheet, column for
+          column: <em>tNo</em> (pickup number), the applicant, address, <em>Special Gift</em> (each
+          person's gift requests plus any doll choices), <em>adopted</em>, <em>Thanksgiving</em>,
+          <em>Food Card/Cert.</em> and its amount, <em>Gift Cards</em> and their amount, and the number
+          in the household.</li>
+        <li><strong>The backup download</strong> ("Download everything") carries the full record:
+          status, decided and applied dates, phone, email, household type, bag count, every household
+          member with sizes and doll choices, years of help, bedding, income as reported, jobs, the
+          card tallies, the parentage note, your private notes, and whether the application came online
+          or on paper. Use it before purging anything, for the audit, and for handover.</li>
+      </ul>
+    </div>
+
+    <div class="screen">
+      <h3>6.3 One application (click any name)</h3>
+      <ul>
+        <li><strong>Top:</strong> when it was applied (date and time) and whether it was entered from
+          paper.</li>
+        <li><strong>Household &amp; People:</strong> everyone listed with relationship to the parent,
+          age, sex, disabled / lives-here-part-time marks, clothing sizes (pants, shirt, underwear,
+          socks, diapers, shoe, coat), gift requests, and each child's <strong>doll choice</strong>
+          (White doll / Non-White doll / no doll). A "which children belong to whom" note for
+          blended families.</li>
+        <li><strong>Income:</strong> jobs (employer, wage, hours) and benefits (Food Share, Social
+          Security, SSI, child support, unemployment, other), shown exactly as the family reported
+          them. <strong>The website does no eligibility math</strong> — comparing income to the
+          poverty chart is the coordinator's hand-check, remembering that families sometimes
+          under-report or forget income.</li>
+        <li><strong>Good deed:</strong> the pay-it-forward report.</li>
+        <li><strong>Editing:</strong> <span class="btn">Edit application</span>,
+          <span class="btn">Edit people</span>, and <span class="btn">Edit jobs</span> change anything
+          the family got wrong or that you verified differently.</li>
+        <li><strong>Decision:</strong> <span class="btn">Approve and email them</span> /
+          <span class="btn">Approve without email</span> / <span class="btn">Deny and email them</span> /
+          <span class="btn">Deny without email</span>. Approving assigns the pickup number from the
+          household's block; the page then shows "Approved on {date, time}." Below: the
+          <strong>Pickup number</strong> box (change or clear any number by hand) and the
+          <strong>Straggler</strong> checkbox (late after their town packed → 2400s, gifts near the
+          end).</li>
+        <li><strong>Bags:</strong> record how many bags/boxes were packed. This is the coordinator's own
+          tally — it does not print on the packing slips.</li>
+        <li><strong>Cards given (only you see this):</strong> check off the <strong>Thanksgiving
+          card</strong> (the first 30 applicants get one; the applications list counts them for you),
+          <strong>food card or certificate</strong> with its amount, and <strong>gift cards</strong>
+          with their amount. Nothing is automatic — it is the coordinator's record, and it flows into
+          the Excel columns.</li>
+        <li><strong>Notes (only you see this):</strong> private space for your eligibility notes and
+          anything from paper with no field (has a car, Box number). Never shown to families.</li>
+        <li><strong>Print packing slip</strong> for this one family (a late approval prints from its own
+          page — nothing else reprinted; mailed households show a plain note instead of a print button);
+          <strong>Delete</strong> (asks first, offers Undo right after).</li>
+        <li><strong>History (only you see this):</strong> at the bottom of the page, every change to
+          the application in plain English — "Social Security (monthly) changed from $800 to $650" —
+          with the date, time, and who made it (the family's own submission shows as "the family").
+          Read-only; nothing ever edits or deletes it. A <strong>"See the application as first
+          submitted"</strong> link opens the application exactly as it originally arrived, frozen and
+          printable — the before-and-after pair the county audit can rely on. Applications from before
+          July 2026 start with an empty history.</li>
+      </ul>
+    </div>
+
+    <div class="screen">
+      <h3>6.4 Enter a paper application</h3>
+      <ul>
+        <li>The same form families use, for typing in mailed or handed-in paper applications. Only the
+          <strong>name and town are required</strong> — leave anything blank that is blank on the paper
+          (incomplete applications need a record too, so denials are on file). Enter 0 for a wage or age
+          the paper doesn't give. Each person's card includes the <strong>doll choice</strong>
+          (No doll / White doll / Non-White doll) — copy it straight from the paper.</li>
+        <li>Extras: <strong>date received</strong> (defaults to today), the <strong>pickup number</strong>
+          if one is already written on the paper, the household type, and your private notes right on
+          the form.</li>
+        <li>Nothing is emailed to the family from this screen, and it works even while applications are
+          closed (stragglers arrive late by definition).</li>
+      </ul>
+    </div>
+
+    <div class="screen">
+      <h3>6.5 Pickup schedule</h3>
+      <ul>
+        <li><strong>Wording:</strong> the title, intro, and footer families see on the public Pickup
+          Schedule page.</li>
+        <li><strong>Pickup days:</strong> add, edit, reorder, and delete days (with Undo).</li>
+        <li><strong>Which day does each town pick up?</strong> Match towns (and Stragglers) to days,
+          and every printed packing slip fills in its family's date automatically. Leave a town on
+          "Not set" and its slips print with a blank date to hand-write — your choice, town by town.</li>
+      </ul>
+    </div>
+
+    <div class="screen">
+      <h3>6.6 Paper application (PDF)</h3>
+      <ul>
+        <li>Upload this year's <em>blank</em> printable application — the file families download to fill
+          out by hand. One button; the new file replaces the old immediately.</li>
+        <li>Not to be confused with <em>Enter a paper application</em> (6.4), which is for typing in a
+          <em>completed</em> paper form.</li>
+      </ul>
+    </div>
+
+    <div class="screen">
+      <h3>6.7 Donors</h3>
+      <ul>
+        <li>The donor list: search, add, open a donor to record what they gave (date, amount, or item).
+          The year's total shows at the top, with a year control for past years. Deletes ask first and
+          offer Undo.</li>
+      </ul>
+    </div>
+
+    <div class="screen">
+      <h3>6.8 Messages</h3>
+      <ul>
+        <li>Notes families send through the public Contact form. Mark read, delete, or reply (reply
+          opens your email program). The same messages also arrive in the program's email inbox.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <h2><span class="no">7.</span>Privacy duties</h2>
+    <ul>
+      <li>Applications hold sensitive information about low-income families and their children. It is
+        used for this program only. Share lists only with the people who need them — packers,
+        distributors, the county audit, and (with the family's recorded permission) adoption partners.</li>
+      <li>Sign in only on a computer you trust; sign out on shared or public ones.</li>
+      <li>The packing slips volunteers use deliberately leave off income, good deeds, the parentage
+        note, and the coordinator's private notes — volunteers see only what packing needs. Collect
+        printed slips and lists after packing day; don't leave them lying around.</li>
+      <li>Every delete in the admin — applications, household members, jobs, donors, messages, pickup
+        days — asks for confirmation and offers an Undo button right after. You cannot lose a record
+        with one slip of the mouse.</li>
+    </ul>
+  </section>
+
+  <section id="developer">
+    <h2><span class="no">8.</span>When to call the developer</h2>
+    <p>The website is built to run a whole season with no technical help. These are the exceptions —
+      they are quick for a developer and not possible from the admin screens:</p>
+    <ul>
+      <li><strong>Adding or removing a coordinator's sign-in email</strong> (the first task in any
+        handover).</li>
+      <li><strong>Adding a new town</strong> (with its number block and card color).</li>
+      <li>Changing the questions on the application form itself, or the wording of the public pages
+        that isn't covered by "This year's news."</li>
+      <li>Anything that looks broken. Note what you clicked, what you expected, and what happened —
+        nothing you can click will damage the data.</li>
+      <li>Clearing out very old seasons' records, if the board ever wants that.</li>
+    </ul>
+    <p><strong>Developer contact:</strong> Cody Schluenz · 425-765-7609 · codydps@gmail.com</p>
+    <p><strong>Not developer tasks</strong> (you do these yourself, no help needed): all news and
+      schedule content, the paper PDF upload, the card tallies, and everything in section 6.</p>
+  </section>
+
+  <section id="pointers">
+    <h2><span class="no">9.</span>What this manual does not cover</h2>
+    <p>This is the <em>website</em> manual. The program is bigger than the website, and that knowledge
+      lives elsewhere:</p>
+    <ul>
+      <li><strong>The program training manual</strong> (written by the longtime coordinator) — the
+        adoption program (~45 family adoptions a season), eligibility background, board and volunteer
+        meetings, donor and adoption letters, referral forms to daycares and schools, coordination with
+        the county's other holiday programs, and county finance procedures.</li>
+      <li><strong>The fallbacks that must never disappear:</strong> the message phone line
+        (608-723-2136 ext 1194) and the paper application. Some applicants cannot or will not use a
+        website; the program serves them all the same.</li>
+      <li><strong>Key facts:</strong> mailing address 245 W. Elm St., Lancaster WI 53813 · program email
+        skleinow@co.grant.wi.gov · donation drop-offs at Allegiant Oil (Platteville and Lancaster) ·
+        checks payable to the project.</li>
+    </ul>
+  </section>
+
+  <footer class="foot">
+    Grant County Holiday Project — Website Operations Manual · written July 2026, matching the website
+    as deployed that month · website by Cody Schluenz.
+  </footer>
+</div>
+</body>
+</html>
