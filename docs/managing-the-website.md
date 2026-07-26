@@ -59,6 +59,15 @@ server-side by Cloudflare as it serves the pages. Nothing is installed on the
 site itself. Expect a seasonal shape: quiet most of the year, a ramp from
 October, peak in December.
 
+**Reading the numbers:** you will see requests for paths like
+`/wp-admin/install.php`, `/wp-login.php`, `/xmlrpc.php`, `/.env` — those are
+bots scanning every domain on the internet for vulnerable WordPress sites.
+This site has no PHP and no WordPress; they all get 404s and find nothing.
+Harmless, and they dominate the charts in the off-season when real traffic is
+quiet. Optional cosmetic fix: Cloudflare → Security → WAF → Custom rules →
+block URI paths containing `.php` (the real site has zero .php URLs, so the
+rule can never hit a legitimate visitor).
+
 **The rule:** never add Google Analytics, Facebook pixels, or any client-side
 tracker. "No third-party tracking or analytics that leak visitor data" is a
 project non-negotiable (CLAUDE.md) — the two dashboards above cover every real
