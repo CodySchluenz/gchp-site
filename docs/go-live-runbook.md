@@ -98,7 +98,13 @@ yours to fill in; never paste secrets into this file or any commit.
       original repo and chat).
 - [ ] Remove or redact `legacy/public_html/adminPanel/upload/gchpManual.pdf` on the old host (it
       prints a stale 2014 admin username/password and is publicly downloadable).
-- [ ] Once the new site is confirmed stable, decommission the old PHP site.
+- [ ] Once the new site is confirmed stable, decommission the old PHP site. Before or when you do:
+      set the old .com pages to redirect (301) to grantcountyholidayproject.org — until then the
+      old site competes with the new one in Google.
+- [ ] **Google Search Console (SEO, July 2026):** at search.google.com/search-console choose
+      Domain property `grantcountyholidayproject.org`, add the DNS TXT record it gives you in
+      Cloudflare (DNS -> Records -> Add record), wait for verification, then submit
+      `https://grantcountyholidayproject.org/sitemap.xml` under Sitemaps. One-time, ~10 minutes.
 - [ ] Delete the local `dump.sql` and `import.sql` (they hold real PII).
 
 ---
