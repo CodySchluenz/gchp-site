@@ -202,3 +202,9 @@ in commit bda9f62 with a decode map + test). One deferred owner decision surface
 - Decide how to handle `legacy/public_html/adminPanel/upload/gchpManual.pdf`, which prints a
   stale 2014 admin username/password on page 4 (remove, or replace with a redacted copy) — it is
   also publicly downloadable on the live site.
+
+## No purge feature (2026-07-25)
+
+No purge feature. The admin will not get a purge-prior-seasons capability (reverses the original
+CLAUDE.md intent). Records are deliberately kept for the yearly county audit; if the Board ever
+wants old seasons cleared, it is a developer task on explicit request.

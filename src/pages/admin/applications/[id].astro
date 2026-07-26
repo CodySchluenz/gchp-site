@@ -3,13 +3,13 @@ import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
 import {
   getApplicationDetail, assignPuNumber, setApplicationStatus, setBagsCount, softDeleteApplication, setApplicationNotes, setPuNumber, setStraggler, setCardsGiven,
-  addHistory, historyStatements, listHistory,
+  addHistory, historyStatements, listHistory, listPossibleDuplicates,
 } from '../../../lib/db';
 import { renderApprovedEmail, renderDeniedEmail } from '../../../lib/email/render';
 import { sendEmail } from '../../../lib/email/send';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
 import { relationshipLabel, NON_FAMILY_RELATIONSHIPS } from '../../../lib/relationships';
-import { centralDateTime } from '../../../lib/dates';
+import { centralDate, centralDateTime } from '../../../lib/dates';
 import { parseMoney } from '../../../lib/validation/application';
 import { describeDecision, describeBagsChange, describePuChange, describeCardsChanges } from '../../../lib/history';
 export const prerender = false;
@@ -108,6 +108,7 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
 }
 
 const detail = Number.isInteger(id) ? await getApplicationDetail(env.DB, id) : null;
+const dups = detail ? await listPossibleDuplicates(env.DB, id) : [];
 
 const cookieExisting = Astro.cookies.get('csrf')?.value ?? '';
 const cookieValue = /^[0-9a-f]{64}$/.test(cookieExisting) ? cookieExisting : newCsrfCookieValue();
@@ -217,6 +218,19 @@ const hasOriginal = typeof a.original_json === 'string' && a.original_json !== '
         <a href={`/admin/applications/${id}/members`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Edit household members</a>
         <a href={`/admin/applications/${id}/employers`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Edit jobs</a>
       </section>
+
+      {dups.length > 0 && (
+        <section class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="note">
+          {dups.map((d) => (
+            <p class="text-lg">
+              <strong>This may be the same household as application #{d.id}</strong>
+              {' '}({d.first_name} {d.last_name}, {d.address} — applied {centralDate(d.submitted_at)}{d.source === 'paper' ? ', from paper' : d.source === 'online' ? ', online' : ''}{d.status === 'approved' ? `, already approved${d.pu_number != null ? `, pickup number ${d.pu_number}` : ''}` : ''}).
+              Worth comparing before you decide.
+              <a href={`/admin/applications/${d.id}`} class="ml-2 font-semibold text-berry-700 underline">See #{d.id}</a>
+            </p>
+          ))}
+        </section>
+      )}
 
       <section class="mt-4 rounded-lg border-2 border-stone-300 bg-white p-5">
         <h2 class="text-2xl font-bold text-holly-800">Decision</h2>

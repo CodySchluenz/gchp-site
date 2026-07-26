@@ -92,7 +92,9 @@ Design every admin screen for a non-technical 70-year-old operator:
 - No third-party tracking or analytics that leak visitor data.
 - Application data (names, addresses, household details) is sensitive:
   never log it in plaintext, never expose it on a public route,
-  and support "download for Excel" plus purge of prior seasons for the admin.
+  and support "download for Excel" for the admin. (Owner decision 2026-07-25: NO purge
+  feature — seasons are kept for the county audit; any future clearing is a developer
+  task on explicit request.)
 - Mobile-first public site. Test at 360px width. The admin can assume a larger screen
   (she likely uses a laptop or desktop) but must stay large, legible, and simple.
 - Keep the old PHP site live and untouched until the new site is verified and DNS is cut over.
