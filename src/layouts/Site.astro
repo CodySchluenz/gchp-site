@@ -9,7 +9,7 @@ const {
   description = 'The Grant County Holiday Project provides food, gifts, and clothing to Grant County families and elderly during the holiday season.',
   noindex = false,
 } = Astro.props;
-const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const canonical = new URL(Astro.url.pathname.replace(/\/$/, '') || '/', Astro.site).href;
 const ogImage = new URL('/images/header-banner.png', Astro.site).href;
 
 const nav = [
