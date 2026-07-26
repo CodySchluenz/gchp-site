@@ -50,12 +50,20 @@ const doll = (m: Record<string, unknown>) =>
       ))}
     </tbody>
   </table>
+  <div class="notes-area">
+    <p class="notes-label">Notes</p>
+    <div class="rule"></div>
+    <div class="rule"></div>
+    <div class="rule"></div>
+    <div class="rule"></div>
+    <div class="rule"></div>
+  </div>
 </article>
 <style>
-  /* Sherlyn's layout from the old site: large slips, three per printed page.
-     min-height (not height) so a big household grows taller instead of
-     clipping people off the slip. */
-  .slip { border: 2px solid #000; padding: 14px; margin: 0 0 12px; font-size: 16px; min-height: 3.1in; break-inside: avoid; box-sizing: border-box; }
+  /* Sherlyn's layout: each slip prints on its own page with a Notes area
+     at the bottom for handwriting. min-height removed so slips don't grow
+     beyond their content. */
+  .slip { border: 2px solid #000; padding: 14px; margin: 0 0 12px; font-size: 16px; break-inside: avoid; box-sizing: border-box; }
   .row { display: flex; gap: 24px; font-size: 20px; }
   .name { font-size: 22px; margin: 8px 0 2px; }
   .pickup { font-size: 18px; margin: 4px 0; }
@@ -66,6 +74,10 @@ const doll = (m: Record<string, unknown>) =>
   table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
   th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
   .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }
+  .notes-area { margin-top: 14px; }
+  .notes-label { font-weight: 700; margin: 0 0 2px; font-size: 16px; }
+  .rule { border-bottom: 1px solid #999; height: 1.7em; }
+  @media print { .slip { page-break-after: always; } }
   /* This component's pages (slips.astro, [id]/slip.astro) intentionally
      don't import global.css, so Tailwind's sr-only utility isn't loaded
      here — define the same visually-hidden technique locally. */
