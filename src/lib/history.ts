@@ -159,3 +159,17 @@ export function describeDecision(
   if (mail === 'failed') return `${base} — email could not be sent`;
   return base;
 }
+
+// 'unmarked' and 'updated' have no email context (Sherlyn's email only ever
+// goes out on 'marked'), so they ignore the mail arg entirely — callers pass
+// 'none' for those, and the function would ignore anything else too.
+export function describeAdoption(
+  kind: 'marked' | 'unmarked' | 'updated', adopterName: string, mail: 'sent' | 'failed' | 'none',
+): string {
+  if (kind === 'unmarked') return 'Adoption mark removed';
+  if (kind === 'updated') return 'Adoption details updated';
+  const base = `Marked adopted by ${adopterName}`;
+  if (mail === 'sent') return `${base} — email sent`;
+  if (mail === 'failed') return `${base} — email could not be sent`;
+  return base;
+}

@@ -14,19 +14,32 @@ const row: ExportRow = {
   dolls_summary: 'Non-White doll (Sue Smith)', employment_summary: '',
   thanksgiving_card: 1, food_card: 1, food_card_amount: 50, gift_card: 0, gift_card_amount: null,
   source: 'online',
+  adopted: 0, adopter_name: '', adopter_contact: '', adopter_phone: '', adopter_address: '',
+};
+
+const adoptedRow: ExportRow = {
+  ...row,
+  adopted: 1, adopter_name: 'Platteville Kiwanis', adopter_contact: 'Jo Doe',
+  adopter_phone: '608-555-0100', adopter_address: '1 Main St',
 };
 
 describe('sherlyn sheet', () => {
-  it('pins her 11 headers verbatim', () => {
+  it('pins her 12 headers verbatim — Adopted by inserted directly after adopted', () => {
     expect(sherlynHeaders(2026)).toEqual([
-      'tNo', '2026 Applicant', 'Address', 'Special Gift', 'adopted', 'Thanksgiving',
+      'tNo', '2026 Applicant', 'Address', 'Special Gift', 'adopted', 'Adopted by', 'Thanksgiving',
       'Food Card/Cert.', 'Amount', 'Gift Cards', 'GC Amount', 'NO. in HH',
     ]);
   });
-  it('maps a row: dolls fold into Special Gift, yes/blank flags, blank null amounts', () => {
+  it('maps a row: dolls fold into Special Gift, yes/blank flags, blank null amounts, blank Adopted by when not adopted', () => {
     expect(sherlynRow(row)).toEqual([
       803, 'Jane Smith', '123 Oak St, Lancaster', 'Non-White doll (Sue Smith); Tim Smith: bike',
-      'yes', 'yes', 'yes', 50, '', '', 3,
+      'yes', '', 'yes', 'yes', 50, '', '', 3,
+    ]);
+  });
+  it('Adopted by carries the adopter name once adopted this season', () => {
+    expect(sherlynRow(adoptedRow)).toEqual([
+      803, 'Jane Smith', '123 Oak St, Lancaster', 'Non-White doll (Sue Smith); Tim Smith: bike',
+      'yes', 'Platteville Kiwanis', 'yes', 'yes', 50, '', '', 3,
     ]);
   });
 });
@@ -37,17 +50,32 @@ describe('full backup export', () => {
     expect(h).not.toContain('Check eligibility');
     expect(h).not.toContain('Income check');
     expect(h).not.toContain('Bags');
-    for (const col of ['Thanksgiving', 'Food card', 'Food card amount', 'Gift cards', 'Gift card amount', 'Dolls', 'Packing note']) {
+    for (const col of [
+      'Thanksgiving', 'Food card', 'Food card amount', 'Gift cards', 'Gift card amount', 'Dolls', 'Packing note',
+      'Adopted out', 'Adopted by', 'Adopter contact', 'Adopter phone', 'Adopter address',
+    ]) {
       expect(h).toContain(col);
     }
     expect(fullRow(row)).toHaveLength(h.length);
   });
-  it('maps every column to the matching field, in header order', () => {
+  it('maps every column to the matching field, in header order — adoption block is blank when not adopted', () => {
     expect(fullRow(row)).toEqual([
       803, 'approved', centralDateTime(''), centralDateTime('2026-10-01T12:00:00Z'),
       'Jane', 'Smith', '123 Oak St', 'Lancaster', '608', 'a@b.co', 'family',
       3, 'Jane Smith (self, age 30)', 'Tim Smith: bike', 'Non-White doll (Sue Smith)', 2,
-      'yes', 'none', '', '', '',
+      'yes', '', '', '', '', '',
+      'none', '', '', '',
+      'yes', 'yes', 50, '', '',
+      '', '', '', 'online',
+    ]);
+  });
+  it('carries the adoption block once adopted — stale fields never show when un-marked (pinned above)', () => {
+    expect(fullRow(adoptedRow)).toEqual([
+      803, 'approved', centralDateTime(''), centralDateTime('2026-10-01T12:00:00Z'),
+      'Jane', 'Smith', '123 Oak St', 'Lancaster', '608', 'a@b.co', 'family',
+      3, 'Jane Smith (self, age 30)', 'Tim Smith: bike', 'Non-White doll (Sue Smith)', 2,
+      'yes', 'yes', 'Platteville Kiwanis', 'Jo Doe', '608-555-0100', '1 Main St',
+      'none', '', '', '',
       'yes', 'yes', 50, '', '',
       '', '', '', 'online',
     ]);

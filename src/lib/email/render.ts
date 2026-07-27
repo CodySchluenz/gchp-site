@@ -119,6 +119,33 @@ and phone number.`;
   return { subject, html, text };
 }
 
+// Owner-approved body, verbatim (spec §Owner-approved-decisions #2,
+// 2026-07-27 docs/superpowers/specs/2026-07-27-adoptions-design.md). Sent
+// only to the family, never mentions the adopter (Sherlyn said contact
+// happens adopter -> family, not the other way around).
+export function renderAdoptedEmail(firstName: string): RenderedEmail {
+  const subject = 'You have been adopted! — Grant County Holiday Project';
+  const text = `Hello ${firstName},
+
+Per your approval, you have been adopted! You will not receive a pickup slip as stated in your approval notice. A community organization or adoptive family will contact you before December 10th to arrange a time and place for you to receive your gifts. Everything they receive about your family is kept confidential.
+
+Questions? Call our message line at 608-723-2136 ext 1194 and leave your name
+and phone number.`;
+  const html = emailShell(
+    'You have been adopted!',
+    `<p>Hello ${escapeHtml(firstName)},</p>
+     <p>Per your approval, you have been adopted! You will not receive a
+        <strong>pickup slip</strong> as stated in your approval notice. A
+        community organization or adoptive family will contact you before
+        <strong>December 10th</strong> to arrange a time and place for you to
+        receive your gifts. Everything they receive about your family is
+        kept confidential.</p>
+     <p>Questions? Call our message line at <strong>608-723-2136 ext 1194</strong>
+        and leave your name and phone number.</p>`,
+  );
+  return { subject, html, text };
+}
+
 export function renderDeniedEmail(firstName: string): RenderedEmail {
   const subject = 'An update on your Holiday Project application';
   const text = `Hello ${firstName},

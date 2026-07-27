@@ -3,6 +3,7 @@ import { getTestDb } from './helpers/d1';
 import {
   insertApplication, setApplicationStatus, setStraggler, setCardsGiven, softDeleteMember,
   softDeleteApplication, assignPuNumber, getSeasonSummary, listPossibleDuplicates,
+  setAdoption, clearAdoption,
   type NewApplication,
 } from '../src/lib/db';
 
@@ -168,6 +169,42 @@ describe('getSeasonSummary', () => {
     expect(summary.foodCardTotal).toBe(10);
     expect(summary.giftCards).toBe(0);
     expect(summary.giftCardTotal).toBe(0);
+  });
+
+  it('adopted: counts approved AND adopted=1 for the season, ignoring denied, other seasons, and soft-deleted', async () => {
+    const season = 2036;
+    const otherSeason = 2037;
+
+    const adoptedApproved = await insertApplication(db, { ...base, seasonYear: season, lastName: 'AdoptedApproved' });
+    await setApplicationStatus(db, adoptedApproved, 'approved');
+    await setAdoption(db, adoptedApproved, { adopterName: 'Org A', adopterContact: '', adopterPhone: '', adopterAddress: '' });
+
+    // Approved but not adopted: must not count.
+    const notAdopted = await insertApplication(db, { ...base, seasonYear: season, lastName: 'NotAdopted' });
+    await setApplicationStatus(db, notAdopted, 'approved');
+
+    // Denied families are never adopted out, but guard the query anyway:
+    // marking one adopted must not leak into the count if status isn't approved.
+    const deniedAdopted = await insertApplication(db, { ...base, seasonYear: season, lastName: 'DeniedAdopted' });
+    await setApplicationStatus(db, deniedAdopted, 'denied');
+    await setAdoption(db, deniedAdopted, { adopterName: 'Org B', adopterContact: '', adopterPhone: '', adopterAddress: '' });
+
+    // Soft-deleted, approved and adopted: must not count.
+    const deletedAdopted = await insertApplication(db, { ...base, seasonYear: season, lastName: 'DeletedAdopted' });
+    await setApplicationStatus(db, deletedAdopted, 'approved');
+    await setAdoption(db, deletedAdopted, { adopterName: 'Org C', adopterContact: '', adopterPhone: '', adopterAddress: '' });
+    await softDeleteApplication(db, deletedAdopted, '2026-10-02T00:00:00Z');
+
+    // Adopted in a different season: must not count here.
+    const otherSeasonAdopted = await insertApplication(db, { ...base, seasonYear: otherSeason, lastName: 'OtherSeasonAdopted' });
+    await setApplicationStatus(db, otherSeasonAdopted, 'approved');
+    await setAdoption(db, otherSeasonAdopted, { adopterName: 'Org D', adopterContact: '', adopterPhone: '', adopterAddress: '' });
+
+    expect((await getSeasonSummary(db, season)).adopted).toBe(1);
+
+    // clearAdoption drops it back out of the count.
+    await clearAdoption(db, adoptedApproved);
+    expect((await getSeasonSummary(db, season)).adopted).toBe(0);
   });
 });
 

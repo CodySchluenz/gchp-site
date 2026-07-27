@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { insertApplication, setApplicationStatus, setApplicationNotes, setCardsGiven, listApplicationsForExport, type NewApplication } from '../src/lib/db';
+import { insertApplication, setApplicationStatus, setApplicationNotes, setCardsGiven, setAdoption, listApplicationsForExport, type NewApplication } from '../src/lib/db';
 
 const base: NewApplication = {
   firstName: 'Sue', lastName: 'Smith', address: '1 Elm', cityId: 13, phone: '608', email: 'a@b.co',
@@ -138,6 +138,30 @@ describe('listApplicationsForExport binds both branches', () => {
       expect(r.thanksgiving_card).toBe(1);
       expect(r.food_card_amount).toBe(50);
       expect(r.gift_card_amount).toBe(25);
+    } finally { await dispose(); }
+  });
+
+  it('exports the adoption columns, defaulted until marked', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, { ...base, lastName: 'Adopted' });
+      const before = (await listApplicationsForExport(db, 2026, 'all', '')).find((r) => r.last_name === 'Adopted')!;
+      expect(before.adopted).toBe(0);
+      expect(before.adopter_name).toBe('');
+      expect(before.adopter_contact).toBe('');
+      expect(before.adopter_phone).toBe('');
+      expect(before.adopter_address).toBe('');
+
+      await setAdoption(db, id, {
+        adopterName: 'Platteville Kiwanis', adopterContact: 'Jo Doe',
+        adopterPhone: '608-555-0100', adopterAddress: '1 Main St',
+      });
+      const after = (await listApplicationsForExport(db, 2026, 'all', '')).find((r) => r.last_name === 'Adopted')!;
+      expect(after.adopted).toBe(1);
+      expect(after.adopter_name).toBe('Platteville Kiwanis');
+      expect(after.adopter_contact).toBe('Jo Doe');
+      expect(after.adopter_phone).toBe('608-555-0100');
+      expect(after.adopter_address).toBe('1 Main St');
     } finally { await dispose(); }
   });
 });

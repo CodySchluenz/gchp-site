@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   describeApplicationChanges, describeMemberChange, describeEmployerChange,
-  describeCardsChanges, describePuChange, describeDecision,
+  describeCardsChanges, describePuChange, describeDecision, describeAdoption,
 } from '../src/lib/history';
 import type { ApplicationFullEdit, MemberEdit, EmployerEdit, CardsGiven } from '../src/lib/db';
 
@@ -125,12 +125,27 @@ describe('cards / pickup number / decision', () => {
   });
 });
 
+describe('describeAdoption', () => {
+  it('marked: names the adopter, with the mail-suffix arms', () => {
+    expect(describeAdoption('marked', 'Platteville Kiwanis', 'none')).toBe('Marked adopted by Platteville Kiwanis');
+    expect(describeAdoption('marked', 'Platteville Kiwanis', 'sent')).toBe('Marked adopted by Platteville Kiwanis — email sent');
+    expect(describeAdoption('marked', 'Platteville Kiwanis', 'failed')).toBe('Marked adopted by Platteville Kiwanis — email could not be sent');
+  });
+  it('unmarked / updated: fixed sentences that ignore the mail arg (no email context for either)', () => {
+    expect(describeAdoption('unmarked', 'Platteville Kiwanis', 'none')).toBe('Adoption mark removed');
+    expect(describeAdoption('unmarked', 'Platteville Kiwanis', 'sent')).toBe('Adoption mark removed');
+    expect(describeAdoption('updated', 'Platteville Kiwanis', 'none')).toBe('Adoption details updated');
+    expect(describeAdoption('updated', 'Platteville Kiwanis', 'failed')).toBe('Adoption details updated');
+  });
+});
+
 describe('copy hygiene', () => {
   it('no curly apostrophes in any composed sentence', () => {
     const all = [
       ...describeApplicationChanges(row, { ...same, address: '2 Oak' }, cityName),
       ...describeMemberChange('added', null, sameMember),
       describeDecision('approved', 1604, 'sent'),
+      describeAdoption('marked', 'Platteville Kiwanis', 'sent'),
     ].join('');
     expect(all.includes('’')).toBe(false);
   });

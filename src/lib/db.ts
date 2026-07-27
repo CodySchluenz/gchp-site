@@ -178,6 +178,7 @@ export type ApplicationListRow = {
   pu_number: number | null;
   straggler: number;
   household_type: string;
+  adopted: number;
 };
 
 // Escape LIKE metacharacters so operator-typed % or _ match literally.
@@ -194,7 +195,7 @@ export async function listApplications(
 ): Promise<ApplicationListRow[]> {
   const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const cols = `a.id, a.first_name, a.last_name, a.address, c.name AS city_name, a.submitted_at,
-                a.status, a.pu_number, a.straggler, a.household_type`;
+                a.status, a.pu_number, a.straggler, a.household_type, a.adopted`;
   const order = town !== null
     ? 'ORDER BY a.pu_number IS NULL, a.pu_number, a.id'
     : 'ORDER BY a.submitted_at DESC, a.id DESC';
@@ -229,6 +230,7 @@ export type SeasonSummary = {
   thanksgiving: number;
   foodCards: number; foodCardTotal: number;
   giftCards: number; giftCardTotal: number;
+  adopted: number;
 };
 
 export async function getSeasonSummary(db: D1Database, seasonYear: number): Promise<SeasonSummary> {
@@ -257,9 +259,10 @@ export async function getSeasonSummary(db: D1Database, seasonYear: number): Prom
   const groups = await db
     .prepare(`SELECT
                 SUM(CASE WHEN household_type NOT IN ('elderly','disabled') AND straggler = 1 THEN 1 ELSE 0 END) AS stragglers,
-                SUM(CASE WHEN household_type IN ('elderly','disabled') THEN 1 ELSE 0 END) AS mailed
+                SUM(CASE WHEN household_type IN ('elderly','disabled') THEN 1 ELSE 0 END) AS mailed,
+                SUM(CASE WHEN adopted = 1 THEN 1 ELSE 0 END) AS adopted
               FROM applications WHERE deleted_at IS NULL AND season_year = ? AND status = 'approved'`)
-    .bind(seasonYear).first<{ stragglers: number | null; mailed: number | null }>();
+    .bind(seasonYear).first<{ stragglers: number | null; mailed: number | null; adopted: number | null }>();
   const cards = await db
     .prepare(`SELECT
                 SUM(thanksgiving_card) AS tg,
@@ -275,6 +278,7 @@ export async function getSeasonSummary(db: D1Database, seasonYear: number): Prom
     thanksgiving: cards?.tg ?? 0,
     foodCards: cards?.fc ?? 0, foodCardTotal: cards?.fct ?? 0,
     giftCards: cards?.gc ?? 0, giftCardTotal: cards?.gct ?? 0,
+    adopted: groups?.adopted ?? 0,
   };
 }
 
@@ -470,6 +474,62 @@ export async function setPackingNote(db: D1Database, id: number, note: string): 
   await db.prepare('UPDATE applications SET packing_note = ? WHERE id = ?').bind(note.slice(0, 1000), id).run();
 }
 
+// Adoptions (2026-07-27 docs/superpowers/specs/2026-07-27-adoptions-design.md):
+// Sherlyn marks an approved, consent-given family as adopted out to a
+// community organization or adoptive family. `clearAdoption` deliberately
+// keeps the adopter fields (not just adopted=0) so re-marking the same
+// adopter later is a one-click redo, not a re-type.
+export type AdoptionFields = {
+  adopterName: string;
+  adopterContact: string;
+  adopterPhone: string;
+  adopterAddress: string;
+};
+
+export async function setAdoption(db: D1Database, id: number, f: AdoptionFields): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE applications
+         SET adopted = 1, adopter_name = ?, adopter_contact = ?, adopter_phone = ?, adopter_address = ?
+       WHERE id = ?`,
+    )
+    .bind(f.adopterName, f.adopterContact, f.adopterPhone, f.adopterAddress, id)
+    .run();
+}
+
+export async function clearAdoption(db: D1Database, id: number): Promise<void> {
+  await db.prepare('UPDATE applications SET adopted = 0 WHERE id = ?').bind(id).run();
+}
+
+export type AdoptionRow = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  city_name: string;
+  pu_number: number | null;
+  adopter_name: string;
+  adopter_contact: string;
+  adopter_phone: string;
+  adopter_address: string;
+};
+
+// Sherlyn's next-year letters list: every family adopted out this season,
+// sorted by adopter name so families going to the same organization group
+// together on the printout.
+export async function listAdoptions(db: D1Database, seasonYear: number): Promise<AdoptionRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT a.id, a.first_name, a.last_name, c.name AS city_name, a.pu_number,
+              a.adopter_name, a.adopter_contact, a.adopter_phone, a.adopter_address
+       FROM applications a JOIN cities c ON c.id = a.city_id
+       WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.adopted = 1
+       ORDER BY a.adopter_name, a.id`,
+    )
+    .bind(seasonYear)
+    .all<AdoptionRow>();
+  return results;
+}
+
 // The application's audit timeline: one plain-English sentence per change,
 // written by the same code path that saves the change (see src/lib/history.ts
 // for the sentence composers). Read-only by design — nothing ever edits or
@@ -639,6 +699,11 @@ export type ExportRow = {
   gift_card: number;
   gift_card_amount: number | null;
   source: string;
+  adopted: number;
+  adopter_name: string;
+  adopter_contact: string;
+  adopter_phone: string;
+  adopter_address: string;
 };
 
 export async function listApplicationsForExport(
@@ -666,6 +731,7 @@ export async function listApplicationsForExport(
            a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
            a.unemployment_weekly_amount, a.other_income_amount,
            a.thanksgiving_card, a.food_card, a.food_card_amount, a.gift_card, a.gift_card_amount,
+           a.adopted, a.adopter_name, a.adopter_contact, a.adopter_phone, a.adopter_address,
            COUNT(DISTINCT m.id) AS member_count,
            COALESCE(GROUP_CONCAT(
              m.name || ' (' ||
@@ -712,7 +778,7 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
     .prepare(
       `SELECT * FROM applications
        WHERE deleted_at IS NULL AND season_year = ? AND status = 'approved'
-         AND household_type NOT IN ('elderly', 'disabled')
+         AND household_type NOT IN ('elderly', 'disabled') AND adopted = 0
        ORDER BY pu_number IS NULL, pu_number, id`,
     )
     .bind(seasonYear)
@@ -730,7 +796,7 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
         `SELECT DISTINCT c.id, c.name, c.pickup_day_id FROM cities c
          JOIN applications a ON a.city_id = c.id
          WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
-           AND a.household_type NOT IN ('elderly', 'disabled')`,
+           AND a.household_type NOT IN ('elderly', 'disabled') AND a.adopted = 0`,
       )
       .bind(seasonYear)
       .all<{ id: number; name: string; pickup_day_id: number | null }>(),
@@ -739,7 +805,7 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
         `SELECT hm.* FROM household_members hm
          JOIN applications a ON a.id = hm.application_id
          WHERE a.deleted_at IS NULL AND hm.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
-           AND a.household_type NOT IN ('elderly', 'disabled')
+           AND a.household_type NOT IN ('elderly', 'disabled') AND a.adopted = 0
          ORDER BY hm.application_id, hm.position`,
       )
       .bind(seasonYear)
