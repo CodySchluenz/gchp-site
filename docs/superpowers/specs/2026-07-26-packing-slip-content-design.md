@@ -69,3 +69,26 @@ three-per-page preference (her expanded content made slips taller anyway).
 - Each slip ends with a "Notes" label and five ruled blank lines for
   handwriting. Nothing stored, nothing printed from admin notes (those remain
   private and off-slip); it is blank paper space, by design.
+
+## Addendum 3 (2026-07-26): the typed Packing note (built alone; pickup slips still held)
+
+Sherlyn: "Is it possible that I could type the notes in before I print? They
+complain about my penmanship." Owner approved building just this slice; the
+mailed 3-up pickup slips remain designed-but-held.
+
+- Migration `0014`: `applications.packing_note TEXT NOT NULL DEFAULT ''` (additive).
+- Application page gains a **Packing note** box directly above "Your notes",
+  labeled: "Prints on the packing slip — volunteers will see this." Textarea,
+  client maxlength 1000, server `.slice(0, 1000)`, own CSRF'd `set_packing_note`
+  action, banner "Packing note saved.", history row "Packing note was updated"
+  (area `notes`, long-text style — no old/new values).
+- Packing slip renders, when non-empty, "**Note for packers:** {packing_note}"
+  (pre-wrap, ≥16px) directly above the ruled Notes lines. The ruled lines stay
+  (last-minute pen notes still welcome).
+- Backup export gains a "Packing note" column. Sherlyn's 11-column sheet is
+  untouched.
+- Privacy line unchanged: `admin_notes` ("Only you see this") still never
+  prints anywhere; `packing_note` is volunteer-visible BY DESIGN and BY LABEL.
+  The slip-privacy FORBIDDEN list is unchanged (no token collision; add a
+  comment noting packing_note is deliberately allowed).
+- Deploy: migrate-first (new code reads/writes the column).
