@@ -7,7 +7,7 @@ const row: ExportRow = {
   pu_number: 803, status: 'approved', submitted_at: '2026-10-01T12:00:00Z', decided_at: null,
   first_name: 'Jane', last_name: 'Smith', address: '123 Oak St', city_name: 'Lancaster',
   phone: '608', email: 'a@b.co', household_type: 'family',
-  parentage_note: '', admin_notes: '', years_received_help: 2, adopted_last_year: 1,
+  parentage_note: '', admin_notes: '', packing_note: '', years_received_help: 2, adopted_last_year: 1,
   bed_choice: 'none', bed_size: null, food_share_amount: null, social_security_amount: null,
   ssi_amount: null, child_support_amount: null, unemployment_weekly_amount: null, other_income_amount: null,
   member_count: 3, member_summary: 'Jane Smith (self, age 30)', gifts_summary: 'Tim Smith: bike',
@@ -37,7 +37,7 @@ describe('full backup export', () => {
     expect(h).not.toContain('Check eligibility');
     expect(h).not.toContain('Income check');
     expect(h).not.toContain('Bags');
-    for (const col of ['Thanksgiving', 'Food card', 'Food card amount', 'Gift cards', 'Gift card amount', 'Dolls']) {
+    for (const col of ['Thanksgiving', 'Food card', 'Food card amount', 'Gift cards', 'Gift card amount', 'Dolls', 'Packing note']) {
       expect(h).toContain(col);
     }
     expect(fullRow(row)).toHaveLength(h.length);
@@ -49,7 +49,7 @@ describe('full backup export', () => {
       3, 'Jane Smith (self, age 30)', 'Tim Smith: bike', 'Non-White doll (Sue Smith)', 2,
       'yes', 'none', '', '', '',
       'yes', 'yes', 50, '', '',
-      '', '', 'online',
+      '', '', '', 'online',
     ]);
   });
 });

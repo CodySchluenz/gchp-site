@@ -463,6 +463,13 @@ export async function setApplicationNotes(db: D1Database, id: number, notes: str
   await db.prepare('UPDATE applications SET admin_notes = ? WHERE id = ?').bind(notes, id).run();
 }
 
+// The packing note: volunteer-visible on the printed slip (Addendum 3, 2026-07-26
+// docs/superpowers/specs/2026-07-26-packing-slip-content-design.md) — distinct
+// from admin_notes above, which stays private. Capped defensively here too.
+export async function setPackingNote(db: D1Database, id: number, note: string): Promise<void> {
+  await db.prepare('UPDATE applications SET packing_note = ? WHERE id = ?').bind(note.slice(0, 1000), id).run();
+}
+
 // The application's audit timeline: one plain-English sentence per change,
 // written by the same code path that saves the change (see src/lib/history.ts
 // for the sentence composers). Read-only by design — nothing ever edits or
@@ -610,6 +617,7 @@ export type ExportRow = {
   household_type: string;
   parentage_note: string;
   admin_notes: string;
+  packing_note: string;
   years_received_help: number;
   adopted_last_year: number;
   bed_choice: string;
@@ -653,7 +661,7 @@ export async function listApplicationsForExport(
   const sql = `
     SELECT a.pu_number, a.status, a.submitted_at, a.decided_at, a.source, a.first_name, a.last_name, a.address,
            c.name AS city_name, a.phone, a.email, a.household_type,
-           a.parentage_note, a.admin_notes,
+           a.parentage_note, a.admin_notes, a.packing_note,
            a.years_received_help, a.adopted_last_year, a.bed_choice, a.bed_size,
            a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
            a.unemployment_weekly_amount, a.other_income_amount,

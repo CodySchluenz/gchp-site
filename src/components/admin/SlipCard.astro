@@ -50,6 +50,7 @@ const doll = (m: Record<string, unknown>) =>
       ))}
     </tbody>
   </table>
+  {a.packing_note ? <p class="packer-note"><strong>Note for packers:</strong> {a.packing_note}</p> : null}
   <div class="notes-area">
     <p class="notes-label">Notes</p>
     <div class="rule"></div>
@@ -74,6 +75,7 @@ const doll = (m: Record<string, unknown>) =>
   table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
   th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
   .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }
+  .packer-note { margin-top: 12px; font-size: 16px; white-space: pre-wrap; }
   .notes-area { margin-top: 14px; }
   .notes-label { font-weight: 700; margin: 0 0 2px; font-size: 16px; }
   .rule { border-bottom: 1px solid #999; height: 1.7em; }

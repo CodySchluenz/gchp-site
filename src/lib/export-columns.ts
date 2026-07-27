@@ -32,7 +32,7 @@ export function fullHeaders(): string[] {
     'People count', 'People', 'Gifts requested', 'Dolls', 'Years received', 'Adopted last year',
     'Bed', 'Bed size', 'Income', 'Jobs',
     'Thanksgiving', 'Food card', 'Food card amount', 'Gift cards', 'Gift card amount',
-    'Parentage note', 'Your notes', 'Source',
+    'Packing note', 'Parentage note', 'Your notes', 'Source',
   ];
 }
 
@@ -47,6 +47,6 @@ export function fullRow(r: ExportRow): (string | number | null)[] {
     r.member_count, r.member_summary, r.gifts_summary, r.dolls_summary, r.years_received_help,
     yes(r.adopted_last_year), r.bed_choice, r.bed_size ?? '', income, r.employment_summary,
     yes(r.thanksgiving_card), yes(r.food_card), r.food_card_amount ?? '', yes(r.gift_card), r.gift_card_amount ?? '',
-    r.parentage_note, r.admin_notes, r.source,
+    r.packing_note, r.parentage_note, r.admin_notes, r.source,
   ];
 }

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
 import {
   insertApplication, assignPuNumber, setApplicationStatus,
-  softDeleteApplication, restoreApplication, getApplicationDetail, listApplications, type NewApplication,
+  softDeleteApplication, restoreApplication, getApplicationDetail, listApplications, setPackingNote, type NewApplication,
 } from '../src/lib/db';
 
 const base: NewApplication = {
@@ -44,5 +44,16 @@ describe('admin actions', () => {
     expect((await listApplications(db, 2026, 'all', '')).some((r) => r.id === id)).toBe(false);
     await restoreApplication(db, id);
     expect(await getApplicationDetail(db, id)).not.toBeNull();
+  });
+
+  it('saves and caps the packing note at 1000 characters', async () => {
+    const id = await insertApplication(db, base);
+    await setPackingNote(db, id, 'Ring doorbell twice, dog is friendly.');
+    let d = await getApplicationDetail(db, id);
+    expect(d!.app.packing_note).toBe('Ring doorbell twice, dog is friendly.');
+
+    await setPackingNote(db, id, 'x'.repeat(1001));
+    d = await getApplicationDetail(db, id);
+    expect((d!.app.packing_note as string).length).toBe(1000);
   });
 });

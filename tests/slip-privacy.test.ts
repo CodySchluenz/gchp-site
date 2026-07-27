@@ -6,6 +6,10 @@ import { readFileSync } from 'node:fs';
 // 2026-07-26: Sherlyn's packing-slip document explicitly includes gifts, doll,
 // and sponsor-OK — see docs/superpowers/specs/2026-07-26-packing-slip-content-design.md.
 // Income, good deeds, notes, and bags remain forbidden.
+// 2026-07-26 Addendum 3 (same spec): `packing_note` is a NEW field on the slip,
+// deliberately volunteer-visible (typed by Sherlyn, labeled "Note for packers").
+// It is NOT admin_notes and does not collide with any token below — the
+// FORBIDDEN list itself is unchanged by this addendum.
 const FORBIDDEN = [
   'bags_count', 'good_deed', 'admin_notes', 'parentage_note',
   'food_share', 'social_security', 'ssi_amount',
