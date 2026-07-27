@@ -128,6 +128,9 @@ error on the live site until the matching migration is applied.
 - [ ] **2. Confirm it's healthy locally:** `npm run test` (expect all green) and
       `npm run build`.
 - [ ] **3. Apply any new database migration to the LIVE database FIRST:**
+      **If this step shows ANY error, STOP — do not deploy.** Re-run it until the table shows
+      ✅ (transient Cloudflare API errors happen; a deploy on top of a failed migration breaks
+      the admin until the migration lands — this bit us on 2026-07-27 for two minutes).
       `npm run db:migrate:remote`. Wrangler only applies migrations not yet run, so
       this is safe to run every time — if there's nothing new it's a no-op.
       - **This order is not optional.** Example: migration `0006` adds the

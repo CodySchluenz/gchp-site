@@ -167,7 +167,9 @@
       <tr><td>October–November</td><td>Review applications as they arrive; type in paper applications;
         verify income and the good deeds by hand (the website does no eligibility math); approve or deny
         (approving assigns the pickup number automatically); mark Thanksgiving cards as you give them —
-        the first 30 applicants get one, and the list counts them for you; keep notes on each
+        the first 30 applicants get one, and the list counts them for you; adopt out ~50-60
+        families to organizations and adoptive sponsors (marked on each application — they leave
+        the packing flow and land on the Adoptions page); keep notes on each
         application.</td></tr>
       <tr><td>Packing</td><td>Work town by town: pick the town in the <strong>Show town</strong>
         dropdown, print the list and the <strong>packing slips</strong> for the volunteers — each
@@ -232,7 +234,8 @@
       Thanksgiving cards toward 30; keep a plain-English <strong>History</strong> of every change to
       every application (what changed, when, by whom) plus each application exactly as first
       submitted; point out possible duplicates (two applications with the same name and address) for
-      you to compare; add up the season's numbers on the <strong>Season summary</strong> page; keep
+      you to compare; run the adoption workflow only for families who said Yes to sharing (checked
+      again at the moment of saving); add up the season's numbers on the <strong>Season summary</strong> page; keep
       everything for the audit.</p>
     <p><strong>You decide — all of it:</strong> whether income fits the program's limits (the website
       does <em>no</em> income math and shows <em>no</em> eligibility flags — the coordinator compares
@@ -246,8 +249,9 @@
   <section id="screens">
     <h2><span class="no">6.</span>Every screen, in detail</h2>
     <p>The green menu on every admin page: <strong>Home · Applications this year · This year's news ·
-      Pickup schedule · Season summary · Paper application · Donors · Messages</strong>. Every screen
-      has a Back link, and <span class="btn">View the website</span> shows what families see.</p>
+      Pickup schedule · Season summary · Adoptions · Paper application · Donors · Messages</strong>.
+      Every screen has a Back link, and <span class="btn">View the website</span> shows what families
+      see.</p>
 
     <div class="screen">
       <h3>6.1 Home</h3>
@@ -327,6 +331,16 @@
           <strong>Pickup number</strong> box (change or clear any number by hand) and the
           <strong>Straggler</strong> checkbox (late after their town packed → 2400s, gifts near the
           end).</li>
+        <li><strong>Adoption (approved applications only):</strong> when the family answered Yes to
+          sharing with a sponsor, mark them adopted — who adopted them (required), contact person,
+          phone, mailing address — with <span class="btn">Mark adopted and email them</span> /
+          <span class="btn">without email</span> (the family's email says: adopted, no pickup slip,
+          contact before December 10th, everything kept confidential). Adopted families come off the
+          packing slips, get an Adopted tag on the list, and appear on the Adoptions page. Details
+          stay editable; <span class="btn">Remove adoption mark</span> undoes it (and stays available
+          even if consent is later withdrawn). If the family said No to sharing, the section shows a
+          note instead — change their answer in Edit details first. The website re-checks the consent
+          answer at the moment of saving, every time.</li>
         <li><strong>Packing note (prints for the packers):</strong> a small box whose text prints on
           this family's packing slip as "Note for packers:" — for guidance volunteers need, like
           choosing toys suited to a child with special needs. Deliberately volunteer-visible; keep
@@ -406,7 +420,20 @@
     </div>
 
     <div class="screen">
-      <h3>6.8 Paper application (PDF)</h3>
+      <h3>6.8 Adoptions</h3>
+      <ul>
+        <li>Every family adopted out this season — family, town, pickup number, who adopted them,
+          contact person, phone, and mailing address. A count up top, a season picker for past
+          years, and one <span class="btn">Print this page</span> button.</li>
+        <li>This is the letters list: print it when asking last year's adopters whether they wish
+          to adopt again. Families are added here by marking them adopted on their application
+          (section 6.3); roughly 50-60 families a season go through the adoption program.</li>
+        <li>The Season summary also shows "Of the families served, adopted out: N."</li>
+      </ul>
+    </div>
+
+    <div class="screen">
+      <h3>6.9 Paper application (PDF)</h3>
       <ul>
         <li>Upload this year's <em>blank</em> printable application — the file families download to fill
           out by hand. One button; the new file replaces the old immediately.</li>
@@ -416,7 +443,7 @@
     </div>
 
     <div class="screen">
-      <h3>6.9 Donors</h3>
+      <h3>6.10 Donors</h3>
       <ul>
         <li>The donor list: search, add, open a donor to record what they gave (date, amount, or item).
           The year's total shows at the top, with a year control for past years. Deletes ask first and
@@ -425,7 +452,7 @@
     </div>
 
     <div class="screen">
-      <h3>6.10 Messages</h3>
+      <h3>6.11 Messages</h3>
       <ul>
         <li>Notes families send through the public Contact form. Mark read, delete, or reply (reply
           opens your email program). The same messages also arrive in the program's email inbox.</li>
