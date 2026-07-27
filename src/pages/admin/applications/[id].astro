@@ -96,6 +96,19 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
       if (on !== wasOn) await addHistory(env.DB, id, actor, 'number', on ? 'Marked as a straggler' : 'Straggler mark removed', now);
       return Astro.redirect(`${detailUrl}?done=straggler`, 303);
     } else if (act === 'mark_adopted_email' || act === 'mark_adopted_silent' || act === 'save_adoption') {
+      // The consent gate holds on the POST path too, not just at render — a
+      // stale tab must not mark a family adopted after their application was
+      // un-approved or their sharing consent was withdrawn in another window.
+      if (detail.app.status !== 'approved' || detail.app.share_with_sponsor !== 1) {
+        return Astro.redirect(`${detailUrl}?error=adoption_gate`, 303);
+      }
+      // Saving details only makes sense on a currently-adopted record —
+      // otherwise save_adoption would silently mark (setAdoption sets
+      // adopted=1) while History said only "details updated". Marking goes
+      // through the two mark buttons.
+      if (act === 'save_adoption' && detail.app.adopted !== 1) {
+        return Astro.redirect(`${detailUrl}?error=adoption_gate`, 303);
+      }
       // "Adopted by" is required to mark or save (an adopted record with no
       // adopter name would be useless on her letters list) — the other three
       // fields are optional, per spec §Behavior bullet 1.
@@ -145,8 +158,8 @@ const flags = new URL(Astro.request.url).searchParams;
 const done = flags.get('done');
 const mail = flags.get('mail');
 const mailNote = mail === 'ok' ? ' The email was sent.' : mail === 'fail' ? ' The email could not be sent right now — the application is still saved.' : '';
-const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'notes' ? 'Your notes were saved.' : done === 'packing_note' ? 'Packing note saved.' : done === 'cards' ? 'Cards saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'created' ? 'Paper application entered.' : done === 'adopted' ? `Marked as adopted.${mailNote}` : done === 'adoption_saved' ? 'Adoption details saved.' : done === 'adoption_cleared' ? 'Adoption mark removed.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : flags.get('error') === 'adopter_name' ? 'Please enter who is adopting this family.' : '';
-const isErrorBanner = flags.get('error') === 'csrf' || flags.get('error') === 'pu_bad' || flags.get('error') === 'pu_taken' || flags.get('error') === 'adopter_name';
+const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'notes' ? 'Your notes were saved.' : done === 'packing_note' ? 'Packing note saved.' : done === 'cards' ? 'Cards saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'created' ? 'Paper application entered.' : done === 'adopted' ? `Marked as adopted.${mailNote}` : done === 'adoption_saved' ? 'Adoption details saved.' : done === 'adoption_cleared' ? 'Adoption mark removed.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : flags.get('error') === 'adopter_name' ? 'Please enter who is adopting this family.' : flags.get('error') === 'adoption_gate' ? 'That could not be saved — this family\'s application is not approved with sharing allowed. Check Edit details.' : '';
+const isErrorBanner = flags.get('error') === 'csrf' || flags.get('error') === 'pu_bad' || flags.get('error') === 'pu_taken' || flags.get('error') === 'adopter_name' || flags.get('error') === 'adoption_gate';
 
 const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
