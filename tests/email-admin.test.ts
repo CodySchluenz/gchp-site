@@ -35,7 +35,7 @@ describe('renderDeniedEmail', () => {
 describe('renderAdoptedEmail', () => {
   it('has the owner-approved subject and the spec body verbatim, PII-free subject, escaped name', () => {
     const r = renderAdoptedEmail('<Sue>');
-    expect(r.subject).toBe('You have been adopted! — Grant County Holiday Project');
+    expect(r.subject).toBe('Your Holiday Project family has been adopted');
     expect(r.subject).not.toContain('Sue');
     expect(r.html).toContain('&lt;Sue&gt;');
     // Spec §Owner-approved-decisions #2, verbatim:
@@ -44,5 +44,6 @@ describe('renderAdoptedEmail', () => {
     );
     expect(r.html).toContain('December 10th');
     expect(r.html).toContain('kept confidential');
+    expect(r.text).toContain('608-723-2136 ext 1194');
   });
 });

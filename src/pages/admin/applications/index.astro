@@ -161,6 +161,7 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
           <td class="border-b border-stone-200 p-3">
             <a href={`/admin/applications/${r.id}`} class="font-semibold text-berry-700 underline">{r.last_name}, {r.first_name}</a>
             {dupIds.has(r.id) && <span class="ml-2 rounded bg-gold-500 px-2 py-1 text-lg font-bold text-stone-900">May be a duplicate</span>}
+            {r.adopted === 1 && <span class="ml-2 rounded bg-holly-100 px-2 py-1 text-lg font-bold text-holly-800">Adopted</span>}
           </td>
           <td class="border-b border-stone-200 p-3">{r.city_name}</td>
           {town === 'mailed' && <td class="border-b border-stone-200 p-3">{r.address}</td>}

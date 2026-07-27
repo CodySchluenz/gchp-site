@@ -5,6 +5,7 @@ export const prerender = false;
 const id = Number(Astro.params.id);
 const detail = Number.isInteger(id) ? await getApplicationDetail(Astro.locals.runtime.env.DB, id) : null;
 const mailed = detail ? detail.app.household_type === 'elderly' || detail.app.household_type === 'disabled' : false;
+const adopted = detail ? detail.app.adopted === 1 : false;
 ---
 <!doctype html>
 <html lang="en">
@@ -14,9 +15,11 @@ const mailed = detail ? detail.app.household_type === 'elderly' || detail.app.ho
       <>
         <div class="no-print">
           <h1 style="font-size:20px;margin:0 0 8px;">Packing slip</h1>
-          <p><a href={`/admin/applications/${id}`}>&larr; Back</a>{!mailed && <> · <button type="button" data-print>Print this slip</button></>}</p>
+          <p><a href={`/admin/applications/${id}`}>&larr; Back</a>{!mailed && !adopted && <> · <button type="button" data-print>Print this slip</button></>}</p>
         </div>
-        {mailed ? (
+        {adopted ? (
+          <p>Adopted household — no packing slip; the adopting organization or family provides their gifts.</p>
+        ) : mailed ? (
           <p>Mailed household — no packing slip. They receive gift and food cards by mail.</p>
         ) : (
           <SlipCard detail={detail} />

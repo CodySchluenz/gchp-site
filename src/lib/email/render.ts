@@ -124,7 +124,7 @@ and phone number.`;
 // only to the family, never mentions the adopter (Sherlyn said contact
 // happens adopter -> family, not the other way around).
 export function renderAdoptedEmail(firstName: string): RenderedEmail {
-  const subject = 'You have been adopted! — Grant County Holiday Project';
+  const subject = 'Your Holiday Project family has been adopted';
   const text = `Hello ${firstName},
 
 Per your approval, you have been adopted! You will not receive a pickup slip as stated in your approval notice. A community organization or adoptive family will contact you before December 10th to arrange a time and place for you to receive your gifts. Everything they receive about your family is kept confidential.

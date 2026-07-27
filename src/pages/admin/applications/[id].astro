@@ -3,15 +3,16 @@ import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
 import {
   getApplicationDetail, assignPuNumber, setApplicationStatus, softDeleteApplication, setApplicationNotes, setPackingNote, setPuNumber, setStraggler, setCardsGiven,
+  setAdoption, clearAdoption, type AdoptionFields,
   addHistory, historyStatements, listHistory, listPossibleDuplicates,
 } from '../../../lib/db';
-import { renderApprovedEmail, renderDeniedEmail } from '../../../lib/email/render';
+import { renderApprovedEmail, renderDeniedEmail, renderAdoptedEmail } from '../../../lib/email/render';
 import { sendEmail } from '../../../lib/email/send';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
 import { relationshipLabel, NON_FAMILY_RELATIONSHIPS } from '../../../lib/relationships';
 import { centralDate, centralDateTime } from '../../../lib/dates';
 import { parseMoney } from '../../../lib/validation/application';
-import { describeDecision, describePuChange, describeCardsChanges } from '../../../lib/history';
+import { describeDecision, describePuChange, describeCardsChanges, describeAdoption } from '../../../lib/history';
 export const prerender = false;
 
 const env = Astro.locals.runtime.env;
@@ -94,6 +95,35 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
       await setStraggler(env.DB, id, on);
       if (on !== wasOn) await addHistory(env.DB, id, actor, 'number', on ? 'Marked as a straggler' : 'Straggler mark removed', now);
       return Astro.redirect(`${detailUrl}?done=straggler`, 303);
+    } else if (act === 'mark_adopted_email' || act === 'mark_adopted_silent' || act === 'save_adoption') {
+      // "Adopted by" is required to mark or save (an adopted record with no
+      // adopter name would be useless on her letters list) — the other three
+      // fields are optional, per spec §Behavior bullet 1.
+      const adopterName = String(form.get('adopter_name') ?? '').trim();
+      if (adopterName === '') return Astro.redirect(`${detailUrl}?error=adopter_name`, 303);
+      const fields: AdoptionFields = {
+        adopterName,
+        adopterContact: String(form.get('adopter_contact') ?? '').trim(),
+        adopterPhone: String(form.get('adopter_phone') ?? '').trim(),
+        adopterAddress: String(form.get('adopter_address') ?? '').trim(),
+      };
+      await setAdoption(env.DB, id, fields);
+      if (act === 'mark_adopted_email') {
+        const r = await sendEmail(env, email, renderAdoptedEmail(firstName));
+        await addHistory(env.DB, id, actor, 'decision', describeAdoption('marked', adopterName, r.sent ? 'sent' : 'failed'), now);
+        return Astro.redirect(`${detailUrl}?done=adopted&mail=${r.sent ? 'ok' : 'fail'}`, 303);
+      }
+      if (act === 'mark_adopted_silent') {
+        await addHistory(env.DB, id, actor, 'decision', describeAdoption('marked', adopterName, 'none'), now);
+        return Astro.redirect(`${detailUrl}?done=adopted`, 303);
+      }
+      await addHistory(env.DB, id, actor, 'decision', describeAdoption('updated', adopterName, 'none'), now);
+      return Astro.redirect(`${detailUrl}?done=adoption_saved`, 303);
+    } else if (act === 'clear_adoption') {
+      const adopterName = String(detail.app.adopter_name ?? '');
+      await clearAdoption(env.DB, id);
+      await addHistory(env.DB, id, actor, 'decision', describeAdoption('unmarked', adopterName, 'none'), now);
+      return Astro.redirect(`${detailUrl}?done=adoption_cleared`, 303);
     } else if (act === 'delete') {
       await softDeleteApplication(env.DB, id, new Date().toISOString());
       await addHistory(env.DB, id, actor, 'record', 'Application deleted', now);
@@ -115,8 +145,8 @@ const flags = new URL(Astro.request.url).searchParams;
 const done = flags.get('done');
 const mail = flags.get('mail');
 const mailNote = mail === 'ok' ? ' The email was sent.' : mail === 'fail' ? ' The email could not be sent right now — the application is still saved.' : '';
-const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'notes' ? 'Your notes were saved.' : done === 'packing_note' ? 'Packing note saved.' : done === 'cards' ? 'Cards saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'created' ? 'Paper application entered.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : '';
-const isErrorBanner = flags.get('error') === 'csrf' || flags.get('error') === 'pu_bad' || flags.get('error') === 'pu_taken';
+const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'notes' ? 'Your notes were saved.' : done === 'packing_note' ? 'Packing note saved.' : done === 'cards' ? 'Cards saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'created' ? 'Paper application entered.' : done === 'adopted' ? `Marked as adopted.${mailNote}` : done === 'adoption_saved' ? 'Adoption details saved.' : done === 'adoption_cleared' ? 'Adoption mark removed.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : flags.get('error') === 'adopter_name' ? 'Please enter who is adopting this family.' : '';
+const isErrorBanner = flags.get('error') === 'csrf' || flags.get('error') === 'pu_bad' || flags.get('error') === 'pu_taken' || flags.get('error') === 'adopter_name';
 
 const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
 const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
@@ -203,7 +233,9 @@ const hasOriginal = typeof a.original_json === 'string' && a.original_json !== '
       </section>
 
       <section class="mt-6 flex flex-wrap gap-3">
-        {a.household_type === 'elderly' || a.household_type === 'disabled' ? (
+        {a.adopted === 1 ? (
+          <span class="px-4 py-3 text-lg text-stone-600">Adopted household — no packing slip; the adopting organization or family provides their gifts.</span>
+        ) : a.household_type === 'elderly' || a.household_type === 'disabled' ? (
           <span class="px-4 py-3 text-lg text-stone-600">Mailed household — no packing slip; gift and food cards go by mail.</span>
         ) : (
           <>
@@ -310,6 +342,51 @@ const hasOriginal = typeof a.original_json === 'string' && a.original_json !== '
           <button type="submit" name="act" value="set_cards" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Save cards</button>
         </form>
       </section>
+
+      {a.status === 'approved' && (
+        <section class="mt-8 rounded-lg border-2 border-stone-300 bg-white p-5">
+          <h2 class="text-2xl font-bold text-holly-800">Adoption</h2>
+          {a.share_with_sponsor !== 1 ? (
+            <p class="mt-2 text-lg text-stone-700">This family said No to sharing their needs — if they have since agreed, change that in Edit details first.</p>
+          ) : (
+            <>
+              {a.adopted === 1 && <p class="mt-2 text-lg font-semibold">Adopted by {a.adopter_name}</p>}
+              <form method="post" class="mt-3 space-y-3">
+                <input type="hidden" name="csrf_token" value={csrfToken} />
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <label class="block font-semibold">Adopted by (org or family)
+                    <input type="text" name="adopter_name" value={a.adopter_name ?? ''} class="mt-1 w-full rounded border-2 border-stone-400 p-3 text-lg" />
+                  </label>
+                  <label class="block font-semibold">Contact person
+                    <input type="text" name="adopter_contact" value={a.adopter_contact ?? ''} class="mt-1 w-full rounded border-2 border-stone-400 p-3 text-lg" />
+                  </label>
+                  <label class="block font-semibold">Phone
+                    <input type="text" name="adopter_phone" value={a.adopter_phone ?? ''} class="mt-1 w-full rounded border-2 border-stone-400 p-3 text-lg" />
+                  </label>
+                  <label class="block font-semibold">Mailing address (optional)
+                    <input type="text" name="adopter_address" value={a.adopter_address ?? ''} class="mt-1 w-full rounded border-2 border-stone-400 p-3 text-lg" />
+                  </label>
+                </div>
+                <div class="flex flex-wrap gap-3">
+                  {a.adopted === 1 ? (
+                    <>
+                      <button type="submit" name="act" value="save_adoption" class="rounded bg-holly-700 px-4 py-3 font-bold text-white hover:bg-holly-900">Save adoption details</button>
+                      <button type="submit" name="act" value="clear_adoption" class="rounded border-2 border-stone-400 px-4 py-3 font-semibold hover:bg-stone-100">Remove adoption mark</button>
+                    </>
+                  ) : (
+                    <>
+                      {typeof a.email === 'string' && a.email.trim() !== '' && (
+                        <button type="submit" name="act" value="mark_adopted_email" class="rounded bg-holly-700 px-4 py-3 font-bold text-white hover:bg-holly-900">Mark adopted and email them</button>
+                      )}
+                      <button type="submit" name="act" value="mark_adopted_silent" class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Mark adopted without email</button>
+                    </>
+                  )}
+                </div>
+              </form>
+            </>
+          )}
+        </section>
+      )}
 
       <section class="mt-8 rounded-lg border-2 border-stone-300 bg-white p-5">
         <div class="flex flex-wrap items-baseline justify-between gap-3">
