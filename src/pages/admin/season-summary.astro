@@ -38,6 +38,7 @@ const money = (n: number) => `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
       <p class="mt-1 text-lg">Families served (approved): <strong>{s.served}</strong></p>
       <p class="mt-1 text-lg">Still to review: <strong>{s.toReview}</strong> · Denied: <strong>{s.denied}</strong></p>
       <p class="mt-1 text-lg">People in served households: <strong>{s.peopleServed}</strong></p>
+      {s.adopted > 0 && <p class="mt-1 text-lg">Of the families served, adopted out: <strong>{s.adopted}</strong></p>}
     </section>
 
     <section class="rounded-lg border-2 border-stone-300 bg-white p-5">

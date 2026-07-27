@@ -1,0 +1,70 @@
+---
+import '../../styles/global.css';
+import Admin from '../../layouts/Admin.astro';
+import { listAdoptions, listSeasons, latestSeason } from '../../lib/db';
+export const prerender = false;
+
+const db = Astro.locals.runtime.env.DB;
+const url = new URL(Astro.request.url);
+const season = Number(url.searchParams.get('season')) || (await latestSeason(db)) || new Date().getFullYear();
+const rows = await listAdoptions(db, season);
+const seasons = await listSeasons(db);
+const yearsToShow = seasons.includes(season) ? seasons : [...seasons, season].sort((a, b) => b - a);
+---
+<Admin title="Adoptions" heading={`Adoptions — ${season}`} back={{ href: '/admin', label: 'Back to admin home' }}>
+  <p class="mt-1 text-lg text-stone-600">Help: every family adopted out this season, with who adopted them — print it for the next-year letters.</p>
+
+  <div class="mt-4 flex flex-wrap items-end gap-4 print:hidden">
+    <form method="get" class="flex items-end gap-2">
+      <label class="font-semibold">Season
+        <select name="season" class="ml-2 rounded border-2 border-stone-400 p-2">
+          {yearsToShow.map((y) => <option value={String(y)} selected={y === season}>{y}</option>)}
+        </select>
+      </label>
+      <button type="submit" class="rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Go</button>
+    </form>
+    <button type="button" data-print class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Print this page</button>
+  </div>
+
+  <p class="mt-4 text-xl">Adopted out this season: <strong>{rows.length}</strong>.</p>
+
+  {rows.length === 0 ? (
+    <p class="mt-4 text-lg">No families adopted out yet this season.</p>
+  ) : (
+    <table class="mt-4 w-full border-collapse bg-white text-left">
+      <caption class="sr-only">Families adopted out in {season}</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="border-b-2 border-holly-700 p-3">Family (last, first)</th>
+          <th scope="col" class="border-b-2 border-holly-700 p-3">Town</th>
+          <th scope="col" class="border-b-2 border-holly-700 p-3">Pickup #</th>
+          <th scope="col" class="border-b-2 border-holly-700 p-3">Adopted by</th>
+          <th scope="col" class="border-b-2 border-holly-700 p-3">Contact</th>
+          <th scope="col" class="border-b-2 border-holly-700 p-3">Phone</th>
+          <th scope="col" class="border-b-2 border-holly-700 p-3">Mailing address</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((a) => (
+          <tr>
+            <td class="border-b border-stone-200 p-3">{a.last_name}, {a.first_name}</td>
+            <td class="border-b border-stone-200 p-3">{a.city_name}</td>
+            <td class="border-b border-stone-200 p-3">{a.pu_number ?? ''}</td>
+            <td class="border-b border-stone-200 p-3">{a.adopter_name}</td>
+            <td class="border-b border-stone-200 p-3">{a.adopter_contact}</td>
+            <td class="border-b border-stone-200 p-3">{a.adopter_phone}</td>
+            <td class="border-b border-stone-200 p-3">{a.adopter_address}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+
+  <script src="/scripts/print-button.js" defer></script>
+</Admin>
+
+<style>
+  @media print {
+    :global(header), :global(a[href="/admin"]) { display: none; }
+  }
+</style>
