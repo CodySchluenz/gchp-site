@@ -128,7 +128,8 @@ npx wrangler d1 export gchp --remote --output=backup.sql
 
 The site is designed to need **nothing** from you in a normal year. Optional
 September check, 10 minutes: `npm run test` still green, deploy anything that
-accumulated, glance at Search Console before applications open October 1.
+accumulated, glance at Search Console before the operator opens applications for the season
+(her call — late September in 2026).
 Sherlyn's own yearly tasks (news, schedule, PDF, open/close) are in her guide
 and the Operations Manual — none of them need you.
 

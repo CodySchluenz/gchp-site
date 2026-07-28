@@ -172,7 +172,7 @@ error on the live site until the matching migration is applied.
 - [ ] **Note — settings are not affected by a deploy.** Whether applications are
       **open or closed** lives in the database, not the code, so deploying does not
       change it. Apps stay closed until you toggle them in the admin home screen
-      (open them on/after **October 1**).
+      (the operator opens them whenever her season begins — a button on the admin Home screen).
 - [ ] **Rollback if needed:** Cloudflare Pages keeps every prior deployment — in
       the dashboard (**Workers & Pages → gchp-site → Deployments**) you can roll back
       to the previous one instantly. The migration is additive, so it does not need

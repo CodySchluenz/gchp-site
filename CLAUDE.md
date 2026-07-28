@@ -141,7 +141,10 @@ never run it, and never carry its secrets or data forward.
 - Contact: 608-723-2136 ext 1194 (message line only), skleinow@co.grant.wi.gov.
 - Donation drop-off sites: Allegiant Oil, 190 N 2nd St Platteville (Mon-Fri 6a-6p)
   and 1486 Industrial Park Rd Lancaster (Mon-Fri 7a-5p). Cash: checks payable to the project.
-- Key dates: donations accepted starting October 1; applications open October 1.
+- Key dates: donations accepted starting October 1; applications open on the date the
+  operator chooses each fall (a button in the admin — historically October 1; 2026:
+  September 20, because adoptions start early). Exact dates are shown to the public via
+  the operator-edited news blocks, never hardcoded.
 - "Pay it forward" eligibility requirement and the good-deeds form.
 - Special gifts list (changes yearly).
 - Pickup schedule.
