@@ -81,13 +81,17 @@ if (Astro.request.method === 'POST' && open) {
           submittedAt,
         };
         await insertApplication(env.DB, appRecord);
-        // Email failure never blocks a saved application (spec §3). Email is
-        // optional on this form; sendEmail fails quietly if it's blank.
-        await sendEmail(
-          env,
-          result.clean.email,
-          renderApplicationReceivedEmail(result.clean.firstName),
-        );
+        // Email is optional on this form: only send the confirmation when the
+        // applicant gave an address (a blank send would just burn Resend quota
+        // and log a confusing failure). Email failure never blocks a saved
+        // application (spec §3).
+        if (result.clean.email !== '') {
+          await sendEmail(
+            env,
+            result.clean.email,
+            renderApplicationReceivedEmail(result.clean.firstName),
+          );
+        }
         return Astro.redirect('/apply/thank-you', 303);
       }
     } else {
@@ -128,7 +132,7 @@ const errorEntries = Object.entries(errors);
           </li>
           <li>
             <strong>On paper:</strong>
-            <a href="/application.pdf" class="font-semibold text-berry-700 underline">print the paper application</a>
+            <a href="/elderly-application.pdf" class="font-semibold text-berry-700 underline">print the Elderly/Disabled paper application</a>
             and mail it back to the address printed on the form.
           </li>
         </ul>
