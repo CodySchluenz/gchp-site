@@ -54,6 +54,7 @@ describe('renderAdoptedEmail', () => {
 describe('renderElderlyApprovedEmail', () => {
   it('has the spec body verbatim, PII-free subject, escaped name, and the phone number', () => {
     const r = renderElderlyApprovedEmail('<Sue>');
+    expect(r.subject).toBe('Your Holiday Project Elderly/Disabled application was approved');
     expect(r.subject).not.toContain('Sue');
     expect(r.subject).not.toContain('!');
     expect(r.html).toContain('&lt;Sue&gt;');
