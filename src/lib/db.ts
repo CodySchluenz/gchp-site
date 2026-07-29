@@ -191,7 +191,7 @@ export async function listApplications(
   seasonYear: number,
   status: 'all' | 'new' | 'approved' | 'denied',
   search: string,
-  town: number | 'mailed' | 'stragglers' | null = null,
+  town: number | 'mailed' | 'stragglers' | 'adopted' | null = null,
 ): Promise<ApplicationListRow[]> {
   const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const cols = `a.id, a.first_name, a.last_name, a.address, c.name AS city_name, a.submitted_at,
@@ -208,11 +208,13 @@ export async function listApplications(
          AND (?4 = 0 OR a.city_id = ?4)
          AND (?5 = 0 OR a.household_type IN ('elderly', 'disabled'))
          AND (?6 = 0 OR a.straggler = 1)
+         AND (?7 = 0 OR a.adopted = 1)
        ${order}`,
     )
     .bind(
       seasonYear, status === 'all' ? '' : status, like,
       typeof town === 'number' ? town : 0, town === 'mailed' ? 1 : 0, town === 'stragglers' ? 1 : 0,
+      town === 'adopted' ? 1 : 0,
     )
     .all<ApplicationListRow>();
   return results;
@@ -711,7 +713,7 @@ export async function listApplicationsForExport(
   seasonYear: number,
   status: 'all' | 'new' | 'approved' | 'denied',
   search: string,
-  town: number | 'mailed' | 'stragglers' | null = null,
+  town: number | 'mailed' | 'stragglers' | 'adopted' | null = null,
 ): Promise<ExportRow[]> {
   const like = `%${escapeLike(search.trim().toLowerCase())}%`;
   const statusFilter = status === 'all' ? '' : 'AND a.status = ?2';
@@ -720,6 +722,7 @@ export async function listApplicationsForExport(
   const townFilter = `AND (?4 = 0 OR a.city_id = ?4)`;
   const mailedFilter = `AND (?5 = 0 OR a.household_type IN ('elderly', 'disabled'))`;
   const stragglerFilter = `AND (?6 = 0 OR a.straggler = 1)`;
+  const adoptedFilter = `AND (?7 = 0 OR a.adopted = 1)`;
   const order = town !== null
     ? 'ORDER BY a.pu_number IS NULL, a.pu_number, a.id'
     : 'ORDER BY a.submitted_at DESC, a.id DESC';
@@ -760,7 +763,7 @@ export async function listApplicationsForExport(
     FROM applications a
     JOIN cities c ON c.id = a.city_id
     LEFT JOIN household_members m ON m.application_id = a.id AND m.deleted_at IS NULL
-    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter} ${nameFilter} ${townFilter} ${mailedFilter} ${stragglerFilter}
+    WHERE a.deleted_at IS NULL AND a.season_year = ?1 ${statusFilter} ${nameFilter} ${townFilter} ${mailedFilter} ${stragglerFilter} ${adoptedFilter}
     GROUP BY a.id
     ${order}`;
   const stmt = db
@@ -768,6 +771,7 @@ export async function listApplicationsForExport(
     .bind(
       seasonYear, status === 'all' ? '' : status, like,
       typeof town === 'number' ? town : 0, town === 'mailed' ? 1 : 0, town === 'stragglers' ? 1 : 0,
+      town === 'adopted' ? 1 : 0,
     );
   const { results } = await stmt.all<ExportRow>();
   return results;

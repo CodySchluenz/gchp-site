@@ -22,7 +22,7 @@ const status = (['all', 'new', 'approved', 'denied'].includes(statusParam) ? sta
   'all' | 'new' | 'approved' | 'denied';
 const search = url.searchParams.get('q') ?? '';
 const townRaw = url.searchParams.get('town') ?? '';
-const town: number | 'mailed' | 'stragglers' | null = townRaw === 'mailed' ? 'mailed' : townRaw === 'stragglers' ? 'stragglers' : /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
+const town: number | 'mailed' | 'stragglers' | 'adopted' | null = townRaw === 'mailed' ? 'mailed' : townRaw === 'stragglers' ? 'stragglers' : townRaw === 'adopted' ? 'adopted' : /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
 const undoRaw = url.searchParams.get('undo');
 const undoId = undoRaw && /^\d+$/.test(undoRaw) ? undoRaw : null;
 
@@ -115,6 +115,7 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
           {cities.map((c) => <option value={String(c.id)} selected={town === c.id}>{c.name}</option>)}
           <option value="mailed" selected={town === 'mailed'}>Elderly &amp; disabled (mailed)</option>
           <option value="stragglers" selected={town === 'stragglers'}>Stragglers</option>
+          <option value="adopted" selected={town === 'adopted'}>Adopted</option>
         </select>
       </label>
       <button type="submit" class="rounded bg-holly-700 px-4 py-2 font-bold text-white hover:bg-holly-900">Show</button>

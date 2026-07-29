@@ -3,7 +3,7 @@ import { getTestDb } from './helpers/d1';
 import {
   insertApplication, assignPuNumber, setPuNumber, setStraggler, countBlockUsage,
   softDeleteApplication, listApplications, listApplicationsForExport, listCities,
-  setApplicationStatus, listApprovedForSlips, type NewApplication,
+  setApplicationStatus, listApprovedForSlips, setAdoption, type NewApplication,
 } from '../src/lib/db';
 
 const base: NewApplication = {
@@ -141,6 +141,24 @@ describe('block-aware pickup numbers', () => {
       const rows = await listApplications(db, 2026, 'all', '', 'stragglers');
       expect(rows.map((r) => r.last_name)).toEqual(['B', 'Smith']); // pu_number order: 999, then 2400
       const exportRows = await listApplicationsForExport(db, 2026, 'all', '', 'stragglers');
+      expect(exportRows.map((r) => r.last_name)).toEqual(['B', 'Smith']);
+    } finally { await dispose(); }
+  });
+
+  it('adopted filter selects adopted=1 families, ordered by number, and flows to export', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const adoptedB = await insertApplication(db, { ...base, lastName: 'B' });
+      const adoptedSmith = await insertApplication(db, base);
+      const notAdopted = await insertApplication(db, { ...base, lastName: 'NotAdopted' });
+      await assignPuNumber(db, adoptedB, 2026);     // 800
+      await assignPuNumber(db, adoptedSmith, 2026); // 801
+      await assignPuNumber(db, notAdopted, 2026);   // 802
+      await setAdoption(db, adoptedB, { adopterName: 'Org B', adopterContact: '', adopterPhone: '', adopterAddress: '' });
+      await setAdoption(db, adoptedSmith, { adopterName: 'Org S', adopterContact: '', adopterPhone: '', adopterAddress: '' });
+      const rows = await listApplications(db, 2026, 'all', '', 'adopted');
+      expect(rows.map((r) => r.last_name)).toEqual(['B', 'Smith']); // pu_number order: 800, then 801; NotAdopted excluded
+      const exportRows = await listApplicationsForExport(db, 2026, 'all', '', 'adopted');
       expect(exportRows.map((r) => r.last_name)).toEqual(['B', 'Smith']);
     } finally { await dispose(); }
   });

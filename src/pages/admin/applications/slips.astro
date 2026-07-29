@@ -7,18 +7,21 @@ const url = new URL(Astro.request.url);
 // season with data, then the calendar year. This page is normally reached
 // via a ?season= link from the list, so this only matters on a direct visit.
 const season = Number(url.searchParams.get('season')) || (await latestSeason(Astro.locals.runtime.env.DB)) || new Date().getFullYear();
-// Same parsing as export.xlsx.ts: town id / 'mailed' / 'stragglers' / unset.
+// Same parsing as export.xlsx.ts: town id / 'mailed' / 'stragglers' / 'adopted' / unset.
 const townRaw = url.searchParams.get('town') ?? '';
-const town: number | 'mailed' | 'stragglers' | null =
-  townRaw === 'mailed' ? 'mailed' : townRaw === 'stragglers' ? 'stragglers' :
+const town: number | 'mailed' | 'stragglers' | 'adopted' | null =
+  townRaw === 'mailed' ? 'mailed' : townRaw === 'stragglers' ? 'stragglers' : townRaw === 'adopted' ? 'adopted' :
   /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
 
 const allSlips = await listApprovedForSlips(Astro.locals.runtime.env.DB, season);
 const cities = await listCities(Astro.locals.runtime.env.DB);
 // Mailed households never reach listApprovedForSlips (excluded at the query
 // level already), so the 'mailed' view is presentational only — no filter to run.
+// Adopted households are excluded from listApprovedForSlips the same way (see
+// db.ts), so the 'adopted' view is presentational only too.
 const slips =
   town === 'mailed' ? [] :
+  town === 'adopted' ? [] :
   typeof town === 'number' ? allSlips.filter((d) => Number(d.app.city_id) === town) :
   town === 'stragglers' ? allSlips.filter((d) => d.app.straggler === 1) :
   allSlips;
@@ -26,6 +29,7 @@ const slips =
 const viewLabel =
   town === 'mailed' ? 'Mailed' :
   town === 'stragglers' ? 'Stragglers' :
+  town === 'adopted' ? 'Adopted' :
   typeof town === 'number' ? (cities.find((c) => c.id === town)?.name ?? 'All towns') :
   'All towns';
 ---
@@ -34,12 +38,15 @@ const viewLabel =
   <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Packing slips {season}</title></head>
   <body style="margin:16px;font-family:Georgia,serif;">
     <p class="no-print"><a href="/admin/applications">&larr; Back to applications</a>
-      {town !== 'mailed' && <> · <button type="button" data-print>Print all {slips.length} packing slips</button></>}</p>
+      {town !== 'mailed' && town !== 'adopted' && <> · <button type="button" data-print>Print all {slips.length} packing slips</button></>}</p>
     <h1 style="font-size:20px;">Approved packing slips — {viewLabel} — {season} ({slips.length})</h1>
     {town === 'mailed' && (
       <p>Mailed households don't get packing slips — they receive gift and food cards by mail. Use the applications list's "Elderly &amp; disabled (mailed)" view to print the mail list with addresses.</p>
     )}
-    {town !== 'mailed' && slips.length === 0 && <p>No approved applications yet.</p>}
+    {town === 'adopted' && (
+      <p>Adopted households don't get packing slips — the adopting organization or family provides their gifts.</p>
+    )}
+    {town !== 'mailed' && town !== 'adopted' && slips.length === 0 && <p>No approved applications yet.</p>}
     {slips.map((d) => <SlipCard detail={d} />)}
     <style>
       button:hover, a:hover { text-decoration: underline; background: #eee; }

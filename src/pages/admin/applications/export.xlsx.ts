@@ -15,7 +15,7 @@ export const GET: APIRoute = async ({ locals, url }) => {
     'all' | 'new' | 'approved' | 'denied';
   const search = url.searchParams.get('q') ?? '';
   const townRaw = url.searchParams.get('town') ?? '';
-  const town = townRaw === 'mailed' ? ('mailed' as const) : townRaw === 'stragglers' ? ('stragglers' as const) : /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
+  const town = townRaw === 'mailed' ? ('mailed' as const) : townRaw === 'stragglers' ? ('stragglers' as const) : townRaw === 'adopted' ? ('adopted' as const) : /^\d+$/.test(townRaw) && Number(townRaw) > 0 ? Number(townRaw) : null;
   const rows = await listApplicationsForExport(locals.runtime.env.DB, season, status, search, town);
   const workbook = buildXlsx('Applications', sherlynHeaders(season), rows.map(sherlynRow));
   // Uint8Array is a valid BodyInit at runtime; cast past the workers-types BodyInit union.
