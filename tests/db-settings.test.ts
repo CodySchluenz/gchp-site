@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { getSettings, setApplicationsOpen, updatePickupText, setPdfUploadedAt } from '../src/lib/db';
+import { getSettings, setApplicationsOpen, updatePickupText, setPdfUploadedAt, setElderlyPdfUploadedAt } from '../src/lib/db';
 
 describe('settings writes', () => {
   let db: D1Database;
@@ -24,5 +24,12 @@ describe('settings writes', () => {
   it('records the pdf upload time', async () => {
     await setPdfUploadedAt(db, '2026-10-02T00:00:00.000Z');
     expect((await getSettings(db)).pdf_uploaded_at).toBe('2026-10-02T00:00:00.000Z');
+  });
+
+  it('records the elderly pdf upload time, independent of the family one', async () => {
+    await setElderlyPdfUploadedAt(db, '2026-10-03T00:00:00.000Z');
+    const s = await getSettings(db);
+    expect(s.elderly_pdf_uploaded_at).toBe('2026-10-03T00:00:00.000Z');
+    expect(s.pdf_uploaded_at).toBe('2026-10-02T00:00:00.000Z'); // unaffected by the previous test
   });
 });

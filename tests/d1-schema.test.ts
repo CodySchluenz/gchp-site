@@ -126,4 +126,9 @@ describe('D1 schema integrity', () => {
     const a = await db.prepare('PRAGMA table_info(applications)').all<{ name: string }>();
     expect(a.results.map((c) => c.name)).toContain('original_json');
   });
+
+  it('0016 adds settings.elderly_pdf_uploaded_at', async () => {
+    const cols = await db.prepare("SELECT name FROM pragma_table_info('settings')").all<{ name: string }>();
+    expect(cols.results.map((c) => c.name)).toContain('elderly_pdf_uploaded_at');
+  });
 });

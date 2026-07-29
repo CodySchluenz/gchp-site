@@ -19,13 +19,14 @@ export type Settings = {
   pickup_intro: string;
   pickup_footer: string;
   pdf_uploaded_at: string | null;
+  elderly_pdf_uploaded_at: string | null;
   straggler_pickup_day_id: number | null;
 };
 
 export async function getSettings(db: D1Database): Promise<Settings> {
   const row = await db
     .prepare(
-      'SELECT applications_open, pickup_title, pickup_intro, pickup_footer, pdf_uploaded_at, straggler_pickup_day_id FROM settings WHERE id = 1',
+      'SELECT applications_open, pickup_title, pickup_intro, pickup_footer, pdf_uploaded_at, elderly_pdf_uploaded_at, straggler_pickup_day_id FROM settings WHERE id = 1',
     )
     .first<Settings>();
   if (!row) throw new Error('settings row missing — run migrations');
@@ -537,6 +538,25 @@ export async function listAdoptions(db: D1Database, seasonYear: number): Promise
   return results;
 }
 
+export type LabelRow = { first_name: string; last_name: string; address: string; city_name: string };
+
+// Christmas-card mailing labels (2026-07-29 elderly-application design):
+// one row per approved, non-adopted, non-deleted elderly/disabled household
+// in the season, ordered so a printed Avery sheet groups by town.
+export async function listMailedForLabels(db: D1Database, seasonYear: number): Promise<LabelRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT a.first_name, a.last_name, a.address, c.name AS city_name
+       FROM applications a JOIN cities c ON c.id = a.city_id
+       WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
+         AND a.household_type IN ('elderly', 'disabled') AND a.adopted = 0
+       ORDER BY c.name, a.last_name`,
+    )
+    .bind(seasonYear)
+    .all<LabelRow>();
+  return results;
+}
+
 // The application's audit timeline: one plain-English sentence per change,
 // written by the same code path that saves the change (see src/lib/history.ts
 // for the sentence composers). Read-only by design — nothing ever edits or
@@ -866,6 +886,12 @@ export async function updatePickupText(
 
 export async function setPdfUploadedAt(db: D1Database, iso: string): Promise<void> {
   await db.prepare('UPDATE settings SET pdf_uploaded_at = ? WHERE id = 1').bind(iso).run();
+}
+
+// Mirrors setPdfUploadedAt for the elderly/disabled paper form's own upload
+// slot (migrations/0016) — the two PDFs are published and tracked independently.
+export async function setElderlyPdfUploadedAt(db: D1Database, iso: string): Promise<void> {
+  await db.prepare('UPDATE settings SET elderly_pdf_uploaded_at = ? WHERE id = 1').bind(iso).run();
 }
 
 export type AdminContentBlock = {

@@ -1,0 +1,28 @@
+import type { APIRoute } from 'astro';
+
+export const prerender = false;
+
+// Build a fresh Response per request: module-scope Response objects are not
+// allowed in Workers (I/O objects cannot cross request contexts).
+function fallback(): Response {
+  return new Response(
+    'The paper application is not available right now. Please call 608-723-2136 ext 1194 and we will mail you one.',
+    { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
+  );
+}
+
+export const GET: APIRoute = async ({ locals }) => {
+  try {
+    const obj = await locals.runtime.env.FILES.get('elderly-application.pdf');
+    if (!obj) return fallback();
+    return new Response(obj.body, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'inline; filename="GCHP-elderly-application.pdf"',
+        'Cache-Control': 'no-cache',
+      },
+    });
+  } catch {
+    return fallback();
+  }
+};

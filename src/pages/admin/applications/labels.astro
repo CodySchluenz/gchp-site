@@ -1,0 +1,82 @@
+---
+import { listMailedForLabels, latestSeason } from '../../../lib/db';
+export const prerender = false;
+// Same season fallback as the applications list and packing slips: param
+// wins, then the latest season with data, then the calendar year.
+const url = new URL(Astro.request.url);
+const season = Number(url.searchParams.get('season')) || (await latestSeason(Astro.locals.runtime.env.DB)) || new Date().getFullYear();
+
+const rows = await listMailedForLabels(Astro.locals.runtime.env.DB, season);
+
+// Avery 5160: 3 labels across, 10 down, 30 per sheet. Chunking here (rather
+// than relying on the browser to paginate one long grid) keeps every printed
+// sheet a clean 3x10 block even when the count isn't a multiple of 30.
+const PER_SHEET = 30;
+const sheets: (typeof rows)[] = [];
+for (let i = 0; i < rows.length; i += PER_SHEET) sheets.push(rows.slice(i, i + PER_SHEET));
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mailing labels {season}</title>
+  </head>
+  <body style="margin:16px;font-family:Georgia,serif;">
+    <p class="no-print"><a href="/admin/applications">&larr; Back to applications</a>
+      {rows.length > 0 && <> · <button type="button" data-print>Print labels</button></>}</p>
+    <h1 class="no-print" style="font-size:20px;">Christmas-card mailing labels — {season}</h1>
+    <p class="no-print">Preview: each label is sized for an Avery 5160 sheet (3 across, 10 down). Press "Print labels" and load Avery 5160 sheets in the printer.</p>
+    <p class="no-print">Zip codes print only if they were typed into the address.</p>
+    <p class="no-print">Labels: {rows.length}</p>
+    {rows.length === 0 && <p class="no-print">No approved Elderly/Disabled households yet this season.</p>}
+    {sheets.map((sheet) => (
+      <div class="sheet">
+        {sheet.map((r) => (
+          <div class="label">
+            <div>{r.first_name} {r.last_name}</div>
+            <div>{r.address}</div>
+            <div>{r.city_name}, WI</div>
+          </div>
+        ))}
+      </div>
+    ))}
+    <style>
+      button:hover, a:hover { text-decoration: underline; background: #eee; }
+      button:focus-visible, a:focus-visible { outline: 2px solid #14532d; outline-offset: 2px; }
+      .sheet {
+        display: grid;
+        grid-template-columns: repeat(3, 2.625in);
+        grid-auto-rows: 1in;
+        column-gap: 0.125in;
+        row-gap: 0;
+      }
+      .label {
+        width: 2.625in;
+        height: 1in;
+        box-sizing: border-box;
+        padding: 0.1in 0.15in;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        font-size: 11pt;
+        line-height: 1.3;
+        overflow: hidden;
+        break-inside: avoid;
+      }
+      /* Screen-only: faint outlines so the preview reads as a sheet of
+         labels, without printing any lines Avery 5160 doesn't have. */
+      @media screen {
+        .sheet { margin-bottom: 24px; border: 1px dashed #ccc; }
+        .label { border: 1px dotted #ccc; }
+      }
+      @media print {
+        .no-print { display: none; }
+        .sheet { page-break-after: always; }
+        .sheet:last-of-type { page-break-after: auto; }
+      }
+      @page { size: letter; margin: 0.5in 0.1875in; }
+    </style>
+    <script src="/scripts/print-button.js" defer></script>
+  </body>
+</html>
