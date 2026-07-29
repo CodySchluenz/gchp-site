@@ -1,0 +1,31 @@
+---
+// Slim member row for the elderly/disabled application (spec "The short
+// form"): name + age only — no relationship, sex, sizes, gifts, or doll.
+// Field names match MemberCard's (member_name_i / member_age_i) so
+// validateElderlyMembers and the generic apply.js add-row script both work
+// unchanged.
+import FieldError from './FieldError.astro';
+interface Props { index: number | string; values: Record<string, string>; errors: Record<string, string> }
+const { index: i, values, errors } = Astro.props;
+const v = (n: string) => values[n] ?? '';
+const inv = (n: string) => (errors[n] ? 'true' : undefined);
+const desc = (n: string) => (errors[n] ? `${n}-error` : undefined);
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3';
+---
+<fieldset class="mt-4 rounded border-2 border-stone-300 bg-white p-4">
+  <legend class="px-2 font-bold">Person {i}{i === 1 || i === '1' ? ' — you' : ''}</legend>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <label for={`member_name_${i}`} class="block font-semibold">First and last name</label>
+      <input type="text" id={`member_name_${i}`} name={`member_name_${i}`} value={v(`member_name_${i}`)}
+        aria-invalid={inv(`member_name_${i}`)} aria-describedby={desc(`member_name_${i}`)} class={input} />
+      <FieldError id={`member_name_${i}`} errors={errors} />
+    </div>
+    <div>
+      <label for={`member_age_${i}`} class="block font-semibold">Age</label>
+      <input type="text" inputmode="numeric" id={`member_age_${i}`} name={`member_age_${i}`} value={v(`member_age_${i}`)}
+        aria-invalid={inv(`member_age_${i}`)} aria-describedby={desc(`member_age_${i}`)} class="mt-1 w-24 rounded border-2 border-stone-400 bg-white p-3" />
+      <FieldError id={`member_age_${i}`} errors={errors} />
+    </div>
+  </div>
+</fieldset>

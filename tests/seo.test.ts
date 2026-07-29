@@ -48,7 +48,7 @@ describe('seo', () => {
 
   it('every public page passes its own description', () => {
     const files = ['index', 'apply', 'donate', 'pickup', 'contact', 'pay-it-forward'].map((n) => `src/pages/${n}.astro`);
-    files.push('src/pages/apply/thank-you.astro');
+    files.push('src/pages/apply/thank-you.astro', 'src/pages/apply/family.astro', 'src/pages/apply/elderly.astro');
     for (const f of files) {
       expect(readFileSync(f, 'utf8'), `${f} should pass description=`).toMatch(/<Site[^>]+description=/);
     }

@@ -1,0 +1,353 @@
+---
+import '../../styles/global.css';
+import Site from '../../layouts/Site.astro';
+import EmployerRow from '../../components/apply/EmployerRow.astro';
+import ElderlyMemberRow from '../../components/apply/ElderlyMemberRow.astro';
+import BenefitRow from '../../components/apply/BenefitRow.astro';
+import FieldError from '../../components/apply/FieldError.astro';
+import { getSettings, listCities, insertApplication } from '../../lib/db';
+import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../lib/csrf';
+import { MAX_MEMBERS, MAX_EMPLOYERS } from '../../lib/validation/application';
+import { validateElderlyApplication } from '../../lib/validation/application-elderly';
+import { centralYear } from '../../lib/dates';
+import { renderApplicationReceivedEmail } from '../../lib/email/render';
+import { sendEmail } from '../../lib/email/send';
+import { allowRequest, D1RateStore } from '../../lib/rate-limit';
+export const prerender = false;
+
+const env = Astro.locals.runtime.env;
+const settings = await getSettings(env.DB);
+const open = settings.applications_open === 1;
+
+let values: Record<string, string> = {};
+let errors: Record<string, string> = {};
+let retryNote = '';
+let rateNote = '';
+
+if (Astro.request.method === 'POST' && open) {
+  const form = await Astro.request.formData();
+  values = Object.fromEntries(
+    [...form.entries()].filter((e): e is [string, string] => typeof e[1] === 'string'),
+  );
+  const action = values.action ?? '';
+
+  if (action === 'add_member' || action === 'add_employer') {
+    // Just grow the form — no validation, nothing lost, nothing saved.
+    const key = action === 'add_member' ? 'member_count' : 'employer_count';
+    const max = action === 'add_member' ? MAX_MEMBERS : MAX_EMPLOYERS;
+    values[key] = String(Math.min((Number(values[key]) || 1) + 1, max));
+  } else if ((values.website ?? '').trim() !== '') {
+    // Honeypot: the ONLY fake-success path (binding note: humans never get one).
+    return Astro.redirect('/apply/thank-you', 303);
+  } else {
+    const okCsrf = await verifyCsrf(
+      env.CSRF_SECRET,
+      Astro.cookies.get('csrf')?.value ?? '',
+      values.csrf_token ?? '',
+    );
+    const result = validateElderlyApplication(values);
+
+    if (!okCsrf) {
+      // Never discard an application over a stale token (binding note).
+      retryNote =
+        'Sorry — this page had been open a while, so we gave it a quick safety refresh. Everything you typed is still here. Please press "Send my application" once more.';
+    } else if (result.ok) {
+      // Only valid submissions consume the rate budget.
+      const ip = Astro.request.headers.get('CF-Connecting-IP') ?? 'unknown';
+      const okRate = await allowRequest(
+        new D1RateStore(env.DB),
+        `apply:${ip}`,
+        // 10/hour per IP (owner decision 2026-07-13): shared library computers
+        // put many applying families behind one address.
+        10,
+        60 * 60_000,
+        Date.now(),
+      );
+      if (!okRate) {
+        // Never silently drop a valid application (binding note): keep their
+        // typing on screen and tell them plainly what to do.
+        rateNote =
+          "We've received quite a few applications from this connection just now, so we've paused it briefly. Nothing you typed is lost — please wait a little while and press \"Send my application\" again, or call us at 608-723-2136 ext 1194.";
+      } else {
+        const submittedAt = new Date().toISOString();
+        const appRecord = {
+          ...result.clean,
+          // Central calendar year, not the server's (UTC) one — same
+          // derivation the paper-entry admin page uses. Without this, an
+          // application submitted Dec 31 evening Central could get stamped
+          // into the wrong (next) season on a server clock that's already
+          // past midnight UTC.
+          seasonYear: centralYear(),
+          submittedAt,
+        };
+        await insertApplication(env.DB, appRecord);
+        // Email failure never blocks a saved application (spec §3). Email is
+        // optional on this form; sendEmail fails quietly if it's blank.
+        await sendEmail(
+          env,
+          result.clean.email,
+          renderApplicationReceivedEmail(result.clean.firstName),
+        );
+        return Astro.redirect('/apply/thank-you', 303);
+      }
+    } else {
+      errors = result.errors;
+    }
+  }
+}
+
+const memberCount = Math.min(Math.max(Number(values.member_count) || 1, 1), MAX_MEMBERS);
+const employerCount = Math.min(Math.max(Number(values.employer_count) || 1, 1), MAX_EMPLOYERS);
+
+const cities = open ? await listCities(env.DB) : [];
+
+// Reuse a well-formed csrf cookie (keeps a second open tab's token valid).
+const existingCsrf = Astro.cookies.get('csrf')?.value ?? '';
+const cookieValue = /^[0-9a-f]{64}$/.test(existingCsrf) ? existingCsrf : newCsrfCookieValue();
+Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: '/', secure: true });
+const csrfToken = await csrfTokenFor(env.CSRF_SECRET, cookieValue);
+
+const input = 'mt-1 w-full rounded border-2 border-stone-400 bg-white p-3';
+const errorEntries = Object.entries(errors);
+---
+<Site title="Apply — Elderly/Disabled Household" description="Apply online for the Grant County Holiday Project's Elderly/Disabled program if you are over 65, or receive Social Security or SSI for a disability. One short form, no account needed — or call the message line or use the paper application. Your information stays private.">
+  {!open ? (
+    <>
+      <h1 class="text-3xl font-bold text-holly-800">Apply for Holiday Help</h1>
+      <p class="mt-4">
+        Applications are closed right now. This year's opening date is posted on the
+        <a href="/" class="font-semibold text-holly-800 underline">front page</a>, and the online
+        application will be right here when they open.
+      </p>
+      <div class="mt-6 rounded border-l-4 border-berry-700 bg-white p-4">
+        <h2 class="text-xl font-bold text-holly-800">You can always reach us these two ways:</h2>
+        <ul class="mt-2 list-disc space-y-2 pl-6">
+          <li>
+            <strong>By phone:</strong> call our message line at <strong>608-723-2136 ext 1194</strong>.
+            Speak slowly and leave your name, address, and whether you are a family or elderly household.
+          </li>
+          <li>
+            <strong>On paper:</strong>
+            <a href="/application.pdf" class="font-semibold text-berry-700 underline">print the paper application</a>
+            and mail it back to the address printed on the form.
+          </li>
+        </ul>
+      </div>
+      <p class="mt-6">Your information is always private. We use it only to prepare your family's gifts.</p>
+    </>
+  ) : (
+    <>
+      <h1 class="text-3xl font-bold text-holly-800">Apply for Holiday Help — Elderly/Disabled Household</h1>
+
+      <p class="mt-4 font-semibold">You will receive your gifts in the mail.</p>
+
+      <p class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4">
+        <strong>Your answers are private.</strong> We use them only to prepare your family's gifts,
+        and we never share your name with donors or sponsors without your permission.
+      </p>
+
+      <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4">
+        <p><strong>Rather not do this online?</strong> That's just fine:</p>
+        <ul class="mt-2 list-disc space-y-1 pl-6">
+          <li>Call our message line at <strong>608-723-2136 ext 1194</strong> and we'll mail you a paper application.</li>
+          <li>Or <a href="/elderly-application.pdf" class="font-semibold text-berry-700 underline">print the paper application</a> and mail it back to the address printed on the form.</li>
+        </ul>
+      </div>
+
+      <p class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4 text-base">
+        Please apply to only one holiday project in Grant County. Applicant names are shared among the
+        county's projects, so applying in more than one place can hold up your gifts.
+      </p>
+
+      {retryNote !== '' && (
+        <div class="mt-4 rounded border-l-4 border-holly-700 bg-white p-4" role="status">
+          <p class="font-semibold">{retryNote}</p>
+        </div>
+      )}
+      {rateNote !== '' && (
+        <div class="mt-4 rounded border-l-4 border-berry-700 bg-white p-4" role="status">
+          <p class="font-semibold">{rateNote}</p>
+        </div>
+      )}
+      {errorEntries.length > 0 && (
+        <div class="mt-4 rounded-lg border-2 border-berry-700 bg-berry-100 p-5" role="alert">
+          <p class="text-xl font-bold text-berry-800">Almost there — please check {errorEntries.length === 1 ? 'this one thing' : `these ${errorEntries.length} things`}:</p>
+          <ul class="mt-2 list-disc pl-6">
+            {errorEntries.map(([field, msg]) => (
+              <li><a href={`#${field}`} class="font-semibold text-berry-800 underline">{msg}</a></li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <form method="post" class="mt-6 space-y-10" novalidate>
+        <input type="hidden" name="csrf_token" value={csrfToken} />
+        <input type="hidden" name="member_count" value={String(memberCount)} />
+        <input type="hidden" name="employer_count" value={String(employerCount)} />
+        <p class="hidden" aria-hidden="true">
+          <label>Leave this box empty: <input type="text" name="website" tabindex="-1" autocomplete="off" /></label>
+        </p>
+
+        <section aria-labelledby="s-about">
+          <h2 id="s-about" class="text-2xl font-bold text-holly-800">About you</h2>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <label for="first_name" class="block font-semibold">First name</label>
+              <input type="text" id="first_name" name="first_name" value={values.first_name ?? ''} autocomplete="given-name"
+                aria-invalid={errors.first_name ? 'true' : undefined} aria-describedby={errors.first_name ? 'first_name-error' : undefined} class={input} />
+              <FieldError id="first_name" errors={errors} />
+            </div>
+            <div>
+              <label for="last_name" class="block font-semibold">Last name</label>
+              <input type="text" id="last_name" name="last_name" value={values.last_name ?? ''} autocomplete="family-name"
+                aria-invalid={errors.last_name ? 'true' : undefined} aria-describedby={errors.last_name ? 'last_name-error' : undefined} class={input} />
+              <FieldError id="last_name" errors={errors} />
+            </div>
+            <div>
+              <label for="address" class="block font-semibold">Street address</label>
+              <input type="text" id="address" name="address" value={values.address ?? ''} autocomplete="street-address"
+                aria-invalid={errors.address ? 'true' : undefined} aria-describedby={errors.address ? 'address-error' : undefined} class={input} />
+              <FieldError id="address" errors={errors} />
+            </div>
+            <div>
+              <label for="city_id" class="block font-semibold">Town</label>
+              <select id="city_id" name="city_id"
+                aria-invalid={errors.city_id ? 'true' : undefined} aria-describedby={errors.city_id ? 'city_id-error' : undefined} class={input}>
+                <option value="">— Pick your town —</option>
+                {cities.map((c) => (
+                  <option value={String(c.id)} selected={(values.city_id ?? '') === String(c.id)}>{c.name}</option>
+                ))}
+              </select>
+              <FieldError id="city_id" errors={errors} />
+            </div>
+            <div>
+              <label for="phone" class="block font-semibold">Phone number</label>
+              <input type="tel" id="phone" name="phone" value={values.phone ?? ''} autocomplete="tel"
+                aria-invalid={errors.phone ? 'true' : undefined} aria-describedby={errors.phone ? 'phone-error' : undefined} class={input} />
+              <FieldError id="phone" errors={errors} />
+            </div>
+            <div>
+              <label for="email" class="block font-semibold">Email address <span class="font-normal">(optional)</span></label>
+              <input type="email" id="email" name="email" value={values.email ?? ''} autocomplete="email"
+                aria-invalid={errors.email ? 'true' : undefined} aria-describedby={errors.email ? 'email-error' : undefined} class={input} />
+              <FieldError id="email" errors={errors} />
+            </div>
+            <div>
+              <label for="email_confirm" class="block font-semibold">Type your email again</label>
+              <input type="email" id="email_confirm" name="email_confirm" value={values.email_confirm ?? ''}
+                aria-invalid={errors.email_confirm ? 'true' : undefined} aria-describedby={errors.email_confirm ? 'email_confirm-error' : undefined} class={input} />
+              <FieldError id="email_confirm" errors={errors} />
+            </div>
+          </div>
+
+          <fieldset class="mt-6" id="household_kind" tabindex="-1">
+            <legend class="font-semibold">Which describes your household?</legend>
+            <div class="mt-2 grid gap-3 sm:grid-cols-2">
+              {[
+                { value: 'elderly', label: 'Someone here is 65 or older' },
+                { value: 'disabled', label: 'Someone here is permanently disabled and receives Social Security or SSI' },
+              ].map((c) => (
+                <label class="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-stone-400 bg-white p-4 font-bold has-[:checked]:border-holly-700 has-[:checked]:bg-holly-100">
+                  <input type="radio" name="household_kind" value={c.value} checked={(values.household_kind ?? '') === c.value}
+                    aria-invalid={errors.household_kind ? 'true' : undefined} aria-describedby={errors.household_kind ? 'household_kind-error' : undefined} class="h-6 w-6" />
+                  {c.label}
+                </label>
+              ))}
+            </div>
+            <FieldError id="household_kind" errors={errors} />
+          </fieldset>
+        </section>
+
+        <section aria-labelledby="s-household">
+          <h2 id="s-household" class="text-2xl font-bold text-holly-800">People in your household</h2>
+          <p class="mt-2">
+            Tell us about everyone who lives with you, starting with yourself as Person 1. Sometimes the
+            household is a couple and both are elderly — if that's you, just add another person below.
+          </p>
+          <div id="member-list">
+            {Array.from({ length: memberCount }, (_, idx) => (
+              <ElderlyMemberRow index={idx + 1} values={values} errors={errors} />
+            ))}
+          </div>
+          <button type="submit" name="action" value="add_member" data-add="member" formnovalidate
+            class="mt-3 rounded-lg border-2 border-holly-700 bg-white px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">
+            + Add another person
+          </button>
+        </section>
+
+        <section aria-labelledby="s-work">
+          <h2 id="s-work" class="text-2xl font-bold text-holly-800">Work and income</h2>
+          <p class="mt-2">Please list all money coming into your home — even small or occasional amounts like babysitting, odd jobs, or in-home care. Listing everything helps us help you faster.</p>
+          <p class="mt-2">Please list every job in your household — we're required to ask. If no one is working right now, just check the box below.</p>
+          <div id="employer-list">
+            {Array.from({ length: employerCount }, (_, idx) => (
+              <EmployerRow index={idx + 1} values={values} errors={errors} />
+            ))}
+          </div>
+          <button type="submit" name="action" value="add_employer" data-add="employer" formnovalidate
+            class="mt-3 rounded-lg border-2 border-holly-700 bg-white px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">
+            + Add another job
+          </button>
+          <label class="mt-4 flex items-start gap-3">
+            <input type="checkbox" id="no_employment" name="no_employment" checked={(values.no_employment ?? '') === 'on'}
+              aria-invalid={errors.no_employment ? 'true' : undefined} aria-describedby={errors.no_employment ? 'no_employment-error' : undefined} class="mt-1 h-6 w-6" />
+            <span>No one in our household is currently employed</span>
+          </label>
+          <FieldError id="no_employment" errors={errors} />
+        </section>
+
+        <section aria-labelledby="s-benefits">
+          <h2 id="s-benefits" class="text-2xl font-bold text-holly-800">Benefits</h2>
+          <p class="mt-2">For each one: enter the amount you receive, or check "we don't receive this." You never have to guess — your award letters have these numbers.</p>
+          <BenefitRow benefitKey="food_share" label="Food Share" period="Monthly" hasFor={false} values={values} errors={errors} />
+          <BenefitRow benefitKey="social_security" label="Social Security" period="Monthly" hasFor={true} values={values} errors={errors} />
+          <BenefitRow benefitKey="ssi" label="SSI" period="Monthly" hasFor={true} values={values} errors={errors} />
+          <BenefitRow benefitKey="child_support" label="Child support" period="Monthly" hasFor={true} values={values} errors={errors} />
+          <BenefitRow benefitKey="unemployment" label="Unemployment" period="Weekly" hasFor={true} values={values} errors={errors} />
+          <BenefitRow benefitKey="other_income" label="Other income" period="Monthly" hasFor={true} values={values} errors={errors} />
+        </section>
+
+        <section aria-labelledby="s-years">
+          <h2 id="s-years" class="text-2xl font-bold text-holly-800">Years of help</h2>
+          <label for="years_received_help" class="mt-2 block font-semibold">
+            How many years have you received help from the Holiday Project?
+            <span class="font-normal">(enter 0 if this is your first year)</span>
+          </label>
+          <input type="text" inputmode="numeric" id="years_received_help" name="years_received_help" value={values.years_received_help ?? ''}
+            aria-invalid={errors.years_received_help ? 'true' : undefined} aria-describedby={errors.years_received_help ? 'years_received_help-error' : undefined}
+            class="mt-1 w-24 rounded border-2 border-stone-400 bg-white p-3" />
+          <FieldError id="years_received_help" errors={errors} />
+        </section>
+
+        <section aria-labelledby="s-deed">
+          <h2 id="s-deed" class="text-2xl font-bold text-holly-800">Pay it forward</h2>
+          <p class="mt-2">
+            The Holiday Project runs on kindness, and everyone has some to give. To receive gifts,
+            we ask you to share one act of kindness you've done in your community — things like
+            shoveling a neighbor's snow, giving someone a ride, or visiting someone who's lonely.
+            (Helping your own family, or work you're paid for, doesn't count for this — the idea
+            is to reach someone new.)
+          </p>
+          <label for="good_deed" class="mt-3 block font-semibold">Tell us about one good deed you've done</label>
+          <textarea id="good_deed" name="good_deed" rows="4"
+            aria-invalid={errors.good_deed ? 'true' : undefined} aria-describedby={errors.good_deed ? 'good_deed-error' : undefined}
+            class={input}>{values.good_deed ?? ''}</textarea>
+          <FieldError id="good_deed" errors={errors} />
+        </section>
+
+        <button type="submit"
+          class="w-full rounded-lg bg-holly-700 px-6 py-4 text-xl font-bold text-white hover:bg-holly-900 sm:w-auto">
+          Send my application
+        </button>
+
+        <template id="member-template">
+          <ElderlyMemberRow index="__N__" values={{}} errors={{}} />
+        </template>
+        <template id="employer-template">
+          <EmployerRow index="__N__" values={{}} errors={{}} />
+        </template>
+      </form>
+      <script src="/scripts/apply.js" defer></script>
+    </>
+  )}
+</Site>
