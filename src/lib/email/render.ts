@@ -146,6 +146,30 @@ and phone number.`;
   return { subject, html, text };
 }
 
+// Owner-approved body, verbatim (spec 2026-07-29-elderly-application-design.md,
+// "What happens after" — Sherlyn's request doc's exact wording for the
+// Elderly/Disabled program's approval; family households keep renderApprovedEmail).
+export function renderElderlyApprovedEmail(firstName: string): RenderedEmail {
+  const subject = 'Your Holiday Project Elderly/Disabled application was approved';
+  const text = `Hello ${firstName},
+
+You have been found eligible for the Grant County Holiday Project Elderly/Disabled program. Your gifts are a Christmas card containing a food and a gift card. You should receive the card the second week in December.
+
+Questions? Call our message line at 608-723-2136 ext 1194 and leave your name
+and phone number.`;
+  const html = emailShell(
+    'Your application was approved',
+    `<p>Hello ${escapeHtml(firstName)},</p>
+     <p>You have been found eligible for the Grant County Holiday Project
+        <strong>Elderly/Disabled program</strong>. Your gifts are a Christmas
+        card containing a food and a gift card. You should receive the card
+        the second week in December.</p>
+     <p>Questions? Call our message line at <strong>608-723-2136 ext 1194</strong>
+        and leave your name and phone number.</p>`,
+  );
+  return { subject, html, text };
+}
+
 export function renderDeniedEmail(firstName: string): RenderedEmail {
   const subject = 'An update on your Holiday Project application';
   const text = `Hello ${firstName},

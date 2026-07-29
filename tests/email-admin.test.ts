@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { renderSignInEmail, renderApprovedEmail, renderDeniedEmail, renderAdoptedEmail } from '../src/lib/email/render';
+import {
+  renderSignInEmail, renderApprovedEmail, renderDeniedEmail, renderAdoptedEmail,
+  renderElderlyApprovedEmail,
+} from '../src/lib/email/render';
 
 describe('renderSignInEmail', () => {
   it('has a PII-free subject and includes the link and expiry', () => {
@@ -45,5 +48,21 @@ describe('renderAdoptedEmail', () => {
     expect(r.html).toContain('December 10th');
     expect(r.html).toContain('kept confidential');
     expect(r.text).toContain('608-723-2136 ext 1194');
+  });
+});
+
+describe('renderElderlyApprovedEmail', () => {
+  it('has the spec body verbatim, PII-free subject, escaped name, and the phone number', () => {
+    const r = renderElderlyApprovedEmail('<Sue>');
+    expect(r.subject).not.toContain('Sue');
+    expect(r.subject).not.toContain('!');
+    expect(r.html).toContain('&lt;Sue&gt;');
+    // Spec "What happens after", verbatim:
+    expect(r.text).toContain(
+      'You have been found eligible for the Grant County Holiday Project Elderly/Disabled program. Your gifts are a Christmas card containing a food and a gift card. You should receive the card the second week in December.',
+    );
+    expect(r.html).toContain('Elderly/Disabled program');
+    expect(r.text).toContain('608-723-2136 ext 1194');
+    expect(r.html).toContain('608-723-2136 ext 1194');
   });
 });
