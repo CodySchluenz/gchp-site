@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { insertApplication, listApplications, listSeasons, type NewApplication } from '../src/lib/db';
+import { insertApplication, insertMember, softDeleteMember, listApplications, listSeasons, type NewApplication } from '../src/lib/db';
 
 function makeApp(over: Partial<NewApplication>): NewApplication {
   return {
@@ -55,5 +55,53 @@ describe('listApplications / listSeasons', () => {
 
   it('lists distinct seasons descending, ignoring deleted-only rows', async () => {
     expect(await listSeasons(db)).toEqual([2026, 2025]);
+  });
+});
+
+// The grandfather finder (spec §"The grandfather finder"): a quiet flag on
+// family-typed rows only, so she can spot a family household that might
+// really be an elderly/disabled one and split it by hand.
+describe('has_elderly_member flag', () => {
+  const oldster = { name: 'Grandma Elder', relationship: 'other', sex: 'F', age: 65, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' };
+
+  it('flags a family household with a 65-year-old member', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, makeApp({ firstName: 'Fam', lastName: 'Elder' }));
+      await insertMember(db, id, oldster);
+      const rows = await listApplications(db, 2026, 'all', '');
+      expect(rows.find((r) => r.id === id)!.has_elderly_member).toBe(1);
+    } finally { await dispose(); }
+  });
+
+  it('does not flag a family household whose oldest member is 64', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, makeApp({ firstName: 'Fam', lastName: 'Young' }));
+      await insertMember(db, id, { ...oldster, name: 'Not Quite', age: 64 });
+      const rows = await listApplications(db, 2026, 'all', '');
+      expect(rows.find((r) => r.id === id)!.has_elderly_member).toBe(0);
+    } finally { await dispose(); }
+  });
+
+  it('does not flag when the only 65+ member was soft-deleted', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, makeApp({ firstName: 'Fam', lastName: 'Removed' }));
+      const memberId = await insertMember(db, id, oldster);
+      await softDeleteMember(db, memberId, id, '2026-11-01T00:00:00Z');
+      const rows = await listApplications(db, 2026, 'all', '');
+      expect(rows.find((r) => r.id === id)!.has_elderly_member).toBe(0);
+    } finally { await dispose(); }
+  });
+
+  it('does not flag a non-family (elderly-typed) household even with a 70-year-old member', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, makeApp({ firstName: 'Eld', lastName: 'Erly', householdType: 'elderly' }));
+      await insertMember(db, id, { ...oldster, name: 'Grandpa Erly', age: 70 });
+      const rows = await listApplications(db, 2026, 'all', '');
+      expect(rows.find((r) => r.id === id)!.has_elderly_member).toBe(0);
+    } finally { await dispose(); }
   });
 });

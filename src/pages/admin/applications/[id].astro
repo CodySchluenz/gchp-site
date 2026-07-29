@@ -6,7 +6,7 @@ import {
   setAdoption, clearAdoption, type AdoptionFields,
   addHistory, historyStatements, listHistory, listPossibleDuplicates,
 } from '../../../lib/db';
-import { renderApprovedEmail, renderDeniedEmail, renderAdoptedEmail } from '../../../lib/email/render';
+import { renderApprovedEmail, renderElderlyApprovedEmail, renderDeniedEmail, renderAdoptedEmail } from '../../../lib/email/render';
 import { sendEmail } from '../../../lib/email/send';
 import { newCsrfCookieValue, csrfTokenFor, verifyCsrf } from '../../../lib/csrf';
 import { relationshipLabel, NON_FAMILY_RELATIONSHIPS } from '../../../lib/relationships';
@@ -31,12 +31,17 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
     const season = detail.app.season_year as number;
     const firstName = detail.app.first_name as string;
     const email = detail.app.email as string;
+    const householdType = detail.app.household_type as string;
     if (act === 'approve_email' || act === 'approve_silent') {
       const assigned = await assignPuNumber(env.DB, id, season);
       await setApplicationStatus(env.DB, id, 'approved');
       const puFlag = assigned === null ? '&pu=none' : '';
       if (act === 'approve_email') {
-        const r = await sendEmail(env, email, renderApprovedEmail(firstName));
+        // Elderly/disabled households get the mailed-card wording (spec
+        // "What happens after") — their gifts, not a pickup slip, are coming.
+        const approvedEmail = householdType === 'elderly' || householdType === 'disabled'
+          ? renderElderlyApprovedEmail(firstName) : renderApprovedEmail(firstName);
+        const r = await sendEmail(env, email, approvedEmail);
         await addHistory(env.DB, id, actor, 'decision', describeDecision('approved', assigned, r.sent ? 'sent' : 'failed'), now);
         return Astro.redirect(`${detailUrl}?done=approved&mail=${r.sent ? 'ok' : 'fail'}${puFlag}`, 303);
       }
@@ -167,6 +172,16 @@ const a = detail?.app ?? {};
 const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' ? 'Denied' : 'To review';
 const history = detail ? await listHistory(env.DB, id) : [];
 const hasOriginal = typeof a.original_json === 'string' && a.original_json !== '';
+// The grandfather finder (spec §"The grandfather finder"): a family
+// household may really be an elderly/disabled one — surface the oldest
+// 65+ member so she can decide whether to split it by hand. Non-family
+// households already get their own program; nothing to find there.
+const elderlyMembers = detail && a.household_type === 'family'
+  ? detail.members.filter((m) => Number(m.age) >= 65)
+  : [];
+const oldestElderlyMember = elderlyMembers.length > 0
+  ? elderlyMembers.reduce((oldest, m) => (Number(m.age) > Number(oldest.age) ? m : oldest))
+  : null;
 ---
 <Admin title="Application" heading={detail ? `${a.first_name} ${a.last_name}` : 'Application not found'} back={{ href: '/admin/applications', label: 'Back to applications' }}>
   {!detail ? (
@@ -270,6 +285,16 @@ const hasOriginal = typeof a.original_json === 'string' && a.original_json !== '
               <a href={`/admin/applications/${d.id}`} class="ml-2 font-semibold text-berry-700 underline">See #{d.id}</a>
             </p>
           ))}
+        </section>
+      )}
+
+      {oldestElderlyMember && (
+        <section class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="note">
+          <p class="text-lg">
+            This family household includes <strong>{oldestElderlyMember.name}</strong>, age {String(oldestElderlyMember.age)}.
+            If they should receive their own Elderly/Disabled Christmas card instead, remove them under Edit people and
+            enter a separate application for them.
+          </p>
         </section>
       )}
 
