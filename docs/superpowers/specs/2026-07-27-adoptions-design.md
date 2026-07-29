@@ -105,3 +105,14 @@ Mailed 3-up family pickup slips (still parked); adopter accounts/portal
 (never — Sherlyn is the only user); auto-matching families to adopters;
 changing the approval email's pickup-slip sentence (the adoption email
 corrects it, per her design).
+
+## Addendum (2026-07-28): "Adopted" option in the Show-town dropdown
+
+Owner request: filter the applications list for adopted families. The Show town
+dropdown gains **Adopted** (after Stragglers): season's adopted families in
+pickup-number order, flowing through everything that follows the view — the
+Excel downloads and Print this list. The packing-slips page treats the Adopted
+view like the Mailed view: a plain note ("Adopted households don't get packing
+slips — the adopting organization or family provides their gifts."), since
+adopted families are excluded from slips by design. Same `?N = 0 OR` bind
+pattern as the mailed/straggler filters in both list and export queries.
