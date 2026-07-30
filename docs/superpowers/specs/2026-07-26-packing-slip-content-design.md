@@ -70,6 +70,15 @@ three-per-page preference (her expanded content made slips taller anyway).
   handwriting. Nothing stored, nothing printed from admin notes (those remain
   private and off-slip); it is blank paper space, by design.
 
+## Addendum 4 (2026-07-30): gifts come OFF the slip
+
+Sherlyn, testing the live slips: "The pickup slips show gifts Please take
+that off, we may not have what they ask for so we do replacements." The
+"Gifts wanted" column is removed from SlipCard (six columns now); `gifts`
+joins the slip-privacy FORBIDDEN list. The doll column STAYS — she stocks
+the two doll choices, so it is not an "ask." Gifts remain visible on the
+admin application page (she shops replacements from there).
+
 ## Addendum 3 (2026-07-26): the typed Packing note (built alone; pickup slips still held)
 
 Sherlyn: "Is it possible that I could type the notes in before I print? They

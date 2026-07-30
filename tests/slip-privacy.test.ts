@@ -10,10 +10,14 @@ import { readFileSync } from 'node:fs';
 // deliberately volunteer-visible (typed by Sherlyn, labeled "Note for packers").
 // It is NOT admin_notes and does not collide with any token below — the
 // FORBIDDEN list itself is unchanged by this addendum.
+// 2026-07-30 (Sherlyn): gifts come OFF the slip — "we may not have what they
+// ask for so we do replacements." The doll column stays (she stocks the two
+// choices). 'gifts' matches both m.gifts and the "Gifts wanted" header.
 const FORBIDDEN = [
   'bags_count', 'good_deed', 'admin_notes', 'parentage_note',
   'food_share', 'social_security', 'ssi_amount',
   'child_support', 'unemployment', 'other_income', 'original_json',
+  'gifts',
 ];
 
 describe('packing slip privacy', () => {
