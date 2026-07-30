@@ -137,3 +137,33 @@ Screens build-verified per house pattern.
 Auto-splitting members across applications; conditional single-page form
 (forbidden JS-free); Spanish (still a September ask-her); mailed 3-up family
 pickup slips (still parked); any change to family-form content.
+
+## Addendum (2026-07-30): Sherlyn's review feedback
+
+Sherlyn, reviewing the live form: "There is no place to put added persons
+income to show they are receiving ssa or SSI. There may be wife and disabled
+son living with them that verifies their eligibility."
+
+The place EXISTS — the Benefits section mirrors her paper form exactly
+(Social Security / SSI amount + "Who receives it?", which is where a wife's
+and a disabled son's benefits go). But the form's designer couldn't find it,
+so applicants won't either. Fix is presentation, not data:
+
+- People-in-your-household intro gains: "Each person's income, like Social
+  Security or SSI, has its own place in the Benefits section further down."
+- Benefits intro now says the questions cover everyone listed above, and
+  spells out: total amount for the household + each receiving person's name
+  under "Who receives it?" — "that's how we know who receives Social
+  Security or SSI."
+
+No schema, validator, or family-form changes.
+
+Also in this round — blank-email decision buttons: email is optional on the
+elderly form (and paper entry), so a blank address is now normal. The
+Decision section's "Approve and email them" / "Deny and email them" buttons
+hide when the application has no email (mirroring the Adoption section's
+existing gate), a plain note explains why, "Approve without email" takes the
+primary style so the screen keeps one obvious action, and the POST handler
+treats an emailed decision with a blank address as a silent one (stale-tab
+guard). Her question "where do I find the approval letter and Christmas card
+email" is answered in the docs: guide + manual now quote the emails verbatim.

@@ -348,10 +348,33 @@
           household's block; the page then shows "Approved on {date, time}." The approval email
           matches the household: family households get the pickup-slip email; Elderly/Disabled
           households get the Christmas-card email ("a Christmas card containing a food and a gift
-          card... the second week in December"). Below: the
+          card... the second week in December"). If the application has <strong>no email
+          address</strong> (email is optional on the Elderly/Disabled form and on paper entry), the
+          two "email them" buttons don't appear — a note explains there's nothing to email, and
+          <span class="btn">Approve without email</span> takes the green style. Mail the household a
+          note instead if they should be told; the email wording below is ready to copy. Below: the
           <strong>Pickup number</strong> box (change or clear any number by hand) and the
           <strong>Straggler</strong> checkbox (late after their town packed → 2400s, gifts near the
           end).</li>
+        <li><strong>What the decision emails say, word for word</strong> (each begins "Hello
+          {first name}," and ends with the message line, 608-723-2136 ext 1194; the wording lives in
+          <code>src/lib/email/render.ts</code>):
+          <ul>
+            <li><em>Family approved</em> — subject "Your Holiday Project application was approved":
+              "Good news - your Grant County Holiday Project application has been approved. Watch
+              your mail and email for your pickup slip, which will have your pickup date in
+              December. Please bring your pickup slip with you."</li>
+            <li><em>Elderly/Disabled approved</em> — subject "Your Holiday Project Elderly/Disabled
+              application was approved": "You have been found eligible for the Grant County Holiday
+              Project Elderly/Disabled program. Your gifts are a Christmas card containing a food
+              and a gift card. You should receive the card the second week in December."</li>
+            <li><em>Denied</em> — subject "An update on your Holiday Project application": "Thank
+              you for applying to the Grant County Holiday Project. After review, we are not able
+              to approve your application this season. We know this is hard to hear. If you have
+              questions, or think there may have been a mistake, please call our message line...
+              we are glad to talk with you."</li>
+          </ul>
+        </li>
         <li><strong>Adoption (approved applications only):</strong> when the family answered Yes to
           sharing with a sponsor, mark them adopted — who adopted them (required), contact person,
           phone, mailing address — with <span class="btn">Mark adopted and email them</span> /

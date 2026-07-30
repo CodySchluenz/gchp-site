@@ -267,6 +267,8 @@ const errorEntries = Object.entries(errors);
           <p class="mt-2">
             Tell us about everyone who lives with you, starting with yourself as Person 1. Sometimes the
             household is a couple and both are elderly — if that's you, just add another person below.
+            Each person's income, like Social Security or SSI, has its own place in the Benefits
+            section further down.
           </p>
           <div id="member-list">
             {Array.from({ length: memberCount }, (_, idx) => (
@@ -302,7 +304,8 @@ const errorEntries = Object.entries(errors);
 
         <section aria-labelledby="s-benefits">
           <h2 id="s-benefits" class="text-2xl font-bold text-holly-800">Benefits</h2>
-          <p class="mt-2">For each one: enter the amount you receive, or check "we don't receive this." You never have to guess — your award letters have these numbers.</p>
+          <p class="mt-2">These questions cover everyone in your household — you and each person you listed above.</p>
+          <p class="mt-2">For each one: enter the total amount your household receives, and under "Who receives it?" write the name of each person it comes for — that's how we know who receives Social Security or SSI. If nobody here receives it, check "we don't receive this." You never have to guess — your award letters have these numbers.</p>
           <BenefitRow benefitKey="food_share" label="Food Share" period="Monthly" hasFor={false} values={values} errors={errors} />
           <BenefitRow benefitKey="social_security" label="Social Security" period="Monthly" hasFor={true} values={values} errors={errors} />
           <BenefitRow benefitKey="ssi" label="SSI" period="Monthly" hasFor={true} values={values} errors={errors} />

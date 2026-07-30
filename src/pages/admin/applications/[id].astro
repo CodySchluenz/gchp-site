@@ -36,7 +36,10 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
       const assigned = await assignPuNumber(env.DB, id, season);
       await setApplicationStatus(env.DB, id, 'approved');
       const puFlag = assigned === null ? '&pu=none' : '';
-      if (act === 'approve_email') {
+      // Email is optional on the elderly form (and on paper entry), so a
+      // blank address is normal — with nothing to send, an emailed decision
+      // quietly becomes a silent one (stale-tab guard; the button is hidden).
+      if (act === 'approve_email' && email.trim() !== '') {
         // Elderly/disabled households get the mailed-card wording (spec
         // "What happens after") — their gifts, not a pickup slip, are coming.
         const approvedEmail = householdType === 'elderly' || householdType === 'disabled'
@@ -49,7 +52,7 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
       return Astro.redirect(`${detailUrl}?done=approved${puFlag}`, 303);
     } else if (act === 'deny_email' || act === 'deny_silent') {
       await setApplicationStatus(env.DB, id, 'denied');
-      if (act === 'deny_email') {
+      if (act === 'deny_email' && email.trim() !== '') {
         const r = await sendEmail(env, email, renderDeniedEmail(firstName));
         await addHistory(env.DB, id, actor, 'decision', describeDecision('denied', undefined, r.sent ? 'sent' : 'failed'), now);
         return Astro.redirect(`${detailUrl}?done=denied&mail=${r.sent ? 'ok' : 'fail'}`, 303);
@@ -172,6 +175,10 @@ const a = detail?.app ?? {};
 const statusWord = a.status === 'approved' ? 'Approved' : a.status === 'denied' ? 'Denied' : 'To review';
 const history = detail ? await listHistory(env.DB, id) : [];
 const hasOriginal = typeof a.original_json === 'string' && a.original_json !== '';
+// Elderly applicants may give no email (it's optional on that form; paper
+// entry too) — with nothing to send, the "email them" decision buttons hide,
+// the same way the Adoption section's email button does.
+const hasEmail = typeof a.email === 'string' && a.email.trim() !== '';
 // The grandfather finder (spec §"The grandfather finder"): a family
 // household may really be an elderly/disabled one — surface the oldest
 // 65+ member so she can decide whether to split it by hand. Non-family
@@ -306,11 +313,20 @@ const oldestElderlyMember = elderlyMembers.length > 0
             {a.status === 'approved' ? 'Approved' : 'Denied'} on {centralDateTime(String(a.decided_at))}
           </p>
         )}
+        {!hasEmail && (
+          <p class="mt-2 text-lg text-stone-600">This applicant didn't give an email address, so there's nothing to email — you can mail them a note instead.</p>
+        )}
         <form method="post" class="mt-3 flex flex-wrap gap-3">
           <input type="hidden" name="csrf_token" value={csrfToken} />
-          <button type="submit" name="act" value="approve_email" class="rounded bg-holly-700 px-4 py-3 font-bold text-white hover:bg-holly-900">Approve and email them</button>
-          <button type="submit" name="act" value="approve_silent" class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Approve without email</button>
-          <button type="submit" name="act" value="deny_email" class="rounded border-2 border-berry-700 px-4 py-3 font-bold text-berry-800 hover:bg-berry-100">Deny and email them</button>
+          {hasEmail && (
+            <button type="submit" name="act" value="approve_email" class="rounded bg-holly-700 px-4 py-3 font-bold text-white hover:bg-holly-900">Approve and email them</button>
+          )}
+          <button type="submit" name="act" value="approve_silent" class={hasEmail
+            ? 'rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100'
+            : 'rounded bg-holly-700 px-4 py-3 font-bold text-white hover:bg-holly-900'}>Approve without email</button>
+          {hasEmail && (
+            <button type="submit" name="act" value="deny_email" class="rounded border-2 border-berry-700 px-4 py-3 font-bold text-berry-800 hover:bg-berry-100">Deny and email them</button>
+          )}
           <button type="submit" name="act" value="deny_silent" class="rounded border-2 border-stone-400 px-4 py-3 font-semibold hover:bg-stone-100">Deny without email</button>
         </form>
         <div class="mt-4 border-t-2 border-stone-200 pt-4">
