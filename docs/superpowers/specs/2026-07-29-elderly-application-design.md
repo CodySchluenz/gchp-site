@@ -161,6 +161,28 @@ No schema or validator changes. (Follow-up, same day, on the owner's
 covers-everyone clause — worded without "listed above", since that form's
 Benefits section comes before its household section.)
 
+## Addendum 2 (2026-07-30): children-first sorting + the disabled finder
+
+Sherlyn, on seeing the test data: "if father is disabled and has children
+under 18 he gets regular gifts from site not cards", and she would rather
+split a childless disabled member onto their own application — "You have
+notice in there that there is disabled person" (there wasn't; there is now).
+
+- `suggestHouseholdType` now returns **'family' whenever any member is under
+  18**, before the disabled/elderly checks. A disabled parent (or disabled
+  child) in a home with children no longer drags the household into the
+  mailed cards group. Disabled still wins over elderly for childless homes.
+- **The disabled finder**, sibling of the grandfather finder, family-typed
+  households only: `has_disabled_member` list flag → gold badge "Disabled
+  person in household"; detail-page note above the decision buttons naming
+  the member(s), with the split steps AND the reminder that a disabled
+  parent with children stays on the family application.
+- Nothing automatic, as always: the type stays her radio in Edit details;
+  the finder only points.
+- Test fixture 273 (Testedge) was left in the mailed group as arrived (old
+  rule) with its scenario text updated — it doubles as her practice at the
+  Edit-details type correction.
+
 Also in this round — blank-email decision buttons: email is optional on the
 elderly form (and paper entry), so a blank address is now normal. The
 Decision section's "Approve and email them" / "Deny and email them" buttons

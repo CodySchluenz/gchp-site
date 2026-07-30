@@ -181,6 +181,7 @@ export type ApplicationListRow = {
   household_type: string;
   adopted: number;
   has_elderly_member: number;
+  has_disabled_member: number;
 };
 
 // Escape LIKE metacharacters so operator-typed % or _ match literally.
@@ -201,7 +202,11 @@ export async function listApplications(
                 CASE WHEN a.household_type = 'family' AND EXISTS (
                   SELECT 1 FROM household_members m2
                   WHERE m2.application_id = a.id AND m2.deleted_at IS NULL AND m2.age >= 65
-                ) THEN 1 ELSE 0 END AS has_elderly_member`;
+                ) THEN 1 ELSE 0 END AS has_elderly_member,
+                CASE WHEN a.household_type = 'family' AND EXISTS (
+                  SELECT 1 FROM household_members m3
+                  WHERE m3.application_id = a.id AND m3.deleted_at IS NULL AND m3.disabled = 1
+                ) THEN 1 ELSE 0 END AS has_disabled_member`;
   const order = town !== null
     ? 'ORDER BY a.pu_number IS NULL, a.pu_number, a.id'
     : 'ORDER BY a.submitted_at DESC, a.id DESC';

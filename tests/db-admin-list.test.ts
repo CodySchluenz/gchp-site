@@ -105,3 +105,52 @@ describe('has_elderly_member flag', () => {
     } finally { await dispose(); }
   });
 });
+
+// The disabled finder (Sherlyn 2026-07-30, sibling of the grandfather finder):
+// a family household containing a permanently disabled member gets a quiet
+// flag so she can split the person onto their own card application by hand —
+// while a disabled parent with children under 18 stays a family household.
+describe('has_disabled_member flag', () => {
+  const disabledAdult = { name: 'Uncle Dee', relationship: 'other', sex: 'M', age: 45, disabled: true, pants: '', shirtTop: '', underwear: '', socks: '', diapers: '', gifts: '' };
+
+  it('flags a family household with a disabled member', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, makeApp({ firstName: 'Fam', lastName: 'Dis' }));
+      await insertMember(db, id, disabledAdult);
+      const rows = await listApplications(db, 2026, 'all', '');
+      expect(rows.find((r) => r.id === id)!.has_disabled_member).toBe(1);
+    } finally { await dispose(); }
+  });
+
+  it('does not flag when no member is disabled', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, makeApp({ firstName: 'Fam', lastName: 'Abled' }));
+      await insertMember(db, id, { ...disabledAdult, name: 'Well Adult', disabled: false });
+      const rows = await listApplications(db, 2026, 'all', '');
+      expect(rows.find((r) => r.id === id)!.has_disabled_member).toBe(0);
+    } finally { await dispose(); }
+  });
+
+  it('does not flag when the only disabled member was soft-deleted', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, makeApp({ firstName: 'Fam', lastName: 'DisGone' }));
+      const memberId = await insertMember(db, id, disabledAdult);
+      await softDeleteMember(db, memberId, id, '2026-11-01T00:00:00Z');
+      const rows = await listApplications(db, 2026, 'all', '');
+      expect(rows.find((r) => r.id === id)!.has_disabled_member).toBe(0);
+    } finally { await dispose(); }
+  });
+
+  it('does not flag a disabled-typed household (they already have their program)', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const id = await insertApplication(db, makeApp({ firstName: 'Dis', lastName: 'Abled', householdType: 'disabled' }));
+      await insertMember(db, id, disabledAdult);
+      const rows = await listApplications(db, 2026, 'all', '');
+      expect(rows.find((r) => r.id === id)!.has_disabled_member).toBe(0);
+    } finally { await dispose(); }
+  });
+});

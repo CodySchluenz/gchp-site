@@ -189,6 +189,14 @@ const elderlyMembers = detail && a.household_type === 'family'
 const oldestElderlyMember = elderlyMembers.length > 0
   ? elderlyMembers.reduce((oldest, m) => (Number(m.age) > Number(oldest.age) ? m : oldest))
   : null;
+// The disabled finder (Sherlyn 2026-07-30): sibling of the grandfather
+// finder. A disabled member WITHOUT children stays a candidate for their own
+// card application; a disabled parent with children under 18 stays family
+// ("he gets regular gifts from site not cards").
+const disabledMembers = detail && a.household_type === 'family'
+  ? detail.members.filter((m) => Number(m.disabled) === 1)
+  : [];
+const disabledMemberNames = disabledMembers.map((m) => String(m.name)).join(' and ');
 ---
 <Admin title="Application" heading={detail ? `${a.first_name} ${a.last_name}` : 'Application not found'} back={{ href: '/admin/applications', label: 'Back to applications' }}>
   {!detail ? (
@@ -301,6 +309,17 @@ const oldestElderlyMember = elderlyMembers.length > 0
             This family household includes <strong>{oldestElderlyMember.name}</strong>, age {String(oldestElderlyMember.age)}.
             If they should receive their own Elderly/Disabled Christmas card instead, remove them under Edit household members and
             enter a separate application for them.
+          </p>
+        </section>
+      )}
+
+      {disabledMembers.length > 0 && (
+        <section class="mt-4 rounded border-l-4 border-gold-500 bg-white p-4" role="note">
+          <p class="text-lg">
+            This family household includes <strong>{disabledMemberNames}</strong>, listed as permanently disabled.
+            If they should receive their own Elderly/Disabled Christmas card instead, remove them under Edit household members and
+            enter a separate application for them. A disabled parent with children under 18 stays right here — the family
+            application covers their gifts too.
           </p>
         </section>
       )}
