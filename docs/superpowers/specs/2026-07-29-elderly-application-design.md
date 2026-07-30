@@ -156,7 +156,10 @@ so applicants won't either. Fix is presentation, not data:
   under "Who receives it?" — "that's how we know who receives Social
   Security or SSI."
 
-No schema, validator, or family-form changes.
+No schema or validator changes. (Follow-up, same day, on the owner's
+"does the family form need this too?": its Benefits intro gained the same
+covers-everyone clause — worded without "listed above", since that form's
+Benefits section comes before its household section.)
 
 Also in this round — blank-email decision buttons: email is optional on the
 elderly form (and paper entry), so a blank address is now normal. The
