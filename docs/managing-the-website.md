@@ -20,7 +20,7 @@ keep the two copies in sync); deployment step-by-step is the
 | Search data | Google Search Console (your Google account) | Domain verified 2026-07-25; sitemap submitted. |
 | Secrets | Cloudflare Pages → gchp-site → Settings → Variables | `CSRF_SECRET`, `RESEND_API_KEY`. Never in the repo. |
 
-Everything runs on free tiers. Expected cost: **~$0/month + the domain (~$10/year)**.
+Everything runs on free tiers. Expected cost: **~$0/month + the domain ($8.95/year)**.
 
 ## 2. Shipping a change
 
