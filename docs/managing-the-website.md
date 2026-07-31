@@ -21,6 +21,8 @@ keep the two copies in sync); deployment step-by-step is the
 | Secrets | Cloudflare Pages → gchp-site → Settings → Variables | `CSRF_SECRET`, `RESEND_API_KEY`. Never in the repo. |
 
 Everything runs on free tiers. Expected cost: **~$0/month + the domain ($8.95/year)**.
+Billing info on both Cloudflare and Resend is Sherlyn's (set 2026-07-31); the account
+logins remain yours.
 
 ## 2. Shipping a change
 
