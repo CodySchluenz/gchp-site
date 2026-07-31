@@ -1,7 +1,7 @@
 ---
 import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
-import { listApplications, listSeasons, latestSeason, listCities, countBlockUsage, thanksgivingCount, THANKSGIVING_CARD_TOTAL, type ApplicationListRow } from '../../../lib/db';
+import { listApplications, listSeasons, latestSeason, listCities, countBlockUsage, thanksgivingCount, THANKSGIVING_CARD_TOTAL, listRemovedApplications, type ApplicationListRow } from '../../../lib/db';
 import { findDuplicateIds } from '../../../lib/duplicates';
 import { newCsrfCookieValue, csrfTokenFor } from '../../../lib/csrf';
 import { NEAR_FULL_AT, BLOCK_SIZE } from '../../../lib/pickup-numbers';
@@ -32,6 +32,10 @@ Astro.cookies.set('csrf', cookieValue, { httpOnly: true, sameSite: 'lax', path: 
 const csrfToken = await csrfTokenFor(Astro.locals.runtime.env.CSRF_SECRET, cookieValue);
 
 const rows = await listApplications(db, season, status, search, town);
+// Deletes are soft, but the Undo banner used to be the only door back — gone
+// the moment she left the page (owner 2026-07-30). This season-wide list
+// keeps every removed application one "Put it back" away. Hidden when empty.
+const removed = await listRemovedApplications(db, season);
 const dupIds = findDuplicateIds(rows);
 const seasons = await listSeasons(db);
 const tgCount = await thanksgivingCount(db, season);
@@ -178,6 +182,40 @@ const exportHref = `/admin/applications/export.xlsx?season=${season}&status=${st
       ))}
     </tbody>
   </table>
+
+  {removed.length > 0 && (
+    <section class="mt-10 rounded-lg border-2 border-stone-300 bg-white p-5 print:hidden">
+      <h2 class="text-2xl font-bold text-holly-800">Removed applications</h2>
+      <p class="mt-1 text-lg text-stone-600">
+        These were removed with the Delete button. Nothing is ever lost — press "Put it back" to restore one.
+      </p>
+      <table class="mt-3 w-full border-collapse text-lg">
+        <thead>
+          <tr>
+            <th scope="col" class="border-b-2 border-stone-300 p-3 text-left">Name</th>
+            <th scope="col" class="border-b-2 border-stone-300 p-3 text-left">Town</th>
+            <th scope="col" class="border-b-2 border-stone-300 p-3 text-left">Removed on</th>
+            <th scope="col" class="border-b-2 border-stone-300 p-3 text-left"><span class="sr-only">Restore</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {removed.map((r) => (
+            <tr>
+              <td class="border-b border-stone-200 p-3 font-semibold">{r.last_name}, {r.first_name}</td>
+              <td class="border-b border-stone-200 p-3">{r.city_name}</td>
+              <td class="border-b border-stone-200 p-3 whitespace-nowrap">{centralDate(r.deleted_at)}</td>
+              <td class="border-b border-stone-200 p-3">
+                <form method="post" action={`/admin/applications/${r.id}/restore`}>
+                  <input type="hidden" name="csrf_token" value={csrfToken} />
+                  <button type="submit" class="rounded border-2 border-holly-700 bg-white px-4 py-2 font-bold text-holly-800 hover:bg-holly-100">Put it back</button>
+                </form>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  )}
 
   <script src="/scripts/print-button.js" defer></script>
 </Admin>

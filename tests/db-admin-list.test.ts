@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { getTestDb } from './helpers/d1';
-import { insertApplication, insertMember, softDeleteMember, listApplications, listSeasons, type NewApplication } from '../src/lib/db';
+import { insertApplication, insertMember, softDeleteMember, listApplications, listSeasons, softDeleteApplication, restoreApplication, listRemovedApplications, type NewApplication } from '../src/lib/db';
 
 function makeApp(over: Partial<NewApplication>): NewApplication {
   return {
@@ -151,6 +151,45 @@ describe('has_disabled_member flag', () => {
       await insertMember(db, id, disabledAdult);
       const rows = await listApplications(db, 2026, 'all', '');
       expect(rows.find((r) => r.id === id)!.has_disabled_member).toBe(0);
+    } finally { await dispose(); }
+  });
+});
+
+// The removed-applications list (owner 2026-07-30): deletes were always soft,
+// but the Undo banner was the only door back — gone once she left the page.
+// This season-scoped list keeps every removed application reachable.
+describe('listRemovedApplications', () => {
+  it('lists a removed application, newest removal first, and restoring empties it', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const keepId = await insertApplication(db, makeApp({ firstName: 'Kept', lastName: 'Around' }));
+      const oldGone = await insertApplication(db, makeApp({ firstName: 'First', lastName: 'Gone' }));
+      const newGone = await insertApplication(db, makeApp({ firstName: 'Second', lastName: 'Gone' }));
+      await softDeleteApplication(db, oldGone, '2026-11-01T00:00:00Z');
+      await softDeleteApplication(db, newGone, '2026-11-02T00:00:00Z');
+
+      const removed = await listRemovedApplications(db, 2026);
+      expect(removed.map((r) => r.id)).toEqual([newGone, oldGone]);
+      expect(removed[0].first_name).toBe('Second');
+      expect(typeof removed[0].city_name).toBe('string');
+      expect(removed[0].city_name.length).toBeGreaterThan(0);
+      expect(removed.some((r) => r.id === keepId)).toBe(false);
+
+      await restoreApplication(db, newGone);
+      expect((await listRemovedApplications(db, 2026)).map((r) => r.id)).toEqual([oldGone]);
+      // And the restored one is back on the regular list.
+      const rows = await listApplications(db, 2026, 'all', '');
+      expect(rows.some((r) => r.id === newGone)).toBe(true);
+    } finally { await dispose(); }
+  });
+
+  it('scopes to the season', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const other = await insertApplication(db, makeApp({ firstName: 'Last', lastName: 'Year', seasonYear: 2025 }));
+      await softDeleteApplication(db, other, '2025-11-01T00:00:00Z');
+      expect(await listRemovedApplications(db, 2026)).toEqual([]);
+      expect((await listRemovedApplications(db, 2025)).map((r) => r.id)).toEqual([other]);
     } finally { await dispose(); }
   });
 });

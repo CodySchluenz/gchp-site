@@ -629,6 +629,31 @@ export async function restoreApplication(db: D1Database, id: number): Promise<vo
   await db.prepare('UPDATE applications SET deleted_at = NULL WHERE id = ?').bind(id).run();
 }
 
+// The season's removed (soft-deleted) applications, newest removal first —
+// the list behind "Removed applications" on the admin list page, so the
+// Undo banner is never the only door back (owner 2026-07-30).
+export type RemovedApplicationRow = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  city_name: string;
+  status: string;
+  deleted_at: string;
+};
+
+export async function listRemovedApplications(db: D1Database, seasonYear: number): Promise<RemovedApplicationRow[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT a.id, a.first_name, a.last_name, c.name AS city_name, a.status, a.deleted_at
+       FROM applications a JOIN cities c ON c.id = a.city_id
+       WHERE a.deleted_at IS NOT NULL AND a.season_year = ?
+       ORDER BY a.deleted_at DESC, a.id DESC`,
+    )
+    .bind(seasonYear)
+    .all<RemovedApplicationRow>();
+  return results;
+}
+
 export type ApplicationFullEdit = {
   firstName: string;
   lastName: string;
