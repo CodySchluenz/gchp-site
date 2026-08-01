@@ -363,7 +363,9 @@ const disabledMemberNames = disabledMembers.map((m) => String(m.name)).join(' an
             <input type="hidden" name="csrf_token" value={csrfToken} />
             <label class="flex items-start gap-3 text-lg">
               <input type="checkbox" name="straggler" checked={a.straggler === 1} class="mt-1 h-6 w-6" />
-              <span>Straggler — applied after their town was packed. Gets a 2400s number and gifts near the end.</span>
+              <span>Straggler — gets a 2400s number and gifts near the end. Always your call; the website never
+                marks it on its own. Use it for anyone who applied after their town was packed, or too close to
+                packing day for a mailed slip to reach them in time.</span>
             </label>
             <button type="submit" name="act" value="set_straggler" class="mt-2 rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Save straggler setting</button>
           </form>
