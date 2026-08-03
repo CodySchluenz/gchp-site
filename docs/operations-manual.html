@@ -301,7 +301,10 @@
           Pick Up Notices, a faithful copy of the coordinator's paper form (name, ID#, pickup day,
           location rules; NO household details — it travels in the mail). Three per page with
           dashed cut lines; follows the current Show-town view like every print button. Stragglers
-          automatically show the straggler pickup day.</li>
+          automatically show the straggler pickup day. Each application page also has its own
+          <span class="btn">Print pickup slip</span> button next to Print packing slip, for late
+          approvals and one-off reprints. A blank date line means the family's town isn't matched
+          to a day yet (section 6.6).</li>
         <li><strong>Also on this screen:</strong> a running <em>"Thanksgiving cards: X of 30 given"</em>
           count for the season, and a warning when a town has used 90 of its 100 numbers.</li>
         <li><strong>Mailing labels:</strong> in the Elderly &amp; disabled (mailed) view, a
@@ -380,7 +383,10 @@
           <strong>Straggler</strong> checkbox (ALWAYS the coordinator's manual call — the software
           never sets it; for applications too late for their town's packing, or too close to it
           for a mailed slip to arrive → 2400s, gifts near the
-          end).</li>
+          end). Below those, family households get the <strong>Pickup day for this family</strong>
+          dropdown — "Their town's day (the usual)" or any specific day, for the big towns that
+          pick up across more than one day. The choice wins over the town match and the straggler
+          day; History records it.</li>
         <li><strong>What the decision emails say, word for word</strong> (each begins "Hello
           {first name}," and ends with the message line, 608-723-2136 ext 1194; the wording lives in
           <code>src/lib/email/render.ts</code>):
@@ -479,8 +485,16 @@
           Schedule page.</li>
         <li><strong>Pickup days:</strong> add, edit, reorder, and delete days (with Undo).</li>
         <li><strong>Which day does each town pick up?</strong> Match towns (and Stragglers) to days,
-          and every printed packing slip fills in its family's date automatically. Leave a town on
-          "Not set" and its slips print with a blank date to hand-write — your choice, town by town.</li>
+          and every printed packing slip AND mailed pick up notice fills in its family's date
+          automatically. Leave a town on "Not set" and its slips print with a blank date to
+          hand-write — your choice, town by town. Do this matching before printing pick up notices,
+          or their date line prints blank.</li>
+        <li><strong>Big towns across more than one day (Boscobel, Platteville):</strong> create each
+          session as its own day here (say "Platteville — Tuesday Dec. 16th, 11–2:30" and
+          "Platteville — Wednesday Dec. 17th, 4–7"), match the town to one of them as the usual,
+          then use the <strong>Pickup day for this family</strong> dropdown on any application to
+          put that family on the other day. The per-family choice always wins — over the town match
+          and over the straggler day — and both slips follow it.</li>
       </ul>
     </div>
 

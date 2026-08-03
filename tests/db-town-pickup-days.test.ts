@@ -3,7 +3,7 @@ import { getTestDb } from './helpers/d1';
 import {
   insertApplication, setApplicationStatus, setStraggler, createPickupDay, softDeletePickupDay,
   setCityPickupDay, setStragglerPickupDay, getSettings, listCities, listApprovedForSlips,
-  getApplicationDetail,
+  getApplicationDetail, setPickupDayOverride,
   type NewApplication,
 } from '../src/lib/db';
 
@@ -90,6 +90,50 @@ describe('town pickup-day links', () => {
       // Deleted day: resolution vanishes for both.
       await softDeletePickupDay(db, day, '2026-10-02T00:00:00Z');
       expect((await getApplicationDetail(db, fam))?.pickup_day).toBeNull();
+      expect((await getApplicationDetail(db, str))?.pickup_day).toBeNull();
+    } finally { await dispose(); }
+  });
+
+  // Big towns (Boscobel, Platteville) pick up across MULTIPLE days (Sherlyn
+  // 2026-07-31): a per-family override, set on the application page, beats
+  // both the town day and the straggler day; clearing it restores the rule.
+  it('a per-family pickup-day override beats the town day and the straggler day', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      await createPickupDay(db, { date_text: 'Dec 9', description: 'first day, 10-2' });
+      await createPickupDay(db, { date_text: 'Dec 10', description: 'second day, 4-7' });
+      await createPickupDay(db, { date_text: 'Dec 20', description: 'straggler day' });
+      const id9 = (await db.prepare("SELECT id FROM pickup_days WHERE date_text = 'Dec 9'").first<{ id: number }>())!.id;
+      const id10 = (await db.prepare("SELECT id FROM pickup_days WHERE date_text = 'Dec 10'").first<{ id: number }>())!.id;
+      const id20 = (await db.prepare("SELECT id FROM pickup_days WHERE date_text = 'Dec 20'").first<{ id: number }>())!.id;
+
+      const fam = await insertApplication(db, base);
+      const str = await insertApplication(db, { ...base, lastName: 'Late' });
+      await setStraggler(db, str, true);
+      await setApplicationStatus(db, fam, 'approved');
+      await setApplicationStatus(db, str, 'approved');
+      await setCityPickupDay(db, 13, id9);
+      await setStragglerPickupDay(db, id20);
+
+      // Baseline: the usual rule.
+      expect((await getApplicationDetail(db, fam))?.pickup_day?.date_text).toBe('Dec 9');
+      expect((await getApplicationDetail(db, str))?.pickup_day?.date_text).toBe('Dec 20');
+
+      // Override set: it wins for a normal family AND for a straggler.
+      await setPickupDayOverride(db, fam, id10);
+      await setPickupDayOverride(db, str, id10);
+      expect((await getApplicationDetail(db, fam))?.pickup_day?.date_text).toBe('Dec 10');
+      expect((await getApplicationDetail(db, str))?.pickup_day?.date_text).toBe('Dec 10');
+      const slips = await listApprovedForSlips(db, 2026);
+      expect(slips.find((s) => s.app.last_name === 'Smith')?.pickup_day?.date_text).toBe('Dec 10');
+      expect(slips.find((s) => s.app.last_name === 'Late')?.pickup_day?.date_text).toBe('Dec 10');
+
+      // Cleared: back to the usual rule.
+      await setPickupDayOverride(db, fam, null);
+      expect((await getApplicationDetail(db, fam))?.pickup_day?.date_text).toBe('Dec 9');
+
+      // An override pointing at a deleted day resolves to no date, not a crash.
+      await softDeletePickupDay(db, id10, '2026-10-02T00:00:00Z');
       expect((await getApplicationDetail(db, str))?.pickup_day).toBeNull();
     } finally { await dispose(); }
   });

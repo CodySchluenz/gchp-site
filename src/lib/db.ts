@@ -347,14 +347,23 @@ export type ApplicationDetail = {
 
 // The ONE pickup-day resolution rule, shared by the bulk slips path
 // (listApprovedForSlips) and single-slip reprints (getApplicationDetail):
-// stragglers use the straggler day and NEVER fall back to their town's day;
-// everyone else uses their town's day. Null means "no date line on the slip".
+// the coordinator's per-family override wins outright when set (big towns
+// like Boscobel and Platteville pick up across multiple days — Sherlyn
+// 2026-07-31); otherwise stragglers use the straggler day and NEVER fall
+// back to their town's day; everyone else uses their town's day. Null means
+// "no date line on the slip".
 function pickupDayIdFor(
+  overrideId: number | null,
   straggler: number,
   stragglerDayId: number | null,
   cityDayId: number | null,
 ): number | null {
-  return straggler === 1 ? stragglerDayId : cityDayId;
+  return overrideId ?? (straggler === 1 ? stragglerDayId : cityDayId);
+}
+
+// The per-family pickup day, set on the application page. Null = the usual rule.
+export async function setPickupDayOverride(db: D1Database, id: number, dayId: number | null): Promise<void> {
+  await db.prepare('UPDATE applications SET pickup_day_override_id = ? WHERE id = ?').bind(dayId, id).run();
 }
 
 export async function getApplicationDetail(db: D1Database, id: number): Promise<ApplicationDetail | null> {
@@ -385,6 +394,7 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
     .prepare('SELECT straggler_pickup_day_id FROM settings WHERE id = 1')
     .first<{ straggler_pickup_day_id: number | null }>();
   const dayId = mailed ? null : pickupDayIdFor(
+    (app.pickup_day_override_id as number | null) ?? null,
     app.straggler as number,
     settings?.straggler_pickup_day_id ?? null,
     city?.pickup_day_id ?? null,
@@ -889,7 +899,10 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
 
   return apps.results.map((app) => {
     const city = cityById.get(app.city_id as number);
-    const dayId = pickupDayIdFor(app.straggler as number, stragglerDayId, city?.pickup_day_id ?? null);
+    const dayId = pickupDayIdFor(
+      (app.pickup_day_override_id as number | null) ?? null,
+      app.straggler as number, stragglerDayId, city?.pickup_day_id ?? null,
+    );
     return {
       app,
       city_name: city?.name ?? '',

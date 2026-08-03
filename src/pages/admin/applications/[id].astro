@@ -3,6 +3,7 @@ import '../../../styles/global.css';
 import Admin from '../../../layouts/Admin.astro';
 import {
   getApplicationDetail, assignPuNumber, setApplicationStatus, softDeleteApplication, setApplicationNotes, setPackingNote, setPuNumber, setStraggler, setCardsGiven,
+  listPickupDays, setPickupDayOverride,
   setAdoption, clearAdoption, type AdoptionFields,
   addHistory, historyStatements, listHistory, listPossibleDuplicates,
 } from '../../../lib/db';
@@ -103,6 +104,23 @@ if (Astro.request.method === 'POST' && Number.isInteger(id)) {
       await setStraggler(env.DB, id, on);
       if (on !== wasOn) await addHistory(env.DB, id, actor, 'number', on ? 'Marked as a straggler' : 'Straggler mark removed', now);
       return Astro.redirect(`${detailUrl}?done=straggler`, 303);
+    } else if (act === 'set_pickup_day') {
+      // Big towns pick up across multiple days (Sherlyn 2026-07-31): her
+      // per-family choice. Anything that isn't a real, current day id saves
+      // as "their town's day" — forgiving, never an error.
+      const raw = String(form.get('pickup_day_override') ?? '').trim();
+      const days = await listPickupDays(env.DB);
+      const requested = /^\d+$/.test(raw) ? Number(raw) : null;
+      const valid = requested !== null && days.some((d) => d.id === requested) ? requested : null;
+      const old = (detail.app.pickup_day_override_id as number | null) ?? null;
+      await setPickupDayOverride(env.DB, id, valid);
+      if (valid !== old) {
+        const line = valid === null
+          ? "Pickup day set back to their town's day"
+          : `Pickup day set to ${days.find((d) => d.id === valid)!.date_text}`;
+        await addHistory(env.DB, id, actor, 'number', line, now);
+      }
+      return Astro.redirect(`${detailUrl}?done=pickup_day`, 303);
     } else if (act === 'mark_adopted_email' || act === 'mark_adopted_silent' || act === 'save_adoption') {
       // The consent gate holds on the POST path too, not just at render — a
       // stale tab must not mark a family adopted after their application was
@@ -166,7 +184,7 @@ const flags = new URL(Astro.request.url).searchParams;
 const done = flags.get('done');
 const mail = flags.get('mail');
 const mailNote = mail === 'ok' ? ' The email was sent.' : mail === 'fail' ? ' The email could not be sent right now — the application is still saved.' : '';
-const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'notes' ? 'Your notes were saved.' : done === 'packing_note' ? 'Packing note saved.' : done === 'cards' ? 'Cards saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'created' ? 'Paper application entered.' : done === 'adopted' ? `Marked as adopted.${mailNote}` : done === 'adoption_saved' ? 'Adoption details saved.' : done === 'adoption_cleared' ? 'Adoption mark removed.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : flags.get('error') === 'adopter_name' ? 'Please enter who is adopting this family.' : flags.get('error') === 'adoption_gate' ? 'That could not be saved — this family\'s application is not approved with sharing allowed. Check Edit details.' : '';
+const banner = done === 'approved' ? `Approved.${mailNote}` : done === 'denied' ? `Marked as denied.${mailNote}` : done === 'notes' ? 'Your notes were saved.' : done === 'packing_note' ? 'Packing note saved.' : done === 'cards' ? 'Cards saved.' : done === 'pu' ? 'Pickup number saved.' : done === 'straggler' ? 'Straggler setting saved.' : done === 'pickup_day' ? 'Pickup day saved.' : done === 'created' ? 'Paper application entered.' : done === 'adopted' ? `Marked as adopted.${mailNote}` : done === 'adoption_saved' ? 'Adoption details saved.' : done === 'adoption_cleared' ? 'Adoption mark removed.' : flags.get('error') === 'csrf' ? 'That didn\'t save — please try again.' : flags.get('error') === 'pu_bad' ? 'Please enter a whole number, like 803.' : flags.get('error') === 'pu_taken' ? `That number is already used by application #${flags.get('by') ?? ''}.` : flags.get('error') === 'adopter_name' ? 'Please enter who is adopting this family.' : flags.get('error') === 'adoption_gate' ? 'That could not be saved — this family\'s application is not approved with sharing allowed. Check Edit details.' : '';
 const isErrorBanner = flags.get('error') === 'csrf' || flags.get('error') === 'pu_bad' || flags.get('error') === 'pu_taken' || flags.get('error') === 'adopter_name' || flags.get('error') === 'adoption_gate';
 
 const money = (v: unknown) => (v == null ? '—' : `$${Number(v).toFixed(2)}`);
@@ -197,6 +215,9 @@ const disabledMembers = detail && a.household_type === 'family'
   ? detail.members.filter((m) => Number(m.disabled) === 1)
   : [];
 const disabledMemberNames = disabledMembers.map((m) => String(m.name)).join(' and ');
+// For the per-family pickup-day dropdown (family households only — mailed
+// households never pick up).
+const pickupDays = detail && a.household_type === 'family' ? await listPickupDays(env.DB) : [];
 ---
 <Admin title="Application" heading={detail ? `${a.first_name} ${a.last_name}` : 'Application not found'} back={{ href: '/admin/applications', label: 'Back to applications' }}>
   {!detail ? (
@@ -283,6 +304,7 @@ const disabledMemberNames = disabledMembers.map((m) => String(m.name)).join(' an
         ) : (
           <>
             <a href={`/admin/applications/${id}/slip`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Print packing slip</a>
+            <a href={`/admin/applications/${id}/pickup-slip`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Print pickup slip</a>
           </>
         )}
         <a href={`/admin/applications/${id}/edit`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Edit details</a>
@@ -369,6 +391,21 @@ const disabledMemberNames = disabledMembers.map((m) => String(m.name)).join(' an
             </label>
             <button type="submit" name="act" value="set_straggler" class="mt-2 rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Save straggler setting</button>
           </form>
+          {a.household_type === 'family' && pickupDays.length > 0 && (
+            <form method="post" class="mt-4 border-t-2 border-stone-200 pt-4">
+              <input type="hidden" name="csrf_token" value={csrfToken} />
+              <label class="font-semibold">Pickup day for this family
+                <select name="pickup_day_override" class="ml-2 rounded border-2 border-stone-400 p-2 text-lg">
+                  <option value="">Their town's day (the usual)</option>
+                  {pickupDays.map((d) => (
+                    <option value={String(d.id)} selected={a.pickup_day_override_id === d.id}>{d.date_text}{d.description ? ` — ${d.description}` : ''}</option>
+                  ))}
+                </select>
+              </label>
+              <button type="submit" name="act" value="set_pickup_day" class="ml-2 rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Save pickup day</button>
+              <p class="mt-1 text-stone-600">For big towns that pick up over more than one day (Boscobel, Platteville): choose this family's day. The packing slip and the mailed pickup slip both follow it.</p>
+            </form>
+          )}
         </div>
       </section>
 

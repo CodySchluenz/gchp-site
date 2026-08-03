@@ -109,6 +109,32 @@ then print. So:
 - Terminology in the docs: PACKING slip (volunteers, at the site) vs PICK UP
   notice (mailed to the family) — the guide and manual §3 now define both.
 
+## Addendum 6 (2026-07-31, owner-approved): per-family pickup day + single-notice print
+
+Sherlyn confirmed Boscobel and Platteville pick up across MULTIPLE days
+("yes ... because they are large group"). Owner approved "build all of it".
+
+- Migration `0017`: `applications.pickup_day_override_id INTEGER` (nullable).
+- `pickupDayIdFor(overrideId, straggler, stragglerDayId, cityDayId)` — the
+  coordinator's per-family choice wins outright; null keeps the old rule.
+  Both resolution paths (bulk + single) pass it; mailed households stay null.
+- Application page (family-typed only): **"Pickup day for this family"**
+  dropdown under the Straggler checkbox — "Their town's day (the usual)" +
+  every pickup day. Forgiving POST (bad id → town's day), History line
+  ("Pickup day set to Dec 10" / "set back to their town's day"), banner.
+- **"Print pickup slip"** button on the application page next to Print
+  packing slip → `[id]/pickup-slip.astro`, single-notice sibling of
+  `[id]/slip.astro` (adopted/mailed notes match).
+- TDD in db-town-pickup-days.test.ts: override beats town day AND straggler
+  day, in both resolution paths; clearing restores the rule; a deleted
+  override day resolves to no date. Harness gained 0017.
+- Accepted follow-up: the backup export has no Pickup day column (add if she
+  asks).
+- Root causes from her testing round, answered not coded: blank notice date =
+  town unmatched (docs now say to match first); packing note "not added" =
+  its Save button wasn't pressed (docs note every box saves with its own
+  button).
+
 ## Addendum 3 (2026-07-26): the typed Packing note (built alone; pickup slips still held)
 
 Sherlyn: "Is it possible that I could type the notes in before I print? They
