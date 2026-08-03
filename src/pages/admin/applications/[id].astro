@@ -394,15 +394,15 @@ const pickupDays = detail && a.household_type === 'family' ? await listPickupDay
           {a.household_type === 'family' && pickupDays.length > 0 && (
             <form method="post" class="mt-4 border-t-2 border-stone-200 pt-4">
               <input type="hidden" name="csrf_token" value={csrfToken} />
-              <label class="font-semibold">Pickup day for this family
-                <select name="pickup_day_override" class="ml-2 rounded border-2 border-stone-400 p-2 text-lg">
+              <label class="block font-semibold">Pickup day for this family
+                <select name="pickup_day_override" class="mt-1 block w-full max-w-xl truncate rounded border-2 border-stone-400 p-2 text-lg">
                   <option value="">Their town's day (the usual)</option>
                   {pickupDays.map((d) => (
                     <option value={String(d.id)} selected={a.pickup_day_override_id === d.id}>{d.date_text}{d.description ? ` — ${d.description}` : ''}</option>
                   ))}
                 </select>
               </label>
-              <button type="submit" name="act" value="set_pickup_day" class="ml-2 rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Save pickup day</button>
+              <button type="submit" name="act" value="set_pickup_day" class="mt-2 rounded border-2 border-holly-700 px-4 py-2 font-semibold text-holly-800 hover:bg-holly-100">Save pickup day</button>
               <p class="mt-1 text-stone-600">For big towns that pick up over more than one day (Boscobel, Platteville): choose this family's day. The packing slip and the mailed pickup slip both follow it.</p>
             </form>
           )}
