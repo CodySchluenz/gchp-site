@@ -34,8 +34,8 @@ const doll = (m: Record<string, unknown>) =>
     Household type: {a.household_type} · OK to share with a sponsor: {yesno(a.share_with_sponsor)} · Years received help: {a.years_received_help} · Adopted last year: {yesno(a.adopted_last_year)}
   </p>
   <table>
-    <caption class="sr-only">Household members and sizes</caption>
-    <thead><tr><th scope="col">Name</th><th scope="col">Relationship</th><th scope="col">Sex</th><th scope="col">Age</th><th scope="col">Sizes</th><th scope="col">Doll</th></tr></thead>
+    <caption class="sr-only">Household members, sizes, and gifts to pack</caption>
+    <thead><tr><th scope="col">Name</th><th scope="col">Relationship</th><th scope="col">Sex</th><th scope="col">Age</th><th scope="col">Sizes</th><th scope="col">Gifts to pack</th><th scope="col">Doll</th></tr></thead>
     <tbody>
       {detail.members.map((m) => (
         <tr>
@@ -44,6 +44,7 @@ const doll = (m: Record<string, unknown>) =>
           <td>{m.sex}</td>
           <td>{m.age}</td>
           <td>{sizes(m)}</td>
+          <td>{m.gifts || '—'}</td>
           <td>{doll(m)}</td>
         </tr>
       ))}
@@ -68,9 +69,11 @@ const doll = (m: Record<string, unknown>) =>
   .name { font-size: 22px; margin: 8px 0 2px; }
   .pickup { font-size: 18px; margin: 4px 0; }
   .facts { font-size: 16px; margin: 4px 0; }
-  /* Six columns (Name, Relationship, Sex, Age, Sizes, Doll) crowd the 16px
-     base — drop the table alone to 14px so it still fits; every other line
-     on the slip stays at 16px+ per the print-legibility rule. */
+  /* Seven columns (Name, Relationship, Sex, Age, Sizes, Gifts to pack, Doll)
+     crowd the 16px base — drop the table alone to 14px so it still fits;
+     every other line on the slip stays at 16px+ per the print-legibility
+     rule. The gifts column is the coordinator's CURATED pack list — she
+     edits each person's gifts before printing (2026-07-31). */
   table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
   th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
   .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }

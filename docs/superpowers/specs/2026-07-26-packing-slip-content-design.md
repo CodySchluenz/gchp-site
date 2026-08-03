@@ -70,7 +70,7 @@ three-per-page preference (her expanded content made slips taller anyway).
   handwriting. Nothing stored, nothing printed from admin notes (those remain
   private and off-slip); it is blank paper space, by design.
 
-## Addendum 4 (2026-07-30): gifts come OFF the slip
+## Addendum 4 (2026-07-30): gifts come OFF the slip — REVERSED by Addendum 5
 
 Sherlyn, testing the live slips: "The pickup slips show gifts Please take
 that off, we may not have what they ask for so we do replacements." The
@@ -78,6 +78,36 @@ that off, we may not have what they ask for so we do replacements." The
 joins the slip-privacy FORBIDDEN list. The doll column STAYS — she stocks
 the two doll choices, so it is not an "ask." Gifts remain visible on the
 admin application page (she shops replacements from there).
+
+## Addendum 5 (2026-07-31): the full slip story, resolved — gifts back on, pick up notices built
+
+Sherlyn, updating her guidebook: "Why have packers slip then? Where is place
+to print final form for packers to see items? ... So where can I print off
+list that states actual gifts they are to pack? I wanted to add or delete
+items." The 07-30 removal was a misunderstanding: her objection was to
+packing the RAW family ask; what she wants is to EDIT each person's gifts to
+the actual pack list (Edit household members → "Gifts / toys wanted") and
+then print. So:
+
+- **Gifts are BACK on the packing slip**, as the column "Gifts to pack" —
+  the coordinator-curated list. `gifts` leaves the slip-privacy FORBIDDEN
+  list (comment records the story). Seven columns again.
+- **The mailed Pick Up Notice is BUILT** (this spec's Addendum 2, formerly
+  parked; she supplied her paper form "Regular pickup slips.docx.pdf" and
+  asked "You may have done this but I'm not seeing it"):
+  `PickupNoticeCard.astro` copies her form faithfully — title, Name + ID#
+  (pu_number), "Pick up: {day date_text + description}" (blank line when no
+  day is matched), her three instruction paragraphs and the 245 West Elm St
+  location text verbatim, three per letter page with dashed cut lines
+  (page-break every 3rd, no dangling cut line). Route
+  `/admin/applications/pickup-slips` mirrors the packing-slips page's view
+  scoping (town/stragglers; mailed + adopted show notes); button "Print
+  pickup slips to mail" sits next to Print packing slips. It travels in the
+  mail, so it carries NO household data — pinned by
+  tests/pickup-notice-privacy.test.ts (property-access tokens, since the
+  location text contains the word "address").
+- Terminology in the docs: PACKING slip (volunteers, at the site) vs PICK UP
+  notice (mailed to the family) — the guide and manual §3 now define both.
 
 ## Addendum 3 (2026-07-26): the typed Packing note (built alone; pickup slips still held)
 

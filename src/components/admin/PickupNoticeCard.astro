@@ -1,0 +1,41 @@
+---
+// The mailed Pick Up Notice — a faithful copy of Sherlyn's paper form
+// ("Regular pickup slips", 2026-07-31): name, ID# (pickup number), the pickup
+// day, and her fixed instruction/location paragraphs, three to a page with
+// cut lines. It travels in the mail, so it carries NO household data —
+// tests/pickup-notice-privacy.test.ts pins that.
+import type { ApplicationDetail } from '../../lib/db';
+interface Props { detail: ApplicationDetail }
+const { detail } = Astro.props;
+const a = detail.app;
+const day = detail.pickup_day
+  ? `${detail.pickup_day.date_text}${detail.pickup_day.description ? ` ${detail.pickup_day.description}` : ''}`
+  : '____________________';
+---
+<article class="notice">
+  <p class="title">Grant County Holiday Project Pick Up Notice</p>
+  <p class="who"><span>Name <strong>{a.first_name} {a.last_name}</strong></span> <span>ID# <strong>{a.pu_number ?? '______'}</strong></span></p>
+  <p class="when"><u>Pick up:</u> <strong>{day}</strong></p>
+  <p><strong>You must bring this slip in order to pick up your packages.</strong> Please do not bring
+    children. Make sure there is a place to put your items in vehicle.
+    <strong>Please clean out car prior to pick-up.</strong></p>
+  <p>Project items will not be delivered. You may send someone else to pick up your items.
+    <u>They must bring this slip and you must print their name and sign on back of slip that they
+    can pick up your items.</u></p>
+  <p><strong><u>Location:</u></strong> The address is: 245 West Elm St. Lancaster WI. (Gray building
+    across from the Fire Station). Park in parking lot only. DO NOT park in front of the Fire
+    Station. Cars will be towed.</p>
+</article>
+<style>
+  /* Three notices per letter page: each ~3.4in tall with a dashed cut line
+     between; every third notice ends the page (no dangling cut line there). */
+  .notice { min-height: 3.35in; box-sizing: border-box; padding: 12px 8px 8px; border-bottom: 1px dashed #666; font-size: 13px; line-height: 1.35; break-inside: avoid; }
+  .notice p { margin: 4px 0; }
+  .title { text-align: center; font-weight: bold; font-size: 15px; }
+  .who { display: flex; justify-content: space-between; gap: 16px; font-size: 17px; margin-top: 8px; }
+  .when { font-size: 16px; }
+  @media print {
+    .notice:nth-of-type(3n) { page-break-after: always; border-bottom: none; }
+    .notice:last-of-type { page-break-after: auto; }
+  }
+</style>
