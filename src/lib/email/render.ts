@@ -119,15 +119,15 @@ and phone number.`;
   return { subject, html, text };
 }
 
-// Owner-approved body, verbatim (spec §Owner-approved-decisions #2,
-// 2026-07-27 docs/superpowers/specs/2026-07-27-adoptions-design.md). Sent
-// only to the family, never mentions the adopter (Sherlyn said contact
-// happens adopter -> family, not the other way around).
+// Sherlyn's wording, verbatim substance (2026-07-31; spec 2026-07-27
+// Addendum 2 — matches her Adoption Request form's "contact by Dec 7th").
+// Sent only to the family, never mentions the adopter (contact happens
+// adopter -> family, not the other way around).
 export function renderAdoptedEmail(firstName: string): RenderedEmail {
   const subject = 'Your Holiday Project family has been adopted';
   const text = `Hello ${firstName},
 
-Per your approval, you have been adopted! You will not receive a pickup slip as stated in your approval notice. A community organization or adoptive family will contact you before December 10th to arrange a time and place for you to receive your gifts. Everything they receive about your family is kept confidential.
+Per your approval, you have been adopted! You will not receive a pickup slip in December. The adoptive organization or community family will contact you by December 7th to set up pickup dates and times. Please make sure your phone is working so you can get the information you need. Everything they receive about your family is kept confidential.
 
 Questions? Call our message line at 608-723-2136 ext 1194 and leave your name
 and phone number.`;
@@ -135,11 +135,11 @@ and phone number.`;
     'You have been adopted!',
     `<p>Hello ${escapeHtml(firstName)},</p>
      <p>Per your approval, you have been adopted! You will not receive a
-        <strong>pickup slip</strong> as stated in your approval notice. A
-        community organization or adoptive family will contact you before
-        <strong>December 10th</strong> to arrange a time and place for you to
-        receive your gifts. Everything they receive about your family is
-        kept confidential.</p>
+        <strong>pickup slip</strong> in December. The adoptive organization or
+        community family will contact you by <strong>December 7th</strong> to
+        set up pickup dates and times. Please make sure your
+        <strong>phone is working</strong> so you can get the information you
+        need. Everything they receive about your family is kept confidential.</p>
      <p>Questions? Call our message line at <strong>608-723-2136 ext 1194</strong>
         and leave your name and phone number.</p>`,
   );

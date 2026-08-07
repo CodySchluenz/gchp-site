@@ -106,6 +106,33 @@ Mailed 3-up family pickup slips (still parked); adopter accounts/portal
 changing the approval email's pickup-slip sentence (the adoption email
 corrects it, per her design).
 
+## Addendum 2 (2026-07-31): her real timeline validated; email v2; the adopter's slip
+
+Sherlyn walked the process (her Adoption Request form is archived in the
+repo as "Adoption Request examp.pdf": mailed to past adopters ~Sept 15,
+return by Oct 15, often late to Thanksgiving; asks number of families,
+size, towns, food-for-meal): she match-makes AFTER approval, exactly the
+built design — nothing requires adoption info at review. Her question "Can
+I go back ... later after I get form?" = yes, the Adoption section on the
+approved application, any time.
+
+- **Adoption email v2, her wording** (also matches the form's "contact by
+  Dec 7th"): "Per your approval, you have been adopted! You will not
+  receive a pickup slip in December. The adoptive organization or community
+  family will contact you by December 7th to set up pickup dates and times.
+  Please make sure your phone is working so you can get the information you
+  need. Everything they receive about your family is kept confidential."
+  (Replaces the December-10th body; render test re-pinned.)
+- **The adopter's slip**: she emails the matched family's packer slip to
+  the adopter and files it — so the single-family slip page now RENDERS for
+  adopted households, with a screen-only note that the copy is for the
+  adopter, and the detail-page button reads "Print packing slip for the
+  adopter". The bulk packers' pile still excludes adopted families
+  (unchanged, tested).
+- Out of scope (unchanged from §Out of scope): tracking adoption request
+  forms/matching inside the site — her paper file works; revisit only if
+  she asks.
+
 ## Addendum (2026-07-28): "Adopted" option in the Show-town dropdown
 
 Owner request: filter the applications list for adopted families. The Show town

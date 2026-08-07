@@ -36,16 +36,18 @@ describe('renderDeniedEmail', () => {
 });
 
 describe('renderAdoptedEmail', () => {
-  it('has the owner-approved subject and the spec body verbatim, PII-free subject, escaped name', () => {
+  it('has the owner-approved subject and the coordinator\'s 2026-07-31 body verbatim, PII-free subject, escaped name', () => {
     const r = renderAdoptedEmail('<Sue>');
     expect(r.subject).toBe('Your Holiday Project family has been adopted');
     expect(r.subject).not.toContain('Sue');
     expect(r.html).toContain('&lt;Sue&gt;');
-    // Spec §Owner-approved-decisions #2, verbatim:
+    // Sherlyn's wording (spec 2026-07-27 Addendum 2): December 7th, pickup
+    // dates and times, the working-phone reminder; confidentiality kept.
     expect(r.text).toContain(
-      'Per your approval, you have been adopted! You will not receive a pickup slip as stated in your approval notice. A community organization or adoptive family will contact you before December 10th to arrange a time and place for you to receive your gifts. Everything they receive about your family is kept confidential.',
+      'Per your approval, you have been adopted! You will not receive a pickup slip in December. The adoptive organization or community family will contact you by December 7th to set up pickup dates and times. Please make sure your phone is working so you can get the information you need. Everything they receive about your family is kept confidential.',
     );
-    expect(r.html).toContain('December 10th');
+    expect(r.html).toContain('December 7th');
+    expect(r.html).toContain('phone is working');
     expect(r.html).toContain('kept confidential');
     expect(r.text).toContain('608-723-2136 ext 1194');
   });

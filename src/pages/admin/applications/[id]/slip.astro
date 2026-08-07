@@ -15,11 +15,14 @@ const adopted = detail ? detail.app.adopted === 1 : false;
       <>
         <div class="no-print">
           <h1 style="font-size:20px;margin:0 0 8px;">Packing slip</h1>
-          <p><a href={`/admin/applications/${id}`}>&larr; Back</a>{!mailed && !adopted && <> · <button type="button" data-print>Print this slip</button></>}</p>
+          <p><a href={`/admin/applications/${id}`}>&larr; Back</a>{!mailed && <> · <button type="button" data-print>Print this slip</button></>}</p>
+          {adopted && (
+            <p><strong>Adopted household</strong> — this copy is for the adopting organization or
+              family (print it, or use your browser's print-to-PDF to email it). The packers' pile
+              never includes them.</p>
+          )}
         </div>
-        {adopted ? (
-          <p>Adopted household — no packing slip; the adopting organization or family provides their gifts.</p>
-        ) : mailed ? (
+        {mailed ? (
           <p>Mailed household — no packing slip. They receive gift and food cards by mail.</p>
         ) : (
           <SlipCard detail={detail} />

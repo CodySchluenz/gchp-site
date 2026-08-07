@@ -298,7 +298,7 @@ const pickupDays = detail && a.household_type === 'family' ? await listPickupDay
 
       <section class="mt-6 flex flex-wrap gap-3">
         {a.adopted === 1 ? (
-          <span class="px-4 py-3 text-lg text-stone-600">Adopted household — no packing slip; the adopting organization or family provides their gifts.</span>
+          <a href={`/admin/applications/${id}/slip`} class="rounded border-2 border-holly-700 px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">Print packing slip for the adopter</a>
         ) : a.household_type === 'elderly' || a.household_type === 'disabled' ? (
           <span class="px-4 py-3 text-lg text-stone-600">Mailed household — no packing slip; gift and food cards go by mail.</span>
         ) : (
