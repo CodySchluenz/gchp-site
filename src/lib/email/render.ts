@@ -43,6 +43,10 @@ export function renderContactEmail(values: {
   return { subject, html, text };
 }
 
+// Step 2's wording deliberately fits BOTH programs (Sherlyn approved it
+// 2026-08-08): family households later hear about a pickup slip, elderly/
+// disabled households about their Christmas card — this email promises
+// neither, just "how you'll receive your gifts".
 export function renderApplicationReceivedEmail(firstName: string): RenderedEmail {
   const subject = 'We received your Holiday Project application';
   const bodyText = `Hello ${firstName},
@@ -50,8 +54,7 @@ export function renderApplicationReceivedEmail(firstName: string): RenderedEmail
 We received your application — thank you. Here's what happens next:
 
 1. Our volunteers will review your application.
-2. You'll get an email from us when it has been reviewed.
-3. If approved, you'll receive a pickup slip with your pickup date in December.
+2. You'll get an email from us when it has been reviewed, telling you how you'll receive your gifts.
 
 You don't need to do anything else right now. Your information is private and
 is used only to prepare your family's gifts.
@@ -64,8 +67,8 @@ and phone number.`;
      <p>We received your application — thank you. Here's what happens next:</p>
      <ol>
        <li>Our volunteers will review your application.</li>
-       <li>You'll get an email from us when it has been reviewed.</li>
-       <li>If approved, you'll receive a pickup slip with your pickup date in December.</li>
+       <li>You'll get an email from us when it has been reviewed, telling you how
+           you'll receive your gifts.</li>
      </ol>
      <p>You don't need to do anything else right now. Your information is private
         and is used only to prepare your family's gifts.</p>
@@ -170,12 +173,21 @@ and phone number.`;
   return { subject, html, text };
 }
 
+// The reasons list mirrors Sherlyn's paper denial slip (her words,
+// 2026-08-08): ALL reasons are listed and none is singled out — "If they
+// have questions they will call."
 export function renderDeniedEmail(firstName: string): RenderedEmail {
   const subject = 'An update on your Holiday Project application';
   const text = `Hello ${firstName},
 
 Thank you for applying to the Grant County Holiday Project. After review, we
-are not able to approve your application this season.
+are not able to approve your application this season. Applications are denied
+for one of the following reasons:
+
+- Excess income
+- No children under 18 living in the household
+- Receiving benefits from another program
+- Someone else has already applied for the children
 
 We know this is hard to hear. If you have questions, or think there may have
 been a mistake, please call our message line at 608-723-2136 ext 1194 and
@@ -184,7 +196,14 @@ leave your name and phone number - we are glad to talk with you.`;
     'An update on your application',
     `<p>Hello ${escapeHtml(firstName)},</p>
      <p>Thank you for applying to the Grant County Holiday Project. After
-        review, we are not able to approve your application this season.</p>
+        review, we are not able to approve your application this season.
+        Applications are denied for one of the following reasons:</p>
+     <ul>
+       <li>Excess income</li>
+       <li>No children under 18 living in the household</li>
+       <li>Receiving benefits from another program</li>
+       <li>Someone else has already applied for the children</li>
+     </ul>
      <p>We know this is hard to hear. If you have questions, or think there may
         have been a mistake, please call our message line at
         <strong>608-723-2136 ext 1194</strong> and leave your name and phone

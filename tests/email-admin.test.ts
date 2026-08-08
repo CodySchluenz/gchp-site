@@ -33,6 +33,23 @@ describe('renderDeniedEmail', () => {
     expect(r.html).toContain('608-723-2136 ext 1194');
     expect(r.text).toContain('608-723-2136 ext 1194');
   });
+
+  // Sherlyn 2026-08-08: her paper denial slip lists ALL the reasons and never
+  // singles one out ("If they have questions they will call") — the email
+  // does the same, all four, verbatim from her message.
+  it('lists all four denial reasons without singling one out', () => {
+    const r = renderDeniedEmail('Sue');
+    expect(r.text).toContain('one of the following reasons');
+    for (const reason of [
+      'Excess income',
+      'No children under 18 living in the household',
+      'Receiving benefits from another program',
+      'Someone else has already applied for the children',
+    ]) {
+      expect(r.text).toContain(reason);
+      expect(r.html).toContain(reason);
+    }
+  });
 });
 
 describe('renderAdoptedEmail', () => {
