@@ -87,24 +87,26 @@ yours to fill in; never paste secrets into this file or any commit.
       the confirmation email arrives. (Delete it afterward.)
 - [ ] Check the public pages at 360px width (home, apply, donate, pickup, contact).
 
-## 7. DNS cutover
-- [ ] In Cloudflare Pages, add the custom domain and follow the prompts to point DNS at Pages.
-- [ ] The old PHP site stays live as a fallback until you confirm the new site is stable. Do not take
+## 7. DNS cutover — DONE
+- [x] In Cloudflare Pages, add the custom domain and follow the prompts to point DNS at Pages.
+- [x] The old PHP site stays live as a fallback until you confirm the new site is stable. Do not take
       it down yet.
-- [ ] Watch the new site for a few days across a real apply + a real admin login.
+- [x] Watch the new site for a few days across a real apply + a real admin login.
 
-## 8. Post-cutover cleanup
-- [ ] Rotate the old **admin password** and the old **MySQL password** (both were exposed in the
-      original repo and chat).
-- [ ] Remove or redact `legacy/public_html/adminPanel/upload/gchpManual.pdf` on the old host (it
+## 8. Post-cutover cleanup — DONE 2026-08-08 (except the last item, unconfirmed)
+- [x] Rotate the old **admin password** and the old **MySQL password** (both were exposed in the
+      original repo and chat). *(Done — owner, 2026-08-08.)*
+- [x] Remove or redact `legacy/public_html/adminPanel/upload/gchpManual.pdf` on the old host (it
       prints a stale 2014 admin username/password and is publicly downloadable).
-- [ ] Once the new site is confirmed stable, decommission the old PHP site. Before or when you do:
+      *(Moot — the whole old host is decommissioned, 2026-08-08.)*
+- [x] Once the new site is confirmed stable, decommission the old PHP site. Before or when you do:
       set the old .com pages to redirect (301) to grantcountyholidayproject.org — until then the
-      old site competes with the new one in Google.
-- [ ] **Google Search Console (SEO, July 2026):** at search.google.com/search-console choose
+      old site competes with the new one in Google. *(Done — owner, 2026-08-08.)*
+- [x] **Google Search Console (SEO, July 2026):** at search.google.com/search-console choose
       Domain property `grantcountyholidayproject.org`, add the DNS TXT record it gives you in
       Cloudflare (DNS -> Records -> Add record), wait for verification, then submit
       `https://grantcountyholidayproject.org/sitemap.xml` under Sitemaps. One-time, ~10 minutes.
+      *(Done — owner, 2026-07-25. The TXT record must stay in DNS forever.)*
 - [ ] Delete the local `dump.sql` and `import.sql` (they hold real PII).
 
 ---

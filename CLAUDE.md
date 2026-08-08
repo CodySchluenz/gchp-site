@@ -48,7 +48,7 @@ elderly, possibly on an old phone or a shared library computer:
 - Keep the "pay it forward" good-deeds step simple and clearly explained; it is part of eligibility.
 - Preserve and feature the fallbacks: the message phone line and the downloadable PDF
   application, for anyone who cannot or will not apply online. Do not bury them.
-- OPEN QUESTION to confirm with the owner: is a Spanish version needed for this community?
+- RESOLVED (owner, decisions.md #3; reconfirmed 2026-08-08): no Spanish version is needed.
 
 ## Admin console (a critical surface)
 Design every admin screen for a non-technical 70-year-old operator:
@@ -97,7 +97,8 @@ Design every admin screen for a non-technical 70-year-old operator:
   task on explicit request.)
 - Mobile-first public site. Test at 360px width. The admin can assume a larger screen
   (she likely uses a laptop or desktop) but must stay large, legible, and simple.
-- Keep the old PHP site live and untouched until the new site is verified and DNS is cut over.
+- DONE 2026-08-08: the old PHP site is fully decommissioned (kept live as a fallback until the
+  new site was verified, per the original rule). The ./legacy copy remains reference-only.
 
 ## Yearly-changing content
 News, the special gifts list, key dates, and the pickup schedule change every season.

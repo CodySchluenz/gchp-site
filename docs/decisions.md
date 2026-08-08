@@ -196,12 +196,15 @@ in commit bda9f62 with a decode map + test). One deferred owner decision surface
   transform (map `reviewed='1'` + `approved='0'` → `'denied'`) — say the word and it's a quick
   amendment. Left as `'new'` for now per the approved spec.
 
-## Still open (owner actions, not design questions)
-- Rotate the live admin password and the MySQL password (both were exposed in the original repo
-  contents, and the admin password also appeared in chat).
-- Decide how to handle `legacy/public_html/adminPanel/upload/gchpManual.pdf`, which prints a
+## Still open (owner actions, not design questions) — CLOSED 2026-08-08
+Both items were completed by the owner on 2026-08-08, as part of fully decommissioning the old
+Bluehost .com site (old passwords rotated; the publicly downloadable gchpManual.pdf went away
+with the host; the old .com now redirects/retired per the runbook's post-cutover checklist):
+- ~~Rotate the live admin password and the MySQL password (both were exposed in the original repo
+  contents, and the admin password also appeared in chat).~~
+- ~~Decide how to handle `legacy/public_html/adminPanel/upload/gchpManual.pdf`, which prints a
   stale 2014 admin username/password on page 4 (remove, or replace with a redacted copy) — it is
-  also publicly downloadable on the live site.
+  also publicly downloadable on the live site.~~
 
 ## No purge feature (2026-07-25)
 
