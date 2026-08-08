@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grant County Holiday Project — Guide to the Website</title>
+<style>
+  :root {
+    --paper:#faf6ea; --surface:#ffffff; --ink:#23291f; --ink-soft:#5c6152;
+    --holly:#14532d; --holly-bright:#1a6b3a; --holly-tint:#e7f1e8;
+    --berry:#b91c1c; --berry-tint:#fdecec; --gold:#b7791f; --gold-soft:#f3ead2;
+    --line:#e6ddc7;
+    --font-display: Georgia, 'Times New Roman', serif;
+    --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper:#14201a; --surface:#1b2a22; --ink:#eef2e6; --ink-soft:#a9b3a0;
+      --holly:#8fd3a6; --holly-bright:#a6dfb8; --holly-tint:#213328;
+      --berry:#f19a9a; --berry-tint:#392222; --gold:#d8b25a; --gold-soft:#2a2417;
+      --line:#2c3a30;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper:#faf6ea; --surface:#ffffff; --ink:#23291f; --ink-soft:#5c6152;
+    --holly:#14532d; --holly-bright:#1a6b3a; --holly-tint:#e7f1e8;
+    --berry:#b91c1c; --berry-tint:#fdecec; --gold:#b7791f; --gold-soft:#f3ead2; --line:#e6ddc7;
+  }
+  :root[data-theme="dark"] {
+    --paper:#14201a; --surface:#1b2a22; --ink:#eef2e6; --ink-soft:#a9b3a0;
+    --holly:#8fd3a6; --holly-bright:#a6dfb8; --holly-tint:#213328; --gold-soft:#2a2417;
+    --berry:#f19a9a; --berry-tint:#392222; --gold:#d8b25a; --line:#2c3a30;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--font-body); font-size: 19px; line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 44rem; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+
+  .tip-bar {
+    max-width: 44rem; margin: 1rem auto 0; padding: 0.75rem 1.5rem;
+    font-size: 0.9rem; color: var(--ink-soft);
+  }
+  .tip-bar strong { color: var(--holly-bright); }
+
+  header.mast { border-bottom: 3px solid var(--gold); padding-bottom: 1.75rem; margin-bottom: 2.5rem; }
+  .eyebrow {
+    font-size: 0.82rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--gold); font-weight: 700; margin: 0 0 0.6rem;
+  }
+  h1 {
+    font-family: var(--font-display); color: var(--holly);
+    font-size: clamp(2.1rem, 6vw, 3rem); line-height: 1.08; margin: 0;
+    text-wrap: balance; font-weight: 700;
+  }
+  .lead { font-size: 1.18rem; color: var(--ink); margin: 1.1rem 0 0; text-wrap: pretty; }
+
+  section { margin-top: 2.6rem; }
+  h2 {
+    font-family: var(--font-display); color: var(--holly); font-weight: 700;
+    font-size: 1.7rem; line-height: 1.15; margin: 0 0 0.5rem;
+    padding-bottom: 0.4rem; border-bottom: 1px solid var(--line); text-wrap: balance;
+  }
+  h3 { font-family: var(--font-body); font-weight: 700; color: var(--ink); font-size: 1.14rem; margin: 1.6rem 0 0.4rem; }
+  p { margin: 0.7rem 0; }
+  a { color: var(--holly-bright); }
+
+  .steps { list-style: none; counter-reset: step; margin: 1rem 0 0; padding: 0; }
+  .steps > li {
+    counter-increment: step; position: relative;
+    padding: 0 0 0 3.1rem; margin: 0.9rem 0; min-height: 2rem;
+  }
+  .steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: -0.1rem;
+    width: 2.1rem; height: 2.1rem; border-radius: 999px;
+    background: var(--holly); color: #fff; font-weight: 700;
+    font-family: var(--font-body); font-size: 1.05rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 1.25rem 1.5rem; margin-top: 1.1rem;
+    break-inside: avoid;
+  }
+  .card h3 { margin-top: 0; }
+
+  .note, .warn {
+    border-left: 5px solid var(--holly); background: var(--holly-tint);
+    padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1.2rem 0;
+    break-inside: avoid;
+  }
+  .warn { border-left-color: var(--berry); background: var(--berry-tint); }
+  .note p, .warn p { margin: 0.4rem 0; }
+  .note strong { color: var(--holly-bright); }
+  .warn strong { color: var(--berry); }
+
+  .menu { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+  .menu li {
+    background: var(--holly); color: #fff; font-weight: 600;
+    padding: 0.4rem 0.85rem; border-radius: 6px; font-size: 0.98rem;
+  }
+
+  .blocks { width: 100%; border-collapse: collapse; margin: 0.9rem 0 0.3rem; font-size: 0.98rem; }
+  .blocks td { padding: 0.3rem 0.9rem 0.3rem 0; vertical-align: top; }
+  .blocks td:first-child { font-weight: 700; color: var(--holly-bright); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  .kbd {
+    font-family: var(--font-body); font-weight: 700; background: var(--gold-soft);
+    color: var(--ink); padding: 0.05em 0.45em; border-radius: 5px; border: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .path { font-weight: 700; color: var(--holly-bright); }
+
+  footer.foot {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 3px solid var(--gold);
+    color: var(--ink-soft); font-size: 0.98rem;
+  }
+
+  @media print {
+    :root {
+      --paper:#ffffff; --surface:#ffffff; --ink:#1a1a1a; --ink-soft:#444;
+      --holly:#14532d; --holly-bright:#14532d; --holly-tint:#ffffff;
+      --berry:#a11616; --berry-tint:#ffffff; --gold:#8a5e18; --gold-soft:#f0ead9; --line:#cbcbcb;
+    }
+    body { font-size: 12.2pt; }
+    .wrap { max-width: none; padding: 0; }
+    .tip-bar, .screen-only { display: none !important; }
+    h2 { break-after: avoid; }
+    section, .card, .note, .warn, .steps > li { break-inside: avoid; }
+    a { color: var(--ink); text-decoration: none; }
+    .menu li { background: #fff; color: var(--holly); border: 1px solid var(--holly); }
+    .steps > li::before { background: var(--holly); }
+  }
+</style>
+</head>
+<body>
+<div class="tip-bar screen-only">
+  <strong>To save this as a PDF or print it:</strong> press <span class="kbd">Ctrl</span> + <span class="kbd">P</span>
+  (on a Mac, <span class="kbd">⌘</span> + <span class="kbd">P</span>) and choose <em>Save as PDF</em>.
+</div>
+
+<div class="wrap">
+  <header class="mast">
+    <p class="eyebrow">Grant County Holiday Project</p>
+    <h1>Your Guide to the New Website</h1>
+    <p class="lead">The program you know and love, with a friendlier website. This little guide walks you
+      through the few things you'll do each season. There is nothing to install, nothing to memorize,
+      and nothing you can break.</p>
+  </header>
+
+  <section>
+    <h2>What's new</h2>
+    <p>It's the same Holiday Project — same mission, same partners, same warmth. What changed is the
+      website. Families can now apply online with one short, simple form (the phone line and the paper
+      application are still there for anyone who prefers them). And you have a private, easy control
+      panel — we call it the <strong>admin</strong> — for running the season.</p>
+    <p>Since the last version of this guide, the website changed again to match how you actually run
+      things — every one of these came straight from you:</p>
+    <div class="card">
+      <p style="margin:0.2rem 0"><strong>Eligibility is all yours again.</strong> The income-check math
+        and its flags are gone — you verify every application by hand, the way you always have. The
+        income families report is still right there on each application for you to read.</p>
+      <p style="margin:0.6rem 0 0.2rem"><strong>Two papers: packing slips and pick up notices.</strong>
+        The <em>packing slip</em> (for the volunteers, one per page with ruled note lines) carries the
+        household's details, each person's sizes, doll choice, and a <em>Gifts to pack</em> column —
+        that column prints whatever is in each person's "Gifts / toys wanted" boxes, so fix those
+        first under <em>Edit household members</em> (add or delete items, swap anything you're out
+        of) and the slip becomes your final packing list. The mailed <em>pick up notice</em> is a
+        copy of your paper form — name, ID#, pickup day, and the location rules only, three to a
+        page with cut lines — from the new <strong>Print pickup slips to mail</strong> button.
+        Each application page also has its own <strong>Print pickup slip</strong> button, next to
+        Print packing slip, for one family at a time. The date on the notice fills in from the
+        Pickup days screen — match each town to its day first, or the date line prints blank. And
+        for your big towns that pick up over more than one day (Boscobel, Platteville): make each
+        session its own day, then use the <strong>Pickup day for this family</strong> choice on any
+        application to put that family on the right one — everything printed follows it.
+        Income, good deeds, and your private notes never appear on either.</p>
+      <p style="margin:0.6rem 0 0.2rem"><strong>Two applications, just like your paper world.</strong>
+        The Apply page now asks families to pick: <em>Family Household</em> (children under 18) or
+        <em>Elderly/Disabled Household</em> (over 65, or receiving Social Security or SSI). The
+        elderly one is short — no children's sizes or gifts — it sets the 2500 routing on its own,
+        and its approval email says a Christmas card with food and gift cards is coming. Everyone's
+        income goes in its Benefits section, matching your paper form: the Social Security and SSI
+        amounts each ask <em>“Who receives it?”</em> — that's where a wife's or a disabled son's
+        benefits appear, and the form now points applicants there plainly. Family
+        applications that include someone 65 or older get a gentle "65+ in household" note so you
+        can split them out if they should get their own card — and ones that include a disabled
+        person get a matching "Disabled person in household" note. A family with children under 18
+        always stays a Family household (regular gifts and pickup), even when a parent is disabled;
+        only childless households go to the Christmas-card mail list. And the mailed list gained a
+        <em>Print mailing labels</em> button for the Christmas-card envelopes.</p>
+      <p style="margin:0.6rem 0 0.2rem"><strong>Your adoption program lives here now.</strong> Mark an
+        approved family as adopted right on their application — who adopted them, the contact person,
+        phone, and address — and the website emails the family your adoption note (no pickup slip in
+        December; the adopter will contact you by December 7th to set up pickup dates and times; keep
+        your phone working), takes them off the packing slips, and keeps your letters list on the new
+        <em>Adoptions</em> page. Your timeline works exactly as you described: approve families
+        normally as applications come in, then mark them adopted whenever an adoption request form
+        arrives — October, November, whenever. To send the adopter their family's slip, use the
+        family's own <em>Print packing slip for the adopter</em> button (print it, or print-to-PDF
+        and email it) — the packers' pile never includes them. It only allows any of this for
+        families who said Yes to sharing with a sponsor.</p>
+      <p style="margin:0.6rem 0 0.2rem"><strong>Type a note for the packers — no penmanship needed.</strong>
+        Each application now has a <em>Packing note</em> box. Whatever you type there prints on that
+        family's packing slip ("Note for packers: ..."), in clean type — like "please choose toys
+        suited for a child with special needs." Your private notes box is separate and still never
+        prints anywhere. One habit worth keeping: every box on the application saves with its own
+        button — press <em>Save packing note</em> (or the box's own Save) before you leave the
+        page, or the typing is lost.</p>
+      <p style="margin:0.6rem 0 0.2rem"><strong>Families can choose a doll.</strong> The application asks,
+        for each child, whether they'd like a White doll or a Non-White doll. The choices appear on the
+        application and in the Special Gift column of your spreadsheet.</p>
+      <p style="margin:0.6rem 0 0.2rem"><strong>Your card tallies live on the website now.</strong> Each
+        application has a place to mark the Thanksgiving card (the list counts them toward 30 for you),
+        food cards or certificates, and gift cards, with their amounts.</p>
+      <p style="margin:0.6rem 0 0.2rem"><strong>The Excel download is your spreadsheet.</strong> Same
+        columns, same order as the sheet you keep by hand — plus a second button that downloads
+        everything, as a backup.</p>
+      <p style="margin:0.6rem 0 0.2rem"><strong>Every application remembers its changes.</strong> A
+        <em>History</em> list at the bottom of each application writes down every change on its own —
+        what changed, when, and by whom — and a link shows the application exactly as the family first
+        sent it. Nothing for you to do; it just keeps the record.</p>
+      <p style="margin:0.6rem 0 0.2rem"><strong>The year's numbers, ready for the Board.</strong> A new
+        <em>Season summary</em> page adds everything up for you — families served by town, the card
+        tallies with dollar totals — on one printable page. And if the same family applies twice
+        (online and on paper, say), the website quietly points it out so you can compare before
+        deciding.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Signing in — no password to remember</h2>
+    <p>Instead of a password, the website emails you a private sign-in link. You click the link, and
+      you're in. That's it.</p>
+    <ol class="steps">
+      <li>Open your web browser and go to <span class="path">grantcountyholidayproject.org/admin</span></li>
+      <li>Type your email address and press <strong>“Email me a sign-in link.”</strong></li>
+      <li>Open your email. You'll have a message with a button that says <strong>“Sign me in.”</strong>
+        Click it. (If you don't see it, check your Junk or Spam folder.)</li>
+      <li>You're in — and you'll stay signed in for about 30 days, so you rarely have to do this.</li>
+    </ol>
+    <div class="note">
+      <p><strong>Good to know:</strong> the link works for 15 minutes and only once, just to keep things
+        safe. If it expires, simply ask for a new one.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Finding your way around</h2>
+    <p>Across the top of every admin page is a green menu. Click any word to go there:</p>
+    <ul class="menu">
+      <li>Home</li><li>Applications this year</li><li>This year's news</li>
+      <li>Pickup schedule</li><li>Paper application</li><li>Donors</li><li>Messages</li>
+    </ul>
+    <p style="margin-top:1.1rem">Two buttons sit in the top corner on every page:
+      <strong>“View the website”</strong> shows you exactly what families see, and <strong>“Sign out”</strong>
+      logs you off when you're finished.</p>
+  </section>
+
+  <section>
+    <h2>How pickup numbers work now</h2>
+    <p>The website uses your assigned-numbers system. Each town owns its own hundreds, the first family
+      from a town gets the town's number itself, and the next family gets the one after — 1600, then
+      1601, and so on. The number is assigned the moment you approve, and it goes wherever you need it:
+      the list, the packing slips, and your Excel download.</p>
+    <table class="blocks">
+      <tr><td>100s–2300s</td><td>The towns, each with their own block — Blue River 100s, Muscoda 200s,
+        Lancaster 800s, Platteville 1500s, Fennimore 1600s, and so on, just like your sheet.</td></tr>
+      <tr><td>2400s</td><td><strong>Stragglers</strong> — the checkbox on each application, and it is
+        always your call: the website never marks anyone a straggler on its own. Use it for
+        applications that arrive after their town is packed — or too close to packing day for a
+        mailed slip to reach them in time.</td></tr>
+      <tr><td>2500s</td><td><strong>Elderly and disabled</strong> — they're mailed their gift and food
+        cards, never packed, and never appear on packing slips.</td></tr>
+    </table>
+    <div class="note">
+      <p><strong>You can always change a number by hand.</strong> Every application has a
+        “Pickup number” box — type any number you like (that's also how the little
+        “Kids without toys” numbers work) and press <strong>Save number</strong>. The website simply
+        makes sure no two families ever share a number.</p>
+      <p><strong>If a town ever runs out of numbers,</strong> the website tells you plainly and you type
+        one in yourself. Nothing ever gets stuck.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The main things you'll do</h2>
+
+    <div class="card">
+      <h3>Open or close applications for the season</h3>
+      <p>On the <strong>Home</strong> page you'll see whether applications are OPEN or CLOSED, with one big
+        button to switch it. Open it whenever your season begins — the day is yours to choose (for
+        2026 you picked September 20th, since adoptions start early). Close it when the season is
+        done. Put the opening date in This year's news so families know when to come. While it's closed,
+        families see a kind message pointing them to the phone line and the paper form.</p>
+    </div>
+
+    <div class="card">
+      <h3>Review the families who applied</h3>
+      <ol class="steps">
+        <li>Click <strong>Applications this year</strong>. The tabs show who still needs review, who's
+          approved, and who's been denied. Each family's line shows the day they applied.</li>
+        <li>Click a family's name to read their full application — including exactly when it arrived,
+          everyone in the household, their jobs and income, and their good deed.</li>
+        <li>Check the income and the good deed the way you always have — the application shows every
+          job, wage, and benefit the family reported, and their pay-it-forward story, all in one place.
+          The website never judges any of it; eligibility is yours alone.</li>
+        <li>Use <strong>“Approve and email them”</strong> or <strong>“Deny and email them”</strong> — the
+          family gets a friendly note automatically, and the page remembers the date and time you decided.
+          (There are also “without email” buttons.) Approving assigns the family's pickup number from
+          their town's block.</li>
+        <li>Use <strong>“Print packing slip”</strong> for the volunteers' slip, and
+          <strong>“Download list for Excel”</strong> to get the list as a spreadsheet.</li>
+      </ol>
+      <div class="note">
+        <strong>Where is the approval letter?</strong> The website sends it as an email the moment you
+        press an “email them” button — there is nothing for you to write. Family approvals say:
+        <em>“Good news - your Grant County Holiday Project application has been approved. Watch your
+        mail and email for your pickup slip, which will have your pickup date in December. Please
+        bring your pickup slip with you.”</em> Elderly/Disabled approvals say: <em>“You have been
+        found eligible for the Grant County Holiday Project Elderly/Disabled program. Your gifts are
+        a Christmas card containing a food and a gift card. You should receive the card the second
+        week in December.”</em> Denials say: <em>“Thank you for applying to the Grant County Holiday
+        Project. After review, we are not able to approve your application this season. Applications
+        are denied for one of the following reasons: Excess income · No children under 18 living in
+        the household · Receiving benefits from another program · Someone else has already applied
+        for the children”</em> — all four reasons every time, never the specific one, just like your
+        paper slip. Every
+        email begins “Hello {first name}” and ends with the message-line number. If someone gave no
+        email address (it's optional on the Elderly/Disabled application), the “email them” buttons
+        simply don't appear — approve without email and, if you'd like them told, copy these words
+        into a mailed note.
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>See one town at a time — and the mail list</h3>
+      <ol class="steps">
+        <li>On <strong>Applications this year</strong>, find the <strong>“Show town”</strong> dropdown.
+          Pick a town and press <strong>Show</strong>.</li>
+        <li>You'll see just that town's families, in pickup-number order — ready for distributors, or for
+          answering “who in Platteville receives help.” The Excel download and <strong>every print
+          button</strong> — the list, the packing slips, and the pickup slips to mail — follow
+          whatever view you picked. That's how you print one town's stack while packing it, or just
+          the stragglers' late pile, without ever reprinting everyone.</li>
+        <li>Pick <strong>“Elderly &amp; disabled (mailed)”</strong> instead to see your mail list, with
+          addresses, ready to print — and press <strong>“Print mailing labels”</strong> there for
+          Christmas-card envelope labels on standard Avery 30-per-sheet label paper. Glance at the
+          preview first: a very long address can get trimmed to keep the labels lined up.</li>
+        <li>Pick <strong>“Stragglers”</strong> to see the late applications you've marked with the
+          straggler checkbox — their own list by themselves, for the end of the project.</li>
+        <li>Pick <strong>“Adopted”</strong> to see every family you've adopted out this season — and
+          the Excel download follows, so you can pull just that list too.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Enter a paper application</h3>
+      <p>When a paper application arrives in the mail, you can type it into the website so everything
+        lives in one list.</p>
+      <ol class="steps">
+        <li>On <strong>Applications this year</strong>, press <strong>“Enter a paper application.”</strong></li>
+        <li>Copy from the paper into the boxes. <strong>Only the name and town are required</strong> —
+          leave anything blank that's blank on the paper, even if the application is incomplete. Enter 0
+          for a wage or age that isn't filled in.</li>
+        <li>Set the <strong>date received</strong>, and if you've already written a pickup number on the
+          paper, type it in its box.</li>
+        <li>Each child has a <strong>Doll</strong> box now (No doll, White doll, or Non-White doll), so
+          copy that straight from the paper. Anything else with no box — has a car, a Box number — goes
+          in your private <strong>Notes</strong>, right on the form.</li>
+        <li>Press <strong>“Save this application.”</strong> Nothing is ever emailed to the family from
+          this screen, and you can approve or deny it afterward just like an online one. When one late
+          family gets approved, print their packing slip right from their own page — no need to reprint
+          anyone else's.</li>
+      </ol>
+      <div class="note">
+        <p><strong>Two similar names, two different jobs:</strong> this button is for <em>typing in</em> a
+          filled-out paper form. The <strong>Paper application</strong> item in the green menu is where you
+          upload the <em>blank</em> PDF that families download to fill out by hand.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Track the Thanksgiving, food, and gift cards</h3>
+      <p>The first 30 families to apply each season get a Thanksgiving card — and now the website keeps
+        the tally with you.</p>
+      <ol class="steps">
+        <li>On a family's page, find the <strong>Cards given</strong> section (near your Notes).</li>
+        <li>Check <strong>“Thanksgiving card given”</strong> when you hand one out. The top of
+          <strong>Applications this year</strong> always shows <em>“Thanksgiving cards: X of 30
+          given”</em> so you never have to count.</li>
+        <li>When you give a food card or certificate, or gift cards, check those boxes too and type the
+          dollar amounts. Press <strong>“Save cards.”</strong></li>
+      </ol>
+      <p>Nothing here is automatic — it's simply your tally, remembered, and it flows straight into
+        your spreadsheet's Thanksgiving and card columns.</p>
+    </div>
+
+    <div class="card">
+      <h3>Adopt out a family</h3>
+      <ol class="steps">
+        <li>Open an approved family's application. If they answered Yes to sharing with a sponsor,
+          you'll see the <strong>Adoption</strong> section.</li>
+        <li>Type who is adopting them — the organization or family, the contact person, phone, and
+          mailing address — then press <strong>"Mark adopted and email them"</strong> (or "without
+          email"). The family gets your note: they've been adopted, no pickup slip, someone will
+          contact them before December 10th.</li>
+        <li>That's it — they come off the packing slips automatically, show an <strong>Adopted</strong>
+          tag in your list, and appear on the <strong>Adoptions</strong> page (green menu): your list
+          of adopters with their contact details, ready to print for next year's letters.</li>
+      </ol>
+      <div class="note">
+        <p><strong>The website protects the family's choice:</strong> if they said No to sharing,
+          the adoption section stays closed until you change their answer in Edit details — so no
+          family's information is ever shared against their word.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Print the year's numbers for the Board</h3>
+      <ol class="steps">
+        <li>Click <strong>Season summary</strong> in the green menu.</li>
+        <li>The whole year is already added up for you: applications received, families served by
+          town, the people count, and every card tally with its dollar total. Nothing to fill in —
+          the numbers come straight from your applications list, always current.</li>
+        <li>Press <strong>“Print this page”</strong> and hand it to the Board. Use the season picker
+          to look back at past years for the audit.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Update this year's news, gifts list, and pickup schedule</h3>
+      <p>Click <strong>This year's news</strong> to edit what families read on the home page, and
+        <strong>Pickup schedule</strong> to set the pickup days and towns. Type in the boxes and press
+        <strong>Save</strong> — the website updates right away, no waiting.</p>
+      <p>At the bottom of the Pickup schedule page there's a new section:
+        <strong>“Which day does each town pick up?”</strong> If you match towns to days there, every
+        printed packing slip fills in its family's date automatically — no more writing it 300 times.
+        Leave a town on <strong>“Not set”</strong> and its slips print with a blank date, exactly like
+        before. Your choice, town by town.</p>
+    </div>
+
+    <div class="card">
+      <h3>Put up the paper applications</h3>
+      <p>Click <strong>Paper application</strong> and upload this year's printable PDFs — there are two
+        slots now, one for the <strong>Family</strong> application and one for the
+        <strong>Elderly/Disabled</strong> application. Those are the files families download when
+        they'd rather fill it out by hand.</p>
+    </div>
+
+    <div class="card">
+      <h3>Keep the donor list and record donations</h3>
+      <ol class="steps">
+        <li>Click <strong>Donors</strong>. Search for a donor, or add a new one at the bottom.</li>
+        <li>Click a donor's name to open them, then record what they gave — a date, an amount, or an item.</li>
+        <li>The top of the page shows this year's total. Use the <strong>year</strong> box there to look
+          back at a past year.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>Read messages from families</h3>
+      <p>Click <strong>Messages</strong> to see notes sent through the Contact form. You can mark one read,
+        delete it, or reply. These messages also land in your regular email inbox, so you can always reply
+        from there too.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Your Excel download is your spreadsheet now</h2>
+    <p>The <strong>“Download list for Excel”</strong> button gives you exactly the sheet you've always
+      kept, column for column: <strong>tNo</strong> (the pickup number), the applicant, their address,
+      the <strong>Special Gift</strong> column (each person's gift requests and any doll choices),
+      <strong>adopted</strong>, <strong>Thanksgiving</strong>, <strong>Food Card/Cert.</strong> and its
+      amount, <strong>Gift Cards</strong> and their amount, and the <strong>number in the
+      household</strong>. Pick a town first and the download covers just that town — handy for handing
+      a distributor their day's list.</p>
+    <p>Next to it, a second button — <strong>“Download everything (backup)”</strong> — gives the
+      full-detail version: phone numbers, income as reported, every household member and size, your
+      private notes, and more. That one is for safekeeping and for the audit, not for handing around.</p>
+  </section>
+
+  <section>
+    <h2>You really can't break it</h2>
+    <div class="note">
+      <p><strong>It asks before anything permanent.</strong> Deleting always shows an “Are you sure?”
+        question first, and every delete — applications, people, jobs, donors, messages, pickup days —
+        gives you an <strong>Undo</strong> button right afterward.</p>
+      <p><strong>Even a missed Undo isn't the end.</strong> If you delete an application and leave the
+        page before pressing Undo, scroll to the bottom of <em>Applications this year</em>: a
+        <strong>Removed applications</strong> list holds everything you've deleted this season, each
+        with a <strong>Put it back</strong> button.</p>
+      <p><strong>Your work saves immediately.</strong> When you press Save, it's saved.</p>
+      <p><strong>And it's all written down.</strong> Every change you make to an application is noted
+        automatically in its History list — so if you ever wonder "did I already fix this?" or the
+        auditors ask what happened, the answer is right at the bottom of the page.</p>
+      <p><strong>The old ways still work.</strong> The message phone line and the paper application remain,
+        so no family is ever left out.</p>
+    </div>
+    <div class="warn">
+      <p><strong>The only thing to be careful with:</strong> the private information families share is
+        theirs alone. Only sign in on a computer you trust, and sign out when you're on a shared or public
+        one.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>If you ever get stuck</h2>
+    <p>Nothing is urgent and nothing is your fault — websites just have quirks sometimes. If something
+      doesn't look right, jot down what you were doing and reach out for a hand:</p>
+    <p style="margin-top:1rem">Who to contact: <strong>Cody Schluenz</strong></p>
+    <p>Phone: <strong>425-765-7609</strong> &nbsp;·&nbsp; Email: <strong>codydps@gmail.com</strong></p>
+  </section>
+
+  <footer class="foot">
+    Grant County Holiday Project · 245 W. Elm St., Lancaster WI 53813 · Message line 608-723-2136 ext 1194.
+    Guide updated July 2026. Thank you for everything you do for our neighbors.
+  </footer>
+</div>
+</body>
+</html>
