@@ -9,4 +9,7 @@ dev.log
 /dump.sql
 /import.sql
 *.dump.sql
-*.pdf
+// *.pdf
+a*.pdf
+e*.pdf
+regular*.pdf
