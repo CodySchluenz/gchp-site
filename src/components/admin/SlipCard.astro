@@ -6,78 +6,111 @@ interface Props { detail: ApplicationDetail }
 const { detail } = Astro.props;
 const a = detail.app;
 const yesno = (v: unknown) => (v === 1 || v === true ? 'Yes' : 'No');
+// One size per line (2026-08-08 review): a comma-run wraps mid-item wherever
+// the column edge falls; a stack reads instantly while packing.
 const sizes = (m: Record<string, unknown>) =>
   [['Pants', m.pants], ['Shirt', m.shirt_top], ['Underwear', m.underwear], ['Socks', m.socks], ['Shoe', m.shoe], ['Coat', m.coat], ['Diapers', m.diapers]]
-    .filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(', ') || '—';
+    .filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`);
+// Blank, not a dash, for the adult rows — the header already says Doll.
 const doll = (m: Record<string, unknown>) =>
-  m.doll === 'white' ? 'White doll' : m.doll === 'non_white' ? 'Non-White doll' : '—';
+  m.doll === 'white' ? 'White' : m.doll === 'non_white' ? 'Non-White' : '';
+const people = detail.members.length === 1 ? '1 person' : `${detail.members.length} people`;
 ---
 <article class="slip">
-  <div class="row">
-    <span><strong>PU #:</strong> {a.pu_number ?? '____'}</span>
-    <span><strong>People:</strong> {detail.members.length}</span>
+  <div class="head">
+    <div class="head-left">
+      <p class="org">Grant County Holiday Project · {a.season_year}</p>
+      <p class="doc">Packing Slip</p>
+    </div>
+    <div class="pu">
+      <p class="pulabel">PU #</p>
+      <p class="punum">{a.pu_number ?? '____'}</p>
+    </div>
   </div>
-  <p class="name"><strong>{a.first_name} {a.last_name}</strong> — {a.phone}</p>
-  <p>{a.address}, {detail.city_name}</p>
-  {detail.pickup_day && (
-    <p class="pickup"><strong>Pickup:</strong> {detail.pickup_day.date_text}{detail.pickup_day.description ? ` — ${detail.pickup_day.description}` : ''}</p>
-  )}
-  <p>
-    {a.diabetic === 1 && <span class="flag">DIABETIC</span>}
-    {a.bed_choice !== 'none' && <span>Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''}</span>}
-  </p>
-  <p class="facts">
-    Applied: {centralDateTime(String(a.submitted_at ?? ''))}
-    {a.email ? <> · Email: {String(a.email)}</> : null}
-  </p>
-  <p class="facts">
-    Household type: {a.household_type} · OK to share with a sponsor: {yesno(a.share_with_sponsor)} · Years received help: {a.years_received_help} · Adopted last year: {yesno(a.adopted_last_year)}
-  </p>
-  <table>
-    <caption class="sr-only">Household members, sizes, and gifts to pack</caption>
-    <thead><tr><th scope="col">Name</th><th scope="col">Relationship</th><th scope="col">Sex</th><th scope="col">Age</th><th scope="col">Sizes</th><th scope="col">Gifts to pack</th><th scope="col">Doll</th></tr></thead>
-    <tbody>
-      {detail.members.map((m) => (
-        <tr>
-          <td>{m.name}</td>
-          <td>{relationshipLabel(String(m.relationship ?? ''), String(m.relationship_other ?? ''))}</td>
-          <td>{m.sex}</td>
-          <td>{m.age}</td>
-          <td>{sizes(m)}</td>
-          <td>{m.gifts || '—'}</td>
-          <td>{doll(m)}</td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-  {a.packing_note ? <p class="packer-note"><strong>Note for packers:</strong> {a.packing_note}</p> : null}
-  <div class="notes-area">
-    <p class="notes-label">Notes</p>
-    <div class="rule"></div>
-    <div class="rule"></div>
-    <div class="rule"></div>
-    <div class="rule"></div>
-    <div class="rule"></div>
+  <div class="bodypad">
+    <p class="name">{a.first_name} {a.last_name}</p>
+    <p class="contact">{a.phone} · {a.address}, {detail.city_name}{a.email ? ` · ${String(a.email)}` : ''}</p>
+    {detail.pickup_day && (
+      <p class="pickup"><strong>Pickup:</strong> {detail.pickup_day.date_text}{detail.pickup_day.description ? ` — ${detail.pickup_day.description}` : ''}</p>
+    )}
+    <p class="badges">
+      {a.diabetic === 1 && <span class="badge">DIABETIC</span>}
+      {a.bed_choice !== 'none' && <span class="badge">Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''}</span>}
+      <span class="badge">{people}</span>
+    </p>
+    <div class="factgrid">
+      <div class="fact"><p class="flabel">Household</p><p class="fvalue cap">{a.household_type}</p></div>
+      <div class="fact"><p class="flabel">Sponsor OK</p><p class="fvalue">{yesno(a.share_with_sponsor)}</p></div>
+      <div class="fact"><p class="flabel">Years helped</p><p class="fvalue">{a.years_received_help}</p></div>
+      <div class="fact"><p class="flabel">Adopted last yr</p><p class="fvalue">{yesno(a.adopted_last_year)}</p></div>
+    </div>
+    <p class="applied">Applied: {centralDateTime(String(a.submitted_at ?? ''))}</p>
+    <table>
+      <caption class="sr-only">Household members, sizes, and gifts to pack</caption>
+      <thead><tr><th scope="col">Name</th><th scope="col">Relationship</th><th scope="col">Sex</th><th scope="col">Age</th><th scope="col">Sizes</th><th scope="col">Gifts to pack</th><th scope="col">Doll</th></tr></thead>
+      <tbody>
+        {detail.members.map((m) => (
+          <tr>
+            <td>{m.name}</td>
+            <td>{relationshipLabel(String(m.relationship ?? ''), String(m.relationship_other ?? ''))}</td>
+            <td>{m.sex}</td>
+            <td>{m.age}</td>
+            <td>{sizes(m).length === 0 ? '—' : sizes(m).map((s) => <span class="sz">{s}</span>)}</td>
+            <td>{m.gifts || '—'}</td>
+            <td>{doll(m)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    {a.packing_note ? <p class="pnote"><strong>Note for packers:</strong> {a.packing_note}</p> : null}
+    <div class="notes-area">
+      <p class="notes-label">Notes</p>
+      <div class="rule"></div>
+      <div class="rule"></div>
+      <div class="rule"></div>
+      <div class="rule"></div>
+      <div class="rule"></div>
+    </div>
   </div>
 </article>
 <style>
-  /* Sherlyn's layout: each slip prints on its own page with a Notes area
-     at the bottom for handwriting. min-height removed so slips don't grow
-     beyond their content. */
-  .slip { border: 2px solid #000; padding: 14px; margin: 0 0 12px; font-size: 16px; break-inside: avoid; box-sizing: border-box; }
-  .row { display: flex; gap: 24px; font-size: 20px; }
-  .name { font-size: 22px; margin: 8px 0 2px; }
-  .pickup { font-size: 18px; margin: 4px 0; }
-  .facts { font-size: 16px; margin: 4px 0; }
+  /* Sherlyn's layout, reorganized per the 2026-08-08 review: a document
+     header (packers know the pile; an adopting organization receiving this
+     page cold does not), the PU# big in a boxed corner (it's the key that
+     matches slip to pile to family), facts as a labeled grid instead of
+     dot-separated sentences, and printer-safe badges. Each slip still prints
+     on its own page with a Notes area at the bottom for handwriting. */
+  .slip { border: 2px solid #000; margin: 0 0 12px; font-size: 16px; break-inside: avoid; box-sizing: border-box; }
+  .slip p { margin: 4px 0; }
+  .head { display: flex; justify-content: space-between; align-items: stretch; border-bottom: 2px solid #000; }
+  .head-left { padding: 8px 14px; }
+  .org { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #44403c; }
+  .doc { font-size: 18px; font-weight: bold; }
+  .pu { border-left: 2px solid #000; padding: 4px 18px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+  .pulabel { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0; }
+  .punum { font-size: 30px; font-weight: bold; line-height: 1.05; margin: 0; }
+  .bodypad { padding: 8px 14px 14px; }
+  .name { font-size: 22px; font-weight: bold; margin: 4px 0 0; }
+  .contact { color: #44403c; }
+  .pickup { font-size: 18px; margin: 6px 0 0; }
+  .badges { margin: 10px 0 0; }
+  .badge { display: inline-block; border: 2px solid #000; font-weight: bold; padding: 1px 10px; margin: 0 8px 4px 0; font-size: 15px; }
+  .factgrid { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #666; margin: 10px 0 0; }
+  .fact { padding: 4px 8px; border-right: 1px solid #666; }
+  .fact:last-child { border-right: none; }
+  .flabel { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #44403c; margin: 0; }
+  .fvalue { font-size: 16px; font-weight: bold; margin: 0; }
+  .cap { text-transform: capitalize; }
+  .applied { font-size: 13px; color: #44403c; margin: 6px 0 0; }
   /* Seven columns (Name, Relationship, Sex, Age, Sizes, Gifts to pack, Doll)
      crowd the 16px base — drop the table alone to 14px so it still fits;
      every other line on the slip stays at 16px+ per the print-legibility
      rule. The gifts column is the coordinator's CURATED pack list — she
      edits each person's gifts before printing (2026-07-31). */
-  table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
-  th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
-  .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }
-  .packer-note { margin-top: 12px; font-size: 16px; white-space: pre-wrap; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+  th, td { border: 1px solid #666; padding: 4px 6px; text-align: left; vertical-align: top; }
+  .sz { display: block; white-space: nowrap; }
+  .pnote { border: 2px solid #000; padding: 8px 10px; margin: 12px 0 0; font-size: 16px; white-space: pre-wrap; }
   .notes-area { margin-top: 14px; }
   .notes-label { font-weight: 700; margin: 0 0 2px; font-size: 16px; }
   .rule { border-bottom: 1px solid #999; height: 1.7em; }

@@ -6,11 +6,15 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const emails = JSON.parse(readFileSync(join(here, 'emails.json'), 'utf8'));
+// review-emails.json is written by scripts/render-review-emails.mjs from the
+// site's real render code — run that first after any email wording change.
+const emails = JSON.parse(readFileSync(join(here, 'review-emails.json'), 'utf8'));
 
 // The emails carry every style inline; lift the content out of its page shell
-// so it embeds cleanly in the review (the shell is just background + centering).
-const inner = (html) => html.slice(html.indexOf('<div'), html.lastIndexOf('</div>') + 6);
+// so it embeds cleanly in the review. Since 2026-08-08 the shell is a table
+// (Outlook-safe), so grab the outermost table; the hidden preheader above it
+// is invisible anyway.
+const inner = (html) => html.slice(html.indexOf('<table'), html.lastIndexOf('</table>') + 8);
 
 const emailBlock = (eyebrow, subject, note, html) => `
   <section class="item">
@@ -42,22 +46,39 @@ const page = `<!doctype html>
   .qbox h2 { border: none; color: #9f1239; margin: 0 0 6px; padding: 0; }
   .pagebreak { page-break-before: always; }
   ul, ol { margin: 6px 0; }
-  /* ---- faithful copies of the printed papers ---- */
-  .notice { box-sizing: border-box; padding: 12px 8px 8px; border: 1px dashed #666; font-size: 13px; line-height: 1.35; background: #fff; }
-  .notice p { margin: 4px 0; }
-  .notice .title { text-align: center; font-weight: bold; font-size: 15px; }
-  .notice .who { display: flex; justify-content: space-between; gap: 16px; font-size: 17px; margin-top: 8px; }
+  /* ---- faithful copies of the printed papers (2026-08-08 layouts) ---- */
+  .notice { box-sizing: border-box; padding: 10px 10px 8px; border: 1px dashed #666; font-size: 14px; line-height: 1.35; background: #fff; }
+  .notice p { margin: 5px 0; }
+  .notice .org { text-align: center; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #44403c; margin: 0; }
+  .notice .doc { text-align: center; font-size: 18px; font-weight: bold; margin: 0 0 6px; }
+  .notice .keyrow { display: flex; justify-content: space-between; gap: 16px; font-size: 16px; border-top: 1.5px solid #000; border-bottom: 1.5px solid #000; padding: 4px 2px; }
+  .notice .keyrow strong { font-size: 17px; }
   .notice .when { font-size: 16px; }
-  .slip { border: 2px solid #000; padding: 14px; font-size: 15px; background: #fff; }
-  .slip .row { display: flex; gap: 24px; font-size: 19px; }
-  .slip .name { font-size: 21px; margin: 8px 0 2px; }
-  .slip .pickup { font-size: 17px; margin: 4px 0; }
-  .slip .facts { font-size: 15px; margin: 4px 0; }
+  .slip { border: 2px solid #000; font-size: 14px; background: #fff; }
+  .slip p { margin: 4px 0; }
+  .slip .head { display: flex; justify-content: space-between; border-bottom: 2px solid #000; }
+  .slip .head-left { padding: 8px 14px; }
+  .slip .org { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #44403c; margin: 0; }
+  .slip .doc { font-size: 17px; font-weight: bold; margin: 0; }
+  .slip .pu { border-left: 2px solid #000; padding: 4px 16px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+  .slip .pulabel { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0; }
+  .slip .punum { font-size: 28px; font-weight: bold; line-height: 1.05; margin: 0; }
+  .slip .bodypad { padding: 8px 14px 12px; }
+  .slip .name { font-size: 20px; font-weight: bold; margin: 4px 0 0; }
+  .slip .contact { color: #44403c; }
+  .slip .pickup { font-size: 16px; margin: 6px 0 0; }
+  .slip .badge { display: inline-block; border: 2px solid #000; font-weight: bold; padding: 0 8px; margin: 8px 8px 0 0; font-size: 14px; }
+  .slip .factgrid { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #666; margin: 10px 0 0; }
+  .slip .fact { padding: 4px 8px; border-right: 1px solid #666; }
+  .slip .fact:last-child { border-right: none; }
+  .slip .flabel { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #44403c; margin: 0; }
+  .slip .fvalue { font-size: 14px; font-weight: bold; margin: 0; }
+  .slip .applied { font-size: 12px; color: #44403c; margin: 6px 0 0; }
   .slip table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 12.5px; }
-  .slip th, .slip td { border: 1px solid #666; padding: 4px 6px; text-align: left; }
-  .slip .flag { font-weight: bold; color: #b91c1c; margin-right: 8px; }
-  .slip .packer-note { margin-top: 12px; font-size: 15px; }
-  .slip .notes-label { font-weight: 700; margin: 14px 0 2px; font-size: 15px; }
+  .slip th, .slip td { border: 1px solid #666; padding: 4px 6px; text-align: left; vertical-align: top; }
+  .slip .sz { display: block; white-space: nowrap; }
+  .slip .pnote { border: 2px solid #000; padding: 6px 10px; margin: 10px 0 0; font-size: 14px; }
+  .slip .notes-label { font-weight: 700; margin: 12px 0 2px; font-size: 14px; }
   .slip .rule { border-bottom: 1px solid #999; height: 1.6em; }
   .label { width: 2.625in; height: 1in; border: 1px dashed #a8a29e; display: flex; flex-direction: column; justify-content: center; padding: 0 10px; box-sizing: border-box; font-size: 13px; line-height: 1.3; background: #fff; }
 </style>
@@ -88,7 +109,7 @@ shown exactly as it goes out, with a note on when each one happens.</p>
   <div style="border-left:4px solid #14532d;background:#fff;padding:10px 14px;margin-top:10px;">
     <p style="font-weight:bold;color:#14532d;margin:0;">Here's what happens next:</p>
     <ol><li>Our volunteers will review your application.</li>
-    <li>You'll get an email from us when it has been reviewed, telling you how you'll receive your gifts.</li></ol>
+    <li>You'll get an email from us when we've reviewed it, telling you how you'll receive your gifts.</li></ol>
     <p style="margin:6px 0 0;">You don't need to do anything else right now. A confirmation email is on its way to your inbox.</p>
   </div>
   <p style="margin:10px 0 0;">Your information is private. We use it only to prepare your family's gifts, and we never share your name with donors or sponsors without your permission.</p>
@@ -112,16 +133,17 @@ ${emailBlock('Email 5 of 5 — sent when you press "Mark adopted and email them"
   <p class="note">Prints three to a page with dashed cut lines; you cut and mail one per family. The day
   fills in from your Pickup days screen (or the family's own pickup day if you chose one).</p>
   <article class="notice">
-    <p class="title">Grant County Holiday Project Pick Up Notice</p>
-    <p class="who"><span>Name <strong>Merry Testhouse</strong></span> <span>ID# <strong>1500</strong></span></p>
-    <p class="when"><u>Pick up:</u> <strong>Tuesday Dec. 16th 11–2:30 PM</strong></p>
+    <p class="org">Grant County Holiday Project</p>
+    <p class="doc">Pick Up Notice</p>
+    <div class="keyrow"><span>Name <strong>Merry Testhouse</strong></span> <span>ID# <strong>1500</strong></span></div>
+    <p class="when"><strong>Pick up:</strong> <strong>Tuesday Dec. 16th 11–2:30 PM</strong></p>
     <p><strong>You must bring this slip in order to pick up your packages.</strong> Please do not bring
       children. Make sure there is a place to put your items in vehicle.
       <strong>Please clean out car prior to pick-up.</strong></p>
     <p>Project items will not be delivered. You may send someone else to pick up your items.
-      <u>They must bring this slip and you must print their name and sign on back of slip that they
-      can pick up your items.</u></p>
-    <p><strong><u>Location:</u></strong> The address is: 245 West Elm St. Lancaster WI. (Gray building
+      <strong>They must bring this slip and you must print their name and sign on back of slip that they
+      can pick up your items.</strong></p>
+    <p><strong>Location:</strong> The address is: 245 West Elm St. Lancaster WI. (Gray building
       across from the Fire Station). Park in parking lot only. DO NOT park in front of the Fire
       Station. Cars will be towed.</p>
   </article>
@@ -134,26 +156,39 @@ ${emailBlock('Email 5 of 5 — sent when you press "Mark adopted and email them"
   flag, bed line, and packers' note appear only when set; this sample shows everything at once.
   Income, good deeds, and your private notes never appear.</p>
   <article class="slip">
-    <div class="row"><span><strong>PU #:</strong> 1500</span> <span><strong>People:</strong> 5</span></div>
-    <p class="name"><strong>Merry Testhouse</strong> — 608-555-0101</p>
-    <p>101 Candy Cane Ln, Platteville</p>
-    <p class="pickup"><strong>Pickup:</strong> Tuesday Dec. 16th — 11–2:30 PM</p>
-    <p><span class="flag">DIABETIC</span> <span>Bed: sheets (full)</span></p>
-    <p class="facts">Applied: Jul 30, 2026, 2:14 PM · Email: merry@example.com</p>
-    <p class="facts">Household type: family · OK to share with a sponsor: Yes · Years received help: 2 · Adopted last year: No</p>
-    <table>
-      <thead><tr><th>Name</th><th>Relationship</th><th>Sex</th><th>Age</th><th>Sizes</th><th>Gifts to pack</th><th>Doll</th></tr></thead>
-      <tbody>
-        <tr><td>Merry Testhouse</td><td>Myself (head of household)</td><td>F</td><td>34</td><td>Pants: 12, Shirt: L, Underwear: M, Socks: 9-11, Shoe: 8, Coat: L</td><td>warm blanket, cookbook</td><td>—</td></tr>
-        <tr><td>Nick Testhouse</td><td>The other parent</td><td>M</td><td>36</td><td>Pants: 34x32, Shirt: XL, Underwear: L, Socks: 10-13, Shoe: 11, Coat: XL</td><td>work gloves, thermos</td><td>—</td></tr>
-        <tr><td>Holly Testhouse</td><td>Daughter</td><td>F</td><td>7</td><td>Pants: 7, Shirt: 7-8, Underwear: 7, Socks: S, Shoe: 1Y, Coat: 8</td><td>art set, doll clothes</td><td>White doll</td></tr>
-        <tr><td>Max Testhouse</td><td>Son</td><td>M</td><td>10</td><td>Pants: 10, Shirt: 10-12, Underwear: 10, Socks: M, Shoe: 4Y, Coat: 10-12</td><td>Legos, football</td><td>—</td></tr>
-        <tr><td>Ivy Testhouse</td><td>Daughter</td><td>F</td><td>2</td><td>Pants: 2T, Shirt: 2T, Underwear: 2T, Socks: 2T, Shoe: 6T, Coat: 2T, Diapers: size 5</td><td>stacking blocks, stuffed bear</td><td>Non-White doll</td></tr>
-      </tbody>
-    </table>
-    <p class="packer-note"><strong>Note for packers:</strong> Ivy uses a wheelchair — please choose toys she can hold easily.</p>
-    <p class="notes-label">Notes</p>
-    <div class="rule"></div><div class="rule"></div><div class="rule"></div><div class="rule"></div><div class="rule"></div>
+    <div class="head">
+      <div class="head-left">
+        <p class="org">Grant County Holiday Project · 2026</p>
+        <p class="doc">Packing Slip</p>
+      </div>
+      <div class="pu"><p class="pulabel">PU #</p><p class="punum">1500</p></div>
+    </div>
+    <div class="bodypad">
+      <p class="name">Merry Testhouse</p>
+      <p class="contact">608-555-0101 · 101 Candy Cane Ln, Platteville · merry@example.com</p>
+      <p class="pickup"><strong>Pickup:</strong> Tuesday Dec. 16th — 11–2:30 PM</p>
+      <p><span class="badge">DIABETIC</span> <span class="badge">Bed: sheets (full)</span> <span class="badge">5 people</span></p>
+      <div class="factgrid">
+        <div class="fact"><p class="flabel">Household</p><p class="fvalue">Family</p></div>
+        <div class="fact"><p class="flabel">Sponsor OK</p><p class="fvalue">Yes</p></div>
+        <div class="fact"><p class="flabel">Years helped</p><p class="fvalue">2</p></div>
+        <div class="fact"><p class="flabel">Adopted last yr</p><p class="fvalue">No</p></div>
+      </div>
+      <p class="applied">Applied: Jul 30, 2026, 2:14 PM</p>
+      <table>
+        <thead><tr><th>Name</th><th>Relationship</th><th>Sex</th><th>Age</th><th>Sizes</th><th>Gifts to pack</th><th>Doll</th></tr></thead>
+        <tbody>
+          <tr><td>Merry Testhouse</td><td>Myself (head of household)</td><td>F</td><td>34</td><td><span class="sz">Pants: 12</span><span class="sz">Shirt: L</span><span class="sz">Underwear: M</span><span class="sz">Socks: 9-11</span><span class="sz">Shoe: 8</span><span class="sz">Coat: L</span></td><td>warm blanket, cookbook</td><td></td></tr>
+          <tr><td>Nick Testhouse</td><td>The other parent</td><td>M</td><td>36</td><td><span class="sz">Pants: 34x32</span><span class="sz">Shirt: XL</span><span class="sz">Underwear: L</span><span class="sz">Socks: 10-13</span><span class="sz">Shoe: 11</span><span class="sz">Coat: XL</span></td><td>work gloves, thermos</td><td></td></tr>
+          <tr><td>Holly Testhouse</td><td>Daughter</td><td>F</td><td>7</td><td><span class="sz">Pants: 7</span><span class="sz">Shirt: 7-8</span><span class="sz">Underwear: 7</span><span class="sz">Socks: S</span><span class="sz">Shoe: 1Y</span><span class="sz">Coat: 8</span></td><td>art set, doll clothes</td><td>White</td></tr>
+          <tr><td>Max Testhouse</td><td>Son</td><td>M</td><td>10</td><td><span class="sz">Pants: 10</span><span class="sz">Shirt: 10-12</span><span class="sz">Underwear: 10</span><span class="sz">Socks: M</span><span class="sz">Shoe: 4Y</span><span class="sz">Coat: 10-12</span></td><td>Legos, football</td><td></td></tr>
+          <tr><td>Ivy Testhouse</td><td>Daughter</td><td>F</td><td>2</td><td><span class="sz">Pants: 2T</span><span class="sz">Shirt: 2T</span><span class="sz">Underwear: 2T</span><span class="sz">Socks: 2T</span><span class="sz">Shoe: 6T</span><span class="sz">Coat: 2T</span><span class="sz">Diapers: size 5</span></td><td>stacking blocks, stuffed bear</td><td>Non-White</td></tr>
+        </tbody>
+      </table>
+      <p class="pnote"><strong>Note for packers:</strong> Ivy uses a wheelchair — please choose toys she can hold easily.</p>
+      <p class="notes-label">Notes</p>
+      <div class="rule"></div><div class="rule"></div><div class="rule"></div><div class="rule"></div><div class="rule"></div>
+    </div>
   </article>
 </section>
 

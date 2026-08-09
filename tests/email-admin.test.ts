@@ -12,6 +12,20 @@ describe('renderSignInEmail', () => {
     expect(r.text).toContain('https://example.org/admin/verify?token=abc');
     expect(r.html).toContain('15 minutes');
   });
+
+  // Reviewed 2026-08-08: the clickable thing is a big button, not a raw
+  // token URL, and the wording matches the real flow (the link opens the
+  // verify page, where she presses the one green "Sign me in" button).
+  it('renders a button labeled for the operator, with the raw link as fallback', () => {
+    const r = renderSignInEmail('https://example.org/admin/verify?token=abc');
+    expect(r.html).toContain('Open my sign-in page');
+    expect(r.html).toContain('Sign me in');
+    expect(r.html).toContain("If the button doesn't work");
+    // The raw URL appears twice: once as the button's href, once as the
+    // visible copy-paste fallback.
+    const hits = r.html.split('https://example.org/admin/verify?token=abc').length - 1;
+    expect(hits).toBeGreaterThanOrEqual(2);
+  });
 });
 
 describe('renderApprovedEmail', () => {
@@ -53,20 +67,34 @@ describe('renderDeniedEmail', () => {
 });
 
 describe('renderAdoptedEmail', () => {
-  it('has the owner-approved subject and the coordinator\'s 2026-07-31 body verbatim, PII-free subject, escaped name', () => {
+  // Sherlyn's wording (spec 2026-07-27 Addendum 2) survives sentence-for-
+  // sentence; the 2026-08-08 review split her single seven-line paragraph
+  // into three readable ones and aligned the heading with the subject line
+  // (households are adopted, not people).
+  it('keeps the coordinator\'s sentences verbatim, PII-free subject, escaped name', () => {
     const r = renderAdoptedEmail('<Sue>');
     expect(r.subject).toBe('Your Holiday Project family has been adopted');
     expect(r.subject).not.toContain('Sue');
     expect(r.html).toContain('&lt;Sue&gt;');
-    // Sherlyn's wording (spec 2026-07-27 Addendum 2): December 7th, pickup
-    // dates and times, the working-phone reminder; confidentiality kept.
-    expect(r.text).toContain(
-      'Per your approval, you have been adopted! You will not receive a pickup slip in December. The adoptive organization or community family will contact you by December 7th to set up pickup dates and times. Please make sure your phone is working so you can get the information you need. Everything they receive about your family is kept confidential.',
-    );
+    for (const sentence of [
+      'Per your approval, you have been adopted! You will not receive a pickup slip in December.',
+      'The adoptive organization or community family will contact you by December 7th to set up pickup dates and times. Please make sure your phone is working so you can get the information you need.',
+      'Everything they receive about your family is kept confidential.',
+    ]) {
+      expect(r.text).toContain(sentence);
+    }
     expect(r.html).toContain('December 7th');
     expect(r.html).toContain('phone is working');
     expect(r.html).toContain('kept confidential');
     expect(r.text).toContain('608-723-2136 ext 1194');
+  });
+
+  it('splits the body into breathable paragraphs and uses the family heading', () => {
+    const r = renderAdoptedEmail('Sue');
+    expect(r.html).toContain('Your family has been adopted!');
+    expect(r.html).not.toContain('>You have been adopted!');
+    // greeting + three body paragraphs + the questions line
+    expect(r.text.split('\n\n').length).toBeGreaterThanOrEqual(5);
   });
 });
 

@@ -52,8 +52,15 @@ const viewLabel =
     {town !== 'mailed' && town !== 'adopted' && notices.length === 0 && <p>No approved applications yet.</p>}
     {notices.map((d) => <PickupNoticeCard detail={d} />)}
     <style>
-      button:hover, a:hover { text-decoration: underline; background: #eee; }
-      button:focus-visible, a:focus-visible { outline: 2px solid #14532d; outline-offset: 2px; }
+      /* Screen-only chrome, operator-sized (2026-08-08 review): these print
+         routes skip the admin stylesheet, so bare defaults rendered 13px
+         buttons — below the admin's 18px floor. None of this prints. */
+      .no-print { font-size: 18px; }
+      button { font-size: 18px; font-family: Georgia, serif; background: #14532d; color: #ffffff; border: none; border-radius: 4px; padding: 10px 22px; cursor: pointer; }
+      button:hover { background: #0c3d20; }
+      a { color: #14532d; }
+      a:hover { text-decoration: underline; background: #eee; }
+      button:focus-visible, a:focus-visible { outline: 3px solid #14532d; outline-offset: 2px; }
       @media print { .no-print, h1 { display: none; } }
     </style>
     <script src="/scripts/print-button.js" defer></script>
