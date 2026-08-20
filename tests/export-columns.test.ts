@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sherlynHeaders, sherlynRow, fullHeaders, fullRow } from '../src/lib/export-columns';
+import { sherlynHeaders, sherlynRow, fullHeaders, fullRow, townSheets } from '../src/lib/export-columns';
 import { centralDateTime } from '../src/lib/dates';
 import type { ExportRow } from '../src/lib/db';
 
@@ -30,17 +30,33 @@ describe('sherlyn sheet', () => {
       'Food Card/Cert.', 'Amount', 'Gift Cards', 'GC Amount', 'NO. in HH',
     ]);
   });
-  it('maps a row: dolls fold into Special Gift, yes/blank flags, blank null amounts, blank Adopted by when not adopted', () => {
+  // Sherlyn 2026-08-19: Special Gift stays BLANK on the download — she fills
+  // it in herself later. Dolls/gifts still live on packing slips, the detail
+  // page, and the full backup export.
+  it('maps a row: Special Gift blank for her to fill in, yes/blank flags, blank null amounts, blank Adopted by when not adopted', () => {
     expect(sherlynRow(row)).toEqual([
-      803, 'Jane Smith', '123 Oak St, Lancaster', 'Non-White doll (Sue Smith); Tim Smith: bike',
+      803, 'Jane Smith', '123 Oak St, Lancaster', '',
       'yes', '', 'yes', 'yes', 50, '', '', 3,
     ]);
   });
   it('Adopted by carries the adopter name once adopted this season', () => {
     expect(sherlynRow(adoptedRow)).toEqual([
-      803, 'Jane Smith', '123 Oak St, Lancaster', 'Non-White doll (Sue Smith); Tim Smith: bike',
+      803, 'Jane Smith', '123 Oak St, Lancaster', '',
       'yes', 'Platteville Kiwanis', 'yes', 'yes', 50, '', '', 3,
     ]);
+  });
+});
+
+// 2026-08-19 (Sherlyn): the "All towns" download gets one worksheet per town.
+describe('townSheets', () => {
+  it('groups rows by town, alphabetically, preserving each town\'s row order', () => {
+    const lan1 = { ...row, city_name: 'Lancaster', pu_number: 101 };
+    const fen1 = { ...row, city_name: 'Fennimore', pu_number: 803 };
+    const lan2 = { ...row, city_name: 'Lancaster', pu_number: 102 };
+    const sheets = townSheets([lan1, fen1, lan2]);
+    expect(sheets.map((s) => s.name)).toEqual(['Fennimore', 'Lancaster']);
+    expect(sheets[0].rows.map((r) => r.pu_number)).toEqual([803]);
+    expect(sheets[1].rows.map((r) => r.pu_number)).toEqual([101, 102]);
   });
 });
 

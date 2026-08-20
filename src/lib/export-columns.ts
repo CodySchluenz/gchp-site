@@ -16,13 +16,32 @@ export function sherlynHeaders(season: number): string[] {
 }
 
 export function sherlynRow(r: ExportRow): (string | number | null)[] {
-  const specialGift = [r.dolls_summary, r.gifts_summary].filter(Boolean).join('; ');
+  // Special Gift is deliberately BLANK (Sherlyn, 2026-08-19): she fills it in
+  // herself after downloading. Until 2026-08-19 it folded dolls_summary +
+  // gifts_summary together; that data still lives on the packing slips, the
+  // application pages, and the "Download everything (backup)" export.
   return [
-    r.pu_number, `${r.first_name} ${r.last_name}`, `${r.address}, ${r.city_name}`, specialGift,
+    r.pu_number, `${r.first_name} ${r.last_name}`, `${r.address}, ${r.city_name}`, '',
     yes(r.adopted_last_year), r.adopted === 1 ? r.adopter_name : '', yes(r.thanksgiving_card),
     yes(r.food_card), r.food_card_amount ?? '', yes(r.gift_card), r.gift_card_amount ?? '',
     r.member_count,
   ];
+}
+
+// One group per town, alphabetical, each keeping the query's row order —
+// the "All towns" download turns these into one worksheet per town
+// (Sherlyn, 2026-08-19).
+export function townSheets(rows: ExportRow[]): { name: string; rows: ExportRow[] }[] {
+  const byTown = new Map<string, ExportRow[]>();
+  for (const r of rows) {
+    const name = r.city_name || 'No town';
+    const group = byTown.get(name);
+    if (group) group.push(r);
+    else byTown.set(name, [r]);
+  }
+  return [...byTown.entries()]
+    .map(([name, rows]) => ({ name, rows }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function fullHeaders(): string[] {
