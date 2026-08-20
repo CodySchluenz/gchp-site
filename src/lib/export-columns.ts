@@ -20,9 +20,13 @@ export function sherlynRow(r: ExportRow): (string | number | null)[] {
   // herself after downloading. Until 2026-08-19 it folded dolls_summary +
   // gifts_summary together; that data still lives on the packing slips, the
   // application pages, and the "Download everything (backup)" export.
+  // Adopted by carries who to reach — the adopter's name and phone number
+  // (Sherlyn, 2026-08-19); phone is optional on the Mark-adopted form, so it
+  // appends only when she recorded one.
+  const adoptedBy = r.adopted === 1 ? [r.adopter_name, r.adopter_phone].filter(Boolean).join(' — ') : '';
   return [
     r.pu_number, `${r.first_name} ${r.last_name}`, `${r.address}, ${r.city_name}`, '',
-    yes(r.adopted_last_year), r.adopted === 1 ? r.adopter_name : '', yes(r.thanksgiving_card),
+    yes(r.adopted_last_year), adoptedBy, yes(r.thanksgiving_card),
     yes(r.food_card), r.food_card_amount ?? '', yes(r.gift_card), r.gift_card_amount ?? '',
     r.member_count,
   ];

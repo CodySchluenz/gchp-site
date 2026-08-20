@@ -39,11 +39,15 @@ describe('sherlyn sheet', () => {
       'yes', '', 'yes', 'yes', 50, '', '', 3,
     ]);
   });
-  it('Adopted by carries the adopter name once adopted this season', () => {
+  // Sherlyn 2026-08-19: Adopted by carries who to reach — name AND phone.
+  it('Adopted by carries the adopter name and phone once adopted this season', () => {
     expect(sherlynRow(adoptedRow)).toEqual([
       803, 'Jane Smith', '123 Oak St, Lancaster', '',
-      'yes', 'Platteville Kiwanis', 'yes', 'yes', 50, '', '', 3,
+      'yes', 'Platteville Kiwanis — 608-555-0100', 'yes', 'yes', 50, '', '', 3,
     ]);
+  });
+  it('Adopted by shows just the name when no adopter phone was recorded', () => {
+    expect(sherlynRow({ ...adoptedRow, adopter_phone: '' })[5]).toBe('Platteville Kiwanis');
   });
 });
 
