@@ -1,6 +1,7 @@
 ---
 import type { ApplicationDetail } from '../../lib/db';
 import { centralDateTime } from '../../lib/dates';
+import { formatPhone } from '../../lib/phone';
 import { relationshipLabel } from '../../lib/relationships';
 interface Props { detail: ApplicationDetail }
 const { detail } = Astro.props;
@@ -29,7 +30,7 @@ const people = detail.members.length === 1 ? '1 person' : `${detail.members.leng
   </div>
   <div class="bodypad">
     <p class="name">{a.first_name} {a.last_name}</p>
-    <p class="contact">{a.phone} · {a.address}, {detail.city_name}{a.email ? ` · ${String(a.email)}` : ''}</p>
+    <p class="contact">{formatPhone(String(a.phone ?? ''))} · {a.address}, {detail.city_name}{a.email ? ` · ${String(a.email)}` : ''}</p>
     {detail.pickup_day && (
       <p class="pickup"><strong>Pickup:</strong> {detail.pickup_day.date_text}{detail.pickup_day.description ? ` — ${detail.pickup_day.description}` : ''}</p>
     )}
