@@ -115,13 +115,16 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
               <label class="block font-semibold">Diapers size<input class={input} type="text" name="diapers" value={m.diapers} /></label>
               <label class="block font-semibold">Shoe size<input class={input} type="text" name="shoe" value={m.shoe ?? ''} /></label>
               <label class="block font-semibold">Coat size<input class={input} type="text" name="coat" value={m.coat ?? ''} /></label>
-              <label class="block font-semibold">Gifts / toys wanted<input class={input} type="text" name="gifts" value={m.gifts} /></label>
               <label class="block font-semibold">Doll
                 <select class={input} name="doll">
                   <option value="" selected={(m.doll ?? '') === ''}>No doll</option>
                   <option value="white" selected={m.doll === 'white'}>White doll</option>
                   <option value="non_white" selected={m.doll === 'non_white'}>Non-White doll</option>
                 </select>
+              </label>
+              <label class="block font-semibold sm:col-span-2">Gifts / toys wanted
+                <span class="block text-base font-normal text-stone-600">This is exactly what prints on the packing slip. Add, change, or delete anything, then press Save.</span>
+                <textarea class={input} name="gifts" rows="4">{m.gifts}</textarea>
               </label>
             </div>
             <div class="flex flex-wrap gap-6">
@@ -161,13 +164,16 @@ const full = detail ? detail.members.length >= MAX_MEMBERS : false;
               <label class="block font-semibold">Diapers size<input class={input} type="text" name="diapers" /></label>
               <label class="block font-semibold">Shoe size<input class={input} type="text" name="shoe" /></label>
               <label class="block font-semibold">Coat size<input class={input} type="text" name="coat" /></label>
-              <label class="block font-semibold">Gifts / toys wanted<input class={input} type="text" name="gifts" /></label>
               <label class="block font-semibold">Doll
                 <select class={input} name="doll">
                   <option value="">No doll</option>
                   <option value="white">White doll</option>
                   <option value="non_white">Non-White doll</option>
                 </select>
+              </label>
+              <label class="block font-semibold sm:col-span-2">Gifts / toys wanted
+                <span class="block text-base font-normal text-stone-600">This is exactly what prints on the packing slip. Add, change, or delete anything, then press Add this person.</span>
+                <textarea class={input} name="gifts" rows="4"></textarea>
               </label>
             </div>
             <div class="flex flex-wrap gap-6">
