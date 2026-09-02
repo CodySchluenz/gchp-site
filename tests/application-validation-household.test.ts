@@ -7,6 +7,7 @@ import {
   validateParentageNote,
   MAX_MEMBERS,
   MAX_EMPLOYERS,
+  MAX_GIFTS_WORDS,
   type Errors,
 } from '../src/lib/validation/application';
 
@@ -30,6 +31,31 @@ const fullValid = {
   member_pants_2: '8', member_gifts_2: 'legos',
   good_deed: "I shoveled my neighbor's snow all winter.",
 };
+
+// Sherlyn 2026-09-02: gift lists were arriving 150+ words long — cap each
+// person's "Gifts or toys they'd like" at 50 words on the PUBLIC form only.
+// Her own admin surfaces (paper entry, member editor) stay unrestricted.
+describe('gifts word limit (public form)', () => {
+  const words = (n: number) => Array.from({ length: n }, (_, i) => `toy${i + 1}`).join(' ');
+
+  it('exposes the limit as a constant the form hint can reuse', () => {
+    expect(MAX_GIFTS_WORDS).toBe(50);
+  });
+
+  it('accepts a gifts list of exactly 50 words', () => {
+    const errors: Errors = {};
+    const r = validateMembers({ ...fullValid, member_gifts_2: words(50) }, errors);
+    expect(errors).toEqual({});
+    expect(r?.[1].gifts).toBe(words(50));
+  });
+
+  it('rejects 51 words with a kind message that names both counts', () => {
+    const errors: Errors = {};
+    expect(validateMembers({ ...fullValid, member_gifts_2: words(51) }, errors)).toBeNull();
+    expect(errors.member_gifts_2).toContain('50');
+    expect(errors.member_gifts_2).toContain('51');
+  });
+});
 
 describe('validateEmployment', () => {
   it('accepts a complete employer row', () => {

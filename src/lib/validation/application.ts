@@ -151,6 +151,10 @@ export function validateParentageNote(input: ApplicationInput, errors: Errors): 
 
 export const MAX_MEMBERS = 15;
 export const MAX_EMPLOYERS = 10;
+// Cap on each person's "Gifts or toys they'd like" list, public form only
+// (Sherlyn, 2026-09-02 — lists were arriving 150+ words long). Her admin
+// surfaces stay uncapped so she can curate the pack list freely.
+export const MAX_GIFTS_WORDS = 50;
 
 function rowCount(input: ApplicationInput, key: string, max: number): number {
   // Clamp rather than reset: a tampered count never hides rows someone typed.
@@ -352,10 +356,16 @@ export function validateMembers(input: ApplicationInput, errors: Errors): Member
     if (sex !== 'M' && sex !== 'F') errors[`member_sex_${i}`] = 'Please pick one.';
     const age = parseIntInRange(ageRaw, 0, 110);
     if (age === null) errors[`member_age_${i}`] = 'Please enter their age as a number.';
+    const giftsWords = gifts === '' ? 0 : gifts.split(/\s+/).filter(Boolean).length;
+    if (giftsWords > MAX_GIFTS_WORDS) {
+      errors[`member_gifts_${i}`] =
+        `Please shorten this list to ${MAX_GIFTS_WORDS} words or fewer — it is ${giftsWords} words right now. ` +
+        'Listing the most important things first works best.';
+    }
 
     if (
       errors[`member_name_${i}`] || errors[`member_relationship_${i}`] || errors[`member_relationship_other_${i}`] ||
-      errors[`member_sex_${i}`] || errors[`member_age_${i}`]
+      errors[`member_sex_${i}`] || errors[`member_age_${i}`] || errors[`member_gifts_${i}`]
     ) {
       failed = true;
       continue;

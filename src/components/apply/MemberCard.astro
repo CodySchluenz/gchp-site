@@ -1,6 +1,7 @@
 ---
 import FieldError from './FieldError.astro';
 import { RELATIONSHIP_OPTIONS } from '../../lib/relationships';
+import { MAX_GIFTS_WORDS } from '../../lib/validation/application';
 interface Props { index: number | string; values: Record<string, string>; errors: Record<string, string> }
 const { index: i, values, errors } = Astro.props;
 const v = (n: string) => values[n] ?? '';
@@ -77,8 +78,11 @@ const sizes = [
   </div>
   <div class="mt-4">
     <label for={`member_gifts_${i}`} class="block font-semibold">Gifts or toys they'd like</label>
-    <textarea id={`member_gifts_${i}`} name={`member_gifts_${i}`} rows="3" class={input}>{v(`member_gifts_${i}`)}</textarea>
-    <p class="mt-1 text-base text-stone-600">We can't provide expensive items like iPods, laptops, games, or TVs.</p>
+    <textarea id={`member_gifts_${i}`} name={`member_gifts_${i}`} rows="3" class={input}
+      aria-invalid={inv(`member_gifts_${i}`)} aria-describedby={desc(`member_gifts_${i}`)}>{v(`member_gifts_${i}`)}</textarea>
+    <FieldError id={`member_gifts_${i}`} errors={errors} />
+    <p class="mt-1 text-base text-stone-600">A short list works best — up to {MAX_GIFTS_WORDS} words,
+      most important things first. We can't provide expensive items like iPods, laptops, games, or TVs.</p>
   </div>
   <div class="mt-4">
     <label for={`member_doll_${i}`} class="block font-semibold">Would they like a doll?</label>

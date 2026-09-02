@@ -32,6 +32,14 @@ describe('validateApplicationAdmin — lenient', () => {
     expect(r2.ok).toBe(false);
     if (!r2.ok) expect(r2.errors.city_id).toBeTruthy();
   });
+  it('never caps gifts length — the coordinator curates the pack list freely', () => {
+    const long = Array.from({ length: 80 }, (_, i) => `toy${i + 1}`).join(' ');
+    const r = validateApplicationAdmin({
+      ...minimal, member_count: '1', member_name_1: 'Tim Smith', member_age_1: '7', member_gifts_1: long,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.clean.members[0]?.gifts).toBe(long);
+  });
   it('blank is never an error, but malformed still is', () => {
     const bad = validateApplicationAdmin({ ...minimal, email: 'not-an-email', ssi_amount: 'abc', years_received_help: 'x' });
     expect(bad.ok).toBe(false);
