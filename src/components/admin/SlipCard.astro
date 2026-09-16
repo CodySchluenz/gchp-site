@@ -35,7 +35,6 @@ const people = detail.members.length === 1 ? '1 person' : `${detail.members.leng
       <p class="pickup"><strong>Pickup:</strong> {detail.pickup_day.date_text}{detail.pickup_day.description ? ` — ${detail.pickup_day.description}` : ''}</p>
     )}
     <p class="badges">
-      {a.diabetic === 1 && <span class="badge">DIABETIC</span>}
       {a.bed_choice !== 'none' && <span class="badge">Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''}</span>}
       <span class="badge">{people}</span>
     </p>

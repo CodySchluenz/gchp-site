@@ -16,8 +16,12 @@ import { readFileSync } from 'node:fs';
 // CURATED pack list: she edits each person's "Gifts / toys wanted" under Edit
 // household members (swapping anything she's out of), then prints. The raw
 // family ask and the final pack list are the same field, by design.
+// 2026-09 (Board recommendation via Sherlyn): the diabetic flag left the
+// slip — packers don't need that information. It stays on the application
+// pages, which only the coordinator sees.
 const FORBIDDEN = [
   'bags_count', 'good_deed', 'admin_notes', 'parentage_note',
+  'diabetic',
   'food_share', 'social_security', 'ssi_amount',
   'child_support', 'unemployment', 'other_income', 'original_json',
 ];

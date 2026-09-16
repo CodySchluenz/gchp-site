@@ -28,9 +28,13 @@ describe('packing slip layout (2026-08-08 review)', () => {
     expect(src).not.toContain('Household type: {a.household_type} ·');
   });
 
-  it('renders DIABETIC as a bordered badge that survives black-and-white printing', () => {
+  // Board recommendation via Sherlyn, 2026-09: packers don't need the
+  // diabetic flag — it's gone from the slip (also pinned in the FORBIDDEN
+  // list in slip-privacy.test.ts); the bedding request is the bold badge.
+  it('renders the bedding request as a bold bordered badge, with no diabetic flag', () => {
     const src = slip();
     expect(src).toContain('class="badge"');
+    expect(src).toContain('Bed:');
     expect(src).not.toContain('#b91c1c');
   });
 

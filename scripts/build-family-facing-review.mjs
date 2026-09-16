@@ -152,9 +152,10 @@ ${emailBlock('Email 5 of 5 — sent when you press "Mark adopted and email them"
 <h2 class="pagebreak">The Packing slip (volunteers only — families never see it)</h2>
 <section class="item">
   <p class="note">One family per page, for the packers' pile. The <strong>Gifts to pack</strong> column
-  prints whatever you've set in each person's "Gifts / toys wanted" — your final pack list. The DIABETIC
-  flag, bed line, and packers' note appear only when set; this sample shows everything at once.
-  Income, good deeds, and your private notes never appear.</p>
+  prints whatever you've set in each person's "Gifts / toys wanted" — your final pack list. The bold
+  bed line and the packers' note appear only when set; this sample shows everything at once.
+  Income, good deeds, the diabetic flag (removed Sept 2026 per the Board), and your private notes
+  never appear.</p>
   <article class="slip">
     <div class="head">
       <div class="head-left">
@@ -167,7 +168,7 @@ ${emailBlock('Email 5 of 5 — sent when you press "Mark adopted and email them"
       <p class="name">Merry Testhouse</p>
       <p class="contact">608-555-0101 · 101 Candy Cane Ln, Platteville · merry@example.com</p>
       <p class="pickup"><strong>Pickup:</strong> Tuesday Dec. 16th — 11–2:30 PM</p>
-      <p><span class="badge">DIABETIC</span> <span class="badge">Bed: sheets (full)</span> <span class="badge">5 people</span></p>
+      <p><span class="badge">Bed: sheets (full)</span> <span class="badge">5 people</span></p>
       <div class="factgrid">
         <div class="fact"><p class="flabel">Household</p><p class="fvalue">Family</p></div>
         <div class="fact"><p class="flabel">Sponsor OK</p><p class="fvalue">Yes</p></div>
