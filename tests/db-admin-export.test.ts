@@ -141,6 +141,27 @@ describe('listApplicationsForExport binds both branches', () => {
     } finally { await dispose(); }
   });
 
+  // Sherlyn 2026-09: town views are regular pickup families only, and the
+  // export rows carry the straggler flag so the All-towns workbook can keep
+  // mailed/straggler households off the town tabs.
+  it('a numeric town export excludes mailed households and stragglers, and rows carry straggler', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      await insertApplication(db, { ...base, lastName: 'TownFam' });
+      await insertApplication(db, { ...base, lastName: 'TownElder', householdType: 'elderly' });
+      const strag = await insertApplication(db, { ...base, lastName: 'TownStrag' });
+      await db.prepare('UPDATE applications SET straggler = 1 WHERE id = ?').bind(strag).run();
+
+      const town = await listApplicationsForExport(db, 2026, 'all', '', 13);
+      expect(town.map((r) => r.last_name)).toEqual(['TownFam']);
+      expect(town[0].straggler).toBe(0);
+
+      const all = await listApplicationsForExport(db, 2026, 'all', '');
+      expect(all.find((r) => r.last_name === 'TownStrag')?.straggler).toBe(1);
+      expect(all.find((r) => r.last_name === 'TownElder')?.household_type).toBe('elderly');
+    } finally { await dispose(); }
+  });
+
   it('exports the adoption columns, defaulted until marked', async () => {
     const { db, dispose } = await getTestDb();
     try {

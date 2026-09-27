@@ -24,12 +24,22 @@ export function sherlynRow(r: ExportRow): (string | number | null)[] {
   // (Sherlyn, 2026-08-19); phone is optional on the Mark-adopted form, so it
   // appends only when she recorded one.
   const adoptedBy = r.adopted === 1 ? [r.adopter_name, r.adopter_phone].filter(Boolean).join(' — ') : '';
+  // 'adopted' means marked adopted THIS season (Sherlyn, 2026-09) — she gives
+  // adoptees different families each year, so last year's answer stays off
+  // her sheet (it still lives in the full backup export).
   return [
     r.pu_number, `${r.first_name} ${r.last_name}`, `${r.address}, ${r.city_name}`, '',
-    yes(r.adopted_last_year), adoptedBy, yes(r.thanksgiving_card),
+    yes(r.adopted), adoptedBy, yes(r.thanksgiving_card),
     yes(r.food_card), r.food_card_amount ?? '', yes(r.gift_card), r.gift_card_amount ?? '',
     r.member_count,
   ];
+}
+
+// Regular pickup families only (Sherlyn, 2026-09): mailed (elderly/disabled)
+// households and stragglers leave the town views — she counts and packs them
+// separately, from their own views. Adopted-out families stay with their town.
+export function regularPickupRows(rows: ExportRow[]): ExportRow[] {
+  return rows.filter((r) => r.household_type !== 'elderly' && r.household_type !== 'disabled' && r.straggler !== 1);
 }
 
 // One group per town, alphabetical, each keeping the query's row order —

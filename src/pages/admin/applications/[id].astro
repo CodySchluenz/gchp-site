@@ -242,7 +242,7 @@ const pickupDays = detail && a.household_type === 'family' ? await listPickupDay
         {a.source === 'paper' && <p class="text-stone-700">Entered from a paper application.</p>}
         <p class="mt-2">{a.address}, {detail.city_name}</p>
         <p>Phone: {a.phone} · Email: {a.email}</p>
-        <p>Household type: {a.household_type} · Diabetic in household: {yesno(a.diabetic)} · OK to share needs with a sponsor: {yesno(a.share_with_sponsor)}</p>
+        <p>Household type: {a.household_type} · Diabetic in household: {yesno(a.diabetic)} · Wishes to be adopted: {yesno(a.share_with_sponsor)}</p>
         <p>Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''} · Years received help: {a.years_received_help} · Adopted last year: {yesno(a.adopted_last_year)}</p>
       </section>
 
@@ -460,7 +460,7 @@ const pickupDays = detail && a.household_type === 'family' ? await listPickupDay
           <h2 class="text-2xl font-bold text-holly-800">Adoption</h2>
           {a.share_with_sponsor !== 1 ? (
             <>
-              <p class="mt-2 text-lg text-stone-700">This family said No to sharing their needs — if they have since agreed, change that in Edit details first.</p>
+              <p class="mt-2 text-lg text-stone-700">This family said No to being adopted — if they have since agreed, change that in Edit details first.</p>
               {a.adopted === 1 && (
                 <>
                   {/* Consent lapsed AFTER marking: no re-marking without consent,

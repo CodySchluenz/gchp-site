@@ -104,12 +104,14 @@ describe('block-aware pickup numbers', () => {
       await assignPuNumber(db, a, 2026);   // 801
       await assignPuNumber(db, eld, 2026); // 2500
       const town = await listApplications(db, 2026, 'all', '', 13);
-      expect(town.map((r) => r.last_name)).toEqual(['B', 'Smith', 'Eld']); // geography incl. mailed; number order
+      // Regular pickup families only (Sherlyn 2026-09 — mailed households left
+      // the town views); number order.
+      expect(town.map((r) => r.last_name)).toEqual(['B', 'Smith']);
       const mailed = await listApplications(db, 2026, 'all', '', 'mailed');
       expect(mailed.map((r) => r.last_name)).toEqual(['Eld']);
       expect(mailed[0].address).toBe('1 Elm'); // mail list carries the address
       const exportTown = await listApplicationsForExport(db, 2026, 'all', '', 13);
-      expect(exportTown).toHaveLength(3);
+      expect(exportTown).toHaveLength(2);
       const exportMailed = await listApplicationsForExport(db, 2026, 'all', '', 'mailed');
       expect(exportMailed).toHaveLength(1);
     } finally { await dispose(); }

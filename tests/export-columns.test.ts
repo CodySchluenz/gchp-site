@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sherlynHeaders, sherlynRow, fullHeaders, fullRow, townSheets } from '../src/lib/export-columns';
+import { sherlynHeaders, sherlynRow, fullHeaders, fullRow, townSheets, regularPickupRows } from '../src/lib/export-columns';
 import { centralDateTime } from '../src/lib/dates';
 import type { ExportRow } from '../src/lib/db';
 
@@ -13,7 +13,7 @@ const row: ExportRow = {
   member_count: 3, member_summary: 'Jane Smith (self, age 30)', gifts_summary: 'Tim Smith: bike',
   dolls_summary: 'Non-White doll (Sue Smith)', employment_summary: '',
   thanksgiving_card: 1, food_card: 1, food_card_amount: 50, gift_card: 0, gift_card_amount: null,
-  source: 'online',
+  source: 'online', straggler: 0,
   adopted: 0, adopter_name: '', adopter_contact: '', adopter_phone: '', adopter_address: '',
 };
 
@@ -33,14 +33,18 @@ describe('sherlyn sheet', () => {
   // Sherlyn 2026-08-19: Special Gift stays BLANK on the download — she fills
   // it in herself later. Dolls/gifts still live on packing slips, the detail
   // page, and the full backup export.
-  it('maps a row: Special Gift blank for her to fill in, yes/blank flags, blank null amounts, blank Adopted by when not adopted', () => {
+  // Sherlyn 2026-09: the 'adopted' column means marked adopted THIS season
+  // (adopted_last_year no longer shows on her sheet — adoptees get different
+  // families each year; the fixture's adopted_last_year: 1 must NOT leak in).
+  it('maps a row: Special Gift blank for her to fill in, adopted blank until marked this season, blank null amounts', () => {
     expect(sherlynRow(row)).toEqual([
       803, 'Jane Smith', '123 Oak St, Lancaster', '',
-      'yes', '', 'yes', 'yes', 50, '', '', 3,
+      '', '', 'yes', 'yes', 50, '', '', 3,
     ]);
   });
-  // Sherlyn 2026-08-19: Adopted by carries who to reach — name AND phone.
-  it('Adopted by carries the adopter name and phone once adopted this season', () => {
+  // Sherlyn 2026-08-19/2026-09: once marked adopted this season, the adopted
+  // column says yes and Adopted by carries who to reach — name AND phone.
+  it('adopted + Adopted by both key on the this-season mark', () => {
     expect(sherlynRow(adoptedRow)).toEqual([
       803, 'Jane Smith', '123 Oak St, Lancaster', '',
       'yes', 'Platteville Kiwanis — 608-555-0100', 'yes', 'yes', 50, '', '', 3,
@@ -48,6 +52,20 @@ describe('sherlyn sheet', () => {
   });
   it('Adopted by shows just the name when no adopter phone was recorded', () => {
     expect(sherlynRow({ ...adoptedRow, adopter_phone: '' })[5]).toBe('Platteville Kiwanis');
+  });
+});
+
+// Sherlyn 2026-09: the town tabs of the All-towns workbook hold regular
+// pickup families only — mailed (elderly/disabled) households and stragglers
+// come from their own views instead (owner-confirmed: no extra tabs).
+describe('regularPickupRows', () => {
+  it('drops mailed households and stragglers, keeps regular and adopted-out families', () => {
+    const fam = { ...row, pu_number: 101 };
+    const eld = { ...row, pu_number: 2500, household_type: 'elderly' };
+    const dis = { ...row, pu_number: 2501, household_type: 'disabled' };
+    const strag = { ...row, pu_number: 2400, straggler: 1 };
+    const adoptedOut = { ...adoptedRow, pu_number: 102 };
+    expect(regularPickupRows([fam, eld, dis, strag, adoptedOut]).map((r) => r.pu_number)).toEqual([101, 102]);
   });
 });
 

@@ -165,7 +165,7 @@ const v = (n: string) => values[n] ?? '';
         </label>
       </div>
       <div class="mt-4 flex flex-wrap gap-6 text-lg">
-        <label class="flex items-center gap-2"><input type="checkbox" name="share_with_sponsor" checked={v('share_with_sponsor') === 'on'} class="h-6 w-6" /> OK to adopt out (circled Yes)</label>
+        <label class="flex items-center gap-2"><input type="checkbox" name="share_with_sponsor" checked={v('share_with_sponsor') === 'on'} class="h-6 w-6" /> Wishes to be adopted (circled Yes)</label>
         <label class="flex items-center gap-2"><input type="radio" name="adopted_last_year" value="yes" checked={v('adopted_last_year') === 'yes'} class="h-6 w-6" /> Adopted last year: yes</label>
         <label class="flex items-center gap-2"><input type="radio" name="adopted_last_year" value="no" checked={v('adopted_last_year') === 'no'} class="h-6 w-6" /> no</label>
         <label class="flex items-center gap-2"><input type="checkbox" name="full_time_residence" checked={v('full_time_residence') === 'on'} class="h-6 w-6" /> Residence rule met</label>

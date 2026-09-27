@@ -45,6 +45,29 @@ describe('packing slip layout (2026-08-08 review)', () => {
   it('boxes the note for packers', () => {
     expect(slip()).toContain('class="pnote"');
   });
+
+  // Sherlyn 2026-09: the applicant question is now "Do you wish a community
+  // organization or member to adopt your family?" — the slip's fact label
+  // follows ("Sponsor" confused people).
+  it('labels the consent fact "Adoption OK", not "Sponsor OK"', () => {
+    const src = slip();
+    expect(src).toContain('Adoption OK');
+    expect(src).not.toContain('Sponsor OK');
+  });
+});
+
+// Sherlyn 2026-09: a town's print stacks hold regular pickup families only —
+// stragglers pack on their own days (mailed/adopted are already excluded at
+// the query level by listApprovedForSlips).
+describe('town print views exclude stragglers', () => {
+  const routes = [
+    'src/pages/admin/applications/slips.astro',
+    'src/pages/admin/applications/pickup-slips.astro',
+  ];
+  it.each(routes)('%s numeric-town branch filters out stragglers', (route) => {
+    const src = readFileSync(route, 'utf8');
+    expect(src).toMatch(/city_id\) === town && d\.app\.straggler !== 1/);
+  });
 });
 
 // The print screens' own chrome (never printed) was bare 13px browser-default

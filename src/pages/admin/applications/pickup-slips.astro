@@ -22,7 +22,9 @@ const cities = await listCities(Astro.locals.runtime.env.DB);
 const notices =
   town === 'mailed' ? [] :
   town === 'adopted' ? [] :
-  typeof town === 'number' ? all.filter((d) => Number(d.app.city_id) === town) :
+  // A town's notices are regular pickup families only (Sherlyn, 2026-09) —
+  // stragglers get theirs from the Stragglers view.
+  typeof town === 'number' ? all.filter((d) => Number(d.app.city_id) === town && d.app.straggler !== 1) :
   town === 'stragglers' ? all.filter((d) => d.app.straggler === 1) :
   all;
 

@@ -259,8 +259,8 @@ const errorEntries = Object.entries(errors);
             <label class="flex items-start gap-3">
               <input type="checkbox" name="share_with_sponsor" checked={(values.share_with_sponsor ?? '') === 'on'} class="mt-1 h-6 w-6" />
               <span>
-                A generous neighbor may sponsor your family. They will never be told your name —
-                only what your family needs. <strong>May we share your needs this way?</strong>
+                <strong>Do you wish a community organization or member to adopt your family?</strong>
+                All confidential.
               </span>
             </label>
             <label class="flex items-start gap-3">
@@ -359,7 +359,7 @@ const errorEntries = Object.entries(errors);
           <p class="mt-2">
             Tell us about each person living with you, including yourself — you're Person 1. Children
             must live in your home at least half of the time to be listed. Clothing sizes help us pick
-            things that fit; leave blank anything they don't need.
+            things that fit — only fill in a size if they need that item.
           </p>
           <div id="member-list">
             {Array.from({ length: memberCount }, (_, idx) => (

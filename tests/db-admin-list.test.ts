@@ -155,6 +155,27 @@ describe('has_disabled_member flag', () => {
   });
 });
 
+// Sherlyn 2026-09: a town view holds regular pickup families only — mailed
+// (elderly/disabled) households and stragglers live in their own views, so
+// her volunteer counts and packing-day stacks aren't double-counted.
+describe('town views exclude mailed households and stragglers', () => {
+  it('a numeric town view returns only regular pickup families; their own views still hold them', async () => {
+    const { db, dispose } = await getTestDb();
+    try {
+      const fam = await insertApplication(db, makeApp({ firstName: 'Reg', lastName: 'Family' }));
+      const eld = await insertApplication(db, makeApp({ firstName: 'Betty', lastName: 'Elder', householdType: 'elderly' }));
+      const strag = await insertApplication(db, makeApp({ firstName: 'Late', lastName: 'Comer' }));
+      await db.prepare('UPDATE applications SET straggler = 1 WHERE id = ?').bind(strag).run();
+
+      expect((await listApplications(db, 2026, 'all', '', 13)).map((r) => r.id)).toEqual([fam]);
+      expect((await listApplications(db, 2026, 'all', '', 'mailed')).map((r) => r.id)).toEqual([eld]);
+      expect((await listApplications(db, 2026, 'all', '', 'stragglers')).map((r) => r.id)).toEqual([strag]);
+      // The All-towns view still shows everyone.
+      expect((await listApplications(db, 2026, 'all', '')).length).toBe(3);
+    } finally { await dispose(); }
+  });
+});
+
 // The removed-applications list (owner 2026-07-30): deletes were always soft,
 // but the Undo banner was the only door back — gone once she left the page.
 // This season-scoped list keeps every removed application reachable.

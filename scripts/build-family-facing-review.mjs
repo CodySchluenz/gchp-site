@@ -171,7 +171,7 @@ ${emailBlock('Email 5 of 5 — sent when you press "Mark adopted and email them"
       <p><span class="badge">Bed: sheets (full)</span> <span class="badge">5 people</span></p>
       <div class="factgrid">
         <div class="fact"><p class="flabel">Household</p><p class="fvalue">Family</p></div>
-        <div class="fact"><p class="flabel">Sponsor OK</p><p class="fvalue">Yes</p></div>
+        <div class="fact"><p class="flabel">Adoption OK</p><p class="fvalue">Yes</p></div>
         <div class="fact"><p class="flabel">Years helped</p><p class="fvalue">2</p></div>
         <div class="fact"><p class="flabel">Adopted last yr</p><p class="fvalue">No</p></div>
       </div>

@@ -216,7 +216,7 @@ export async function listApplications(
        WHERE a.deleted_at IS NULL AND a.season_year = ?1
          AND (?2 = '' OR a.status = ?2)
          AND (?3 = '%%' OR lower(a.first_name) LIKE ?3 ESCAPE '\\' OR lower(a.last_name) LIKE ?3 ESCAPE '\\')
-         AND (?4 = 0 OR a.city_id = ?4)
+         AND (?4 = 0 OR (a.city_id = ?4 AND a.household_type NOT IN ('elderly', 'disabled') AND a.straggler = 0))
          AND (?5 = 0 OR a.household_type IN ('elderly', 'disabled'))
          AND (?6 = 0 OR a.straggler = 1)
          AND (?7 = 0 OR a.adopted = 1)
@@ -766,6 +766,7 @@ export type ExportRow = {
   gift_card: number;
   gift_card_amount: number | null;
   source: string;
+  straggler: number;
   adopted: number;
   adopter_name: string;
   adopter_contact: string;
@@ -784,7 +785,11 @@ export async function listApplicationsForExport(
   const statusFilter = status === 'all' ? '' : 'AND a.status = ?2';
   // Name filter is a no-op when the search box is empty (like === '%%').
   const nameFilter = `AND (?3 = '%%' OR lower(a.first_name) LIKE ?3 ESCAPE '\\' OR lower(a.last_name) LIKE ?3 ESCAPE '\\')`;
-  const townFilter = `AND (?4 = 0 OR a.city_id = ?4)`;
+  // A town view is regular pickup families only (Sherlyn, 2026-09): mailed
+  // (elderly/disabled) households and stragglers live in their own views, so
+  // her volunteer counts and packing stacks aren't double-counted. Same rule
+  // as listApplications' town branch above.
+  const townFilter = `AND (?4 = 0 OR (a.city_id = ?4 AND a.household_type NOT IN ('elderly', 'disabled') AND a.straggler = 0))`;
   const mailedFilter = `AND (?5 = 0 OR a.household_type IN ('elderly', 'disabled'))`;
   const stragglerFilter = `AND (?6 = 0 OR a.straggler = 1)`;
   const adoptedFilter = `AND (?7 = 0 OR a.adopted = 1)`;
@@ -799,7 +804,7 @@ export async function listApplicationsForExport(
            a.food_share_amount, a.social_security_amount, a.ssi_amount, a.child_support_amount,
            a.unemployment_weekly_amount, a.other_income_amount,
            a.thanksgiving_card, a.food_card, a.food_card_amount, a.gift_card, a.gift_card_amount,
-           a.adopted, a.adopter_name, a.adopter_contact, a.adopter_phone, a.adopter_address,
+           a.straggler, a.adopted, a.adopter_name, a.adopter_contact, a.adopter_phone, a.adopter_address,
            COUNT(DISTINCT m.id) AS member_count,
            COALESCE(GROUP_CONCAT(
              m.name || ' (' ||

@@ -35,7 +35,7 @@ const forNote = (s?: string) => (s ? ` (for ${s})` : '');
         {snap!.source === 'paper' && <p class="text-stone-700">Entered from a paper application.</p>}
         <p class="mt-2">{snap!.address ?? ''}, {town}</p>
         <p>Phone: {snap!.phone ?? ''} · Email: {snap!.email ?? ''}</p>
-        <p>Household type: {snap!.householdType ?? ''} · Diabetic in household: {yesno(snap!.diabetic)} · Permanently disabled: {yesno(snap!.permanentlyDisabled)} · OK to share needs with a sponsor: {yesno(snap!.shareWithSponsor)}</p>
+        <p>Household type: {snap!.householdType ?? ''} · Diabetic in household: {yesno(snap!.diabetic)} · Permanently disabled: {yesno(snap!.permanentlyDisabled)} · Wishes to be adopted: {yesno(snap!.shareWithSponsor)}</p>
         <p>Bed: {snap!.bedChoice ?? ''}{snap!.bedSize ? ` (${snap!.bedSize})` : ''} · Years received help: {snap!.yearsReceivedHelp ?? ''} · Adopted last year: {yesno(snap!.adoptedLastYear)}</p>
       </section>
 

@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { listApplicationsForExport, latestSeason } from '../../../lib/db';
 import { buildXlsxWorkbook } from '../../../lib/xlsx';
-import { sherlynHeaders, sherlynRow, townSheets } from '../../../lib/export-columns';
+import { sherlynHeaders, sherlynRow, townSheets, regularPickupRows } from '../../../lib/export-columns';
 
 export const prerender = false;
 
@@ -25,10 +25,13 @@ export const GET: APIRoute = async ({ locals, url }) => {
   widths[headers.indexOf('Special Gift')] = 22;
   // "All towns" (no town picked) splits into one worksheet per town —
   // Lancaster on its own tab, Fennimore on its own tab, and so on
-  // (Sherlyn, 2026-08-19). A specific view stays a single sheet.
-  const sheets = town === null && rows.length > 0
-    ? townSheets(rows).map((t) => ({ name: t.name, headers, rows: t.rows.map(sherlynRow), widthOverrides: widths }))
-    : [{ name: 'Applications', headers, rows: rows.map(sherlynRow), widthOverrides: widths }];
+  // (Sherlyn, 2026-08-19). Town tabs hold regular pickup families only
+  // (Sherlyn, 2026-09): mailed households and stragglers come from their own
+  // views' downloads instead. A specific view stays a single sheet.
+  const townRows = town === null ? regularPickupRows(rows) : rows;
+  const sheets = town === null && townRows.length > 0
+    ? townSheets(townRows).map((t) => ({ name: t.name, headers, rows: t.rows.map(sherlynRow), widthOverrides: widths }))
+    : [{ name: 'Applications', headers, rows: townRows.map(sherlynRow), widthOverrides: widths }];
   const workbook = buildXlsxWorkbook(sheets);
   // Uint8Array is a valid BodyInit at runtime; cast past the workers-types BodyInit union.
   return new Response(workbook as BodyInit, {

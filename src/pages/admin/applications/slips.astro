@@ -22,7 +22,9 @@ const cities = await listCities(Astro.locals.runtime.env.DB);
 const slips =
   town === 'mailed' ? [] :
   town === 'adopted' ? [] :
-  typeof town === 'number' ? allSlips.filter((d) => Number(d.app.city_id) === town) :
+  // A town's stack is regular pickup families only (Sherlyn, 2026-09) —
+  // stragglers pack on their own days via the Stragglers view.
+  typeof town === 'number' ? allSlips.filter((d) => Number(d.app.city_id) === town && d.app.straggler !== 1) :
   town === 'stragglers' ? allSlips.filter((d) => d.app.straggler === 1) :
   allSlips;
 
