@@ -30,7 +30,7 @@ const people = detail.members.length === 1 ? '1 person' : `${detail.members.leng
   </div>
   <div class="bodypad">
     <p class="name">{a.first_name} {a.last_name}</p>
-    <p class="contact">{formatPhone(String(a.phone ?? ''))} · {a.address}, {detail.city_name}{a.email ? ` · ${String(a.email)}` : ''}</p>
+    <p class="contact">{formatPhone(String(a.phone ?? ''))} · {a.address}, {detail.city_name} {detail.zip}{a.email ? ` · ${String(a.email)}` : ''}</p>
     {detail.pickup_day && (
       <p class="pickup"><strong>Pickup:</strong> {detail.pickup_day.date_text}{detail.pickup_day.description ? ` — ${detail.pickup_day.description}` : ''}</p>
     )}

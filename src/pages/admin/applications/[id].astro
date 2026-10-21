@@ -240,7 +240,7 @@ const pickupDays = detail && a.household_type === 'family' ? await listPickupDay
         <h2 class="text-2xl font-bold text-holly-800">Household</h2>
         <p class="mt-2 text-stone-700">Applied: {centralDateTime(String(a.submitted_at ?? ''))}</p>
         {a.source === 'paper' && <p class="text-stone-700">Entered from a paper application.</p>}
-        <p class="mt-2">{a.address}, {detail.city_name}</p>
+        <p class="mt-2">{a.address}, {detail.city_name}, WI {detail.zip}</p>
         <p>Phone: {a.phone} · Email: {a.email}</p>
         <p>Household type: {a.household_type} · Diabetic in household: {yesno(a.diabetic)} · Wishes to be adopted: {yesno(a.share_with_sponsor)}</p>
         <p>Bed: {a.bed_choice}{a.bed_size ? ` (${a.bed_size})` : ''} · Years received help: {a.years_received_help} · Adopted last year: {yesno(a.adopted_last_year)}</p>

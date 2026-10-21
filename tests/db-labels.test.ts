@@ -76,7 +76,7 @@ describe('listMailedForLabels', () => {
     const rows = await listMailedForLabels(db, season);
     // Same city (Lancaster) for both survivors, so alphabetical by last name: Disabled before Elderly.
     expect(rows.map((r) => `${r.first_name} ${r.last_name}`)).toEqual(['Approved Disabled', 'Approved Elderly']);
-    expect(rows[1]).toEqual({ first_name: 'Approved', last_name: 'Elderly', address: '1', city_name: 'Lancaster' });
+    expect(rows[1]).toEqual({ first_name: 'Approved', last_name: 'Elderly', address: '1', city_name: 'Lancaster', zip: '53813' });
   });
 
   it('orders by city name, then last name', async () => {

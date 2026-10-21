@@ -340,6 +340,7 @@ export async function latestSeason(db: D1Database): Promise<number | null> {
 export type ApplicationDetail = {
   app: Record<string, unknown>;
   city_name: string;
+  zip: string;
   members: Record<string, unknown>[];
   employers: Record<string, unknown>[];
   pickup_day: { date_text: string; description: string } | null;
@@ -373,9 +374,9 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
     .first<Record<string, unknown>>();
   if (!app) return null;
   const city = await db
-    .prepare('SELECT name, pickup_day_id FROM cities WHERE id = ?')
+    .prepare('SELECT name, zip, pickup_day_id FROM cities WHERE id = ?')
     .bind(app.city_id as number)
-    .first<{ name: string; pickup_day_id: number | null }>();
+    .first<{ name: string; zip: string; pickup_day_id: number | null }>();
   const members = await db
     .prepare('SELECT * FROM household_members WHERE application_id = ? AND deleted_at IS NULL ORDER BY position')
     .bind(id)
@@ -408,6 +409,7 @@ export async function getApplicationDetail(db: D1Database, id: number): Promise<
   return {
     app,
     city_name: city?.name ?? '',
+    zip: city?.zip ?? '',
     members: members.results,
     employers: employers.results,
     pickup_day: pickupDay ?? null, // missing/deleted/unset day -> null (no date line)
@@ -553,7 +555,7 @@ export async function listAdoptions(db: D1Database, seasonYear: number): Promise
   return results;
 }
 
-export type LabelRow = { first_name: string; last_name: string; address: string; city_name: string };
+export type LabelRow = { first_name: string; last_name: string; address: string; city_name: string; zip: string };
 
 // Christmas-card mailing labels (2026-07-29 elderly-application design):
 // one row per approved, non-adopted, non-deleted elderly/disabled household
@@ -561,7 +563,7 @@ export type LabelRow = { first_name: string; last_name: string; address: string;
 export async function listMailedForLabels(db: D1Database, seasonYear: number): Promise<LabelRow[]> {
   const { results } = await db
     .prepare(
-      `SELECT a.first_name, a.last_name, a.address, c.name AS city_name
+      `SELECT a.first_name, a.last_name, a.address, c.name AS city_name, c.zip
        FROM applications a JOIN cities c ON c.id = a.city_id
        WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
          AND a.household_type IN ('elderly', 'disabled') AND a.adopted = 0
@@ -867,13 +869,13 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
   const [cities, members, pickupDays, settings] = await Promise.all([
     db
       .prepare(
-        `SELECT DISTINCT c.id, c.name, c.pickup_day_id FROM cities c
+        `SELECT DISTINCT c.id, c.name, c.zip, c.pickup_day_id FROM cities c
          JOIN applications a ON a.city_id = c.id
          WHERE a.deleted_at IS NULL AND a.season_year = ? AND a.status = 'approved'
            AND a.household_type NOT IN ('elderly', 'disabled') AND a.adopted = 0`,
       )
       .bind(seasonYear)
-      .all<{ id: number; name: string; pickup_day_id: number | null }>(),
+      .all<{ id: number; name: string; zip: string; pickup_day_id: number | null }>(),
     db
       .prepare(
         `SELECT hm.* FROM household_members hm
@@ -911,6 +913,7 @@ export async function listApprovedForSlips(db: D1Database, seasonYear: number): 
     return {
       app,
       city_name: city?.name ?? '',
+      zip: city?.zip ?? '',
       members: membersByApp.get(app.id as number) ?? [],
       employers: [], // SlipCard does not render employers
       pickup_day: dayId != null ? (dayById.get(dayId) ?? null) : null,

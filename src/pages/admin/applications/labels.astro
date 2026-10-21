@@ -27,7 +27,6 @@ for (let i = 0; i < rows.length; i += PER_SHEET) sheets.push(rows.slice(i, i + P
       {rows.length > 0 && <> · <button type="button" data-print>Print labels</button></>}</p>
     <h1 class="no-print" style="font-size:20px;">Christmas-card mailing labels — {season}</h1>
     <p class="no-print">Preview: each label is sized for an Avery 5160 sheet (3 across, 10 down). Press "Print labels" and load Avery 5160 sheets in the printer.</p>
-    <p class="no-print">Zip codes print only if they were typed into the address.</p>
     <p class="no-print">Labels: {rows.length}</p>
     {rows.length === 0 && <p class="no-print">No approved Elderly/Disabled households yet this season.</p>}
     {sheets.map((sheet) => (
@@ -36,7 +35,7 @@ for (let i = 0; i < rows.length; i += PER_SHEET) sheets.push(rows.slice(i, i + P
           <div class="label">
             <div>{r.first_name} {r.last_name}</div>
             <div>{r.address}</div>
-            <div>{r.city_name}, WI</div>
+            <div>{r.city_name}, WI {r.zip}</div>
           </div>
         ))}
       </div>
