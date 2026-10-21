@@ -366,10 +366,15 @@ const errorEntries = Object.entries(errors);
               <MemberCard index={idx + 1} values={values} errors={errors} />
             ))}
           </div>
-          <button type="submit" name="action" value="add_member" data-add="member" formnovalidate
-            class="mt-3 rounded-lg border-2 border-holly-700 bg-white px-4 py-3 font-bold text-holly-800 hover:bg-holly-100">
-            + Add another person
+          <!-- Sherlyn 2026-10-21: applicants were missing this button (small, white,
+               below a long card) and sending one-person households. Now a big
+               green step with its own instruction and a confirmation line. -->
+          <p id="member-add-help" class="mt-5 text-lg font-semibold">Does anyone else live with you? Press the green button once for each child, spouse, or other person. A new box will appear below for them.</p>
+          <button type="submit" name="action" value="add_member" data-add="member" formnovalidate aria-describedby="member-add-help"
+            class="mt-2 w-full rounded-lg bg-holly-700 px-6 py-4 text-xl font-bold text-white hover:bg-holly-900">
+            + Add a child, spouse, or other person
           </button>
+          <p id="member-added" class="mt-2 text-lg font-semibold text-holly-800" role="status" aria-live="polite"></p>
           <div class="mt-6">
             <label for="parentage_note" class="block font-semibold">
               Blended families <span class="font-normal">(optional)</span>
@@ -401,6 +406,13 @@ const errorEntries = Object.entries(errors);
             class={input}>{values.good_deed ?? ''}</textarea>
           <FieldError id="good_deed" errors={errors} />
         </section>
+
+        <div class="rounded-lg border-2 border-holly-700 bg-holly-100 p-5">
+          <p class="text-xl font-bold text-holly-800">Before you send</p>
+          <p class="mt-1 text-lg">You have listed <strong><span data-member-count>{memberCount}</span> <span data-member-word>{memberCount === 1 ? 'person' : 'people'}</span></strong> in your household. Did you list everyone?
+            <a href="#member-add-help" class="font-semibold text-holly-800 underline">Go back and add a person</a>.</p>
+          <p class="mt-1 text-lg">Your application is not saved until you press "Send my application" below.</p>
+        </div>
 
         <button type="submit"
           class="w-full rounded-lg bg-holly-700 px-6 py-4 text-xl font-bold text-white hover:bg-holly-900 sm:w-auto">

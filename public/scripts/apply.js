@@ -19,8 +19,20 @@
       e.preventDefault();
       countInput.value = String(next);
       list.insertAdjacentHTML('beforeend', tpl.innerHTML.replace(/__N__/g, String(next)));
-      var first = list.lastElementChild.querySelector('input, select, textarea');
+      var card = list.lastElementChild;
+      var first = card.querySelector('input, select, textarea');
       if (first) first.focus();
+      if (card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      // Sherlyn 2026-10-21: say out loud that it worked and keep the running
+      // count honest, so nobody sends a one-person household by accident.
+      if (kind === 'member') {
+        var status = document.getElementById('member-added');
+        if (status) status.textContent = 'Person ' + next + ' added below. Fill in their name.';
+        btn.textContent = '+ Add another person';
+        document.querySelectorAll('[data-member-count]').forEach(function (el) { el.textContent = String(next); });
+        document.querySelectorAll('[data-member-word]').forEach(function (el) { el.textContent = 'people'; });
+      }
     });
   });
 
