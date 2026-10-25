@@ -37,6 +37,11 @@ npm run build
 npx wrangler pages deploy dist --project-name gchp-site
 ```
 
+No PC handy? The same steps run in GitHub Actions: repo → Actions →
+"Deploy to Cloudflare Pages" → Run workflow (tick "run migrations" if the
+change added one). It needs the `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` repository secrets.
+
 If a deploy goes wrong: Cloudflare dashboard → Workers & Pages → gchp-site →
 Deployments → roll back to the previous one (instant).
 
