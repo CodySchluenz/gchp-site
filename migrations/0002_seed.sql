@@ -5,7 +5,7 @@ INSERT INTO cities (id, name, zip) VALUES
   (10,'Glen Haven','53810'),(11,'Hazel Green','53811'),(12,'Kieler','53812'),
   (13,'Lancaster','53813'),(14,'Livingston','53554'),(15,'Montfort','53569'),
   (16,'Mount Hope','53816'),(17,'Muscoda','53573'),(18,'Patch Grove','53817'),
-  (19,'Platteville','53818'),(20,'Potosi','53820'),(22,'Stitzer','53824'),
+  (19,'Platteville','53818'),(20,'Potosi','53820'),(22,'Stitzer','53825'),
   (23,'Woodman','53827'),(24,'Prairie du Chien','53821');
 
 INSERT INTO settings (id, applications_open, pickup_title, pickup_intro, pickup_footer) VALUES
