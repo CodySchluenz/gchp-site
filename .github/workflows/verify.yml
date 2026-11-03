@@ -1,0 +1,29 @@
+# Fetch a live page and check it contains some text. Used to confirm a deploy
+# actually landed (Actions -> Verify live page -> Run workflow).
+name: Verify live page
+
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: "Path on grantcountyholidayproject.org"
+        default: "/"
+      expect:
+        description: "Text the page must contain"
+        required: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch and check
+        run: |
+          URL="https://grantcountyholidayproject.org${{ inputs.path }}"
+          BODY=$(curl -sSL --max-time 30 -A "gchp-verify" "$URL")
+          if echo "$BODY" | grep -qF -- "${{ inputs.expect }}"; then
+            echo "::notice title=Verified::$URL contains: ${{ inputs.expect }}"
+          else
+            SNIP=$(echo "$BODY" | tr -s ' \n' ' ' | sed 's/<[^>]*>//g' | head -c 600)
+            echo "::error title=Not found::$URL does not contain the expected text. Page starts: $SNIP"
+            exit 1
+          fi
